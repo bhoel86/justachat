@@ -70,7 +70,14 @@ const helpCommand: CommandHandler = async (args, context) => {
 /pm <username> - Start private encrypted chat
 /clear - Clear your chat (local only)
 /users - List online users
-/whois <username> - View user info${modCommands}${adminCommands}`,
+/whois <username> - View user info
+
+**Radio Commands:**
+/radio - Start/toggle radio player
+/play - Play radio
+/pause - Pause radio
+/skip - Skip to next station
+/nowplaying - Show current song${modCommands}${adminCommands}`,
     isSystemMessage: true,
   };
 };
@@ -592,6 +599,47 @@ const pmCommand: CommandHandler = async (args, context) => {
   };
 };
 
+// Radio command handlers - these return special tokens that ChatRoom will interpret
+const radioCommand: CommandHandler = async () => {
+  return {
+    success: true,
+    message: 'RADIO_COMMAND:toggle',
+    isSystemMessage: false,
+  };
+};
+
+const playCommand: CommandHandler = async () => {
+  return {
+    success: true,
+    message: 'RADIO_COMMAND:play',
+    isSystemMessage: false,
+  };
+};
+
+const pauseCommand: CommandHandler = async () => {
+  return {
+    success: true,
+    message: 'RADIO_COMMAND:pause',
+    isSystemMessage: false,
+  };
+};
+
+const skipCommand: CommandHandler = async () => {
+  return {
+    success: true,
+    message: 'RADIO_COMMAND:skip',
+    isSystemMessage: false,
+  };
+};
+
+const nowPlayingCommand: CommandHandler = async () => {
+  return {
+    success: true,
+    message: 'RADIO_COMMAND:nowplaying',
+    isSystemMessage: false,
+  };
+};
+
 // Command registry
 const commands: Record<string, CommandHandler> = {
   help: helpCommand,
@@ -610,6 +658,13 @@ const commands: Record<string, CommandHandler> = {
   unmute: unmuteCommand,
   topic: topicCommand,
   whois: whoisCommand,
+  // Radio commands
+  radio: radioCommand,
+  play: playCommand,
+  pause: pauseCommand,
+  skip: skipCommand,
+  nowplaying: nowPlayingCommand,
+  np: nowPlayingCommand, // Alias
 };
 
 export const parseCommand = (input: string): { command: string; args: string[] } | null => {
