@@ -1,29 +1,45 @@
 @echo off
-echo Starting IRC Gateway Proxy...
+cd /d "C:\Users\dunad\Desktop\kiwiirc-master"
+echo ========================================
+echo IRC Gateway Proxy Launcher
+echo ========================================
+echo.
+echo Current directory: %CD%
 echo.
 
-SET EXE_PATH="C:\Users\dunad\Desktop\kiwiirc-master\webircgateway_windows_amd64.exe"
-SET CONFIG_PATH="C:\Users\dunad\Desktop\kiwiirc-master\config.conf"
-
-IF NOT EXIST %EXE_PATH% (
-    echo ERROR: webircgateway_windows_amd64.exe not found!
-    echo Expected location: %EXE_PATH%
+echo Checking for files...
+if exist "webircgateway_windows_amd64.exe" (
+    echo [OK] Found webircgateway_windows_amd64.exe
+) else (
+    echo [ERROR] webircgateway_windows_amd64.exe NOT FOUND
+    echo.
+    echo Files in this folder:
+    dir /b *.exe 2>nul
+    echo.
     pause
     exit /b 1
 )
 
-IF NOT EXIST %CONFIG_PATH% (
-    echo ERROR: config.conf not found!
-    echo Expected location: %CONFIG_PATH%
+if exist "config.conf" (
+    echo [OK] Found config.conf
+) else (
+    echo [ERROR] config.conf NOT FOUND
     pause
     exit /b 1
 )
 
-echo Starting proxy on 127.0.0.1:6667...
-echo Connect mIRC to: 127.0.0.1 port 6667
 echo.
-%EXE_PATH% -config %CONFIG_PATH%
+echo ========================================
+echo Starting proxy - Connect mIRC to 127.0.0.1:6667
+echo Press Ctrl+C to stop
+echo ========================================
+echo.
+
+webircgateway_windows_amd64.exe -config config.conf
 
 echo.
-echo Proxy has stopped.
+echo ========================================
+echo Proxy has exited. Error code: %ERRORLEVEL%
+echo ========================================
+echo.
 pause
