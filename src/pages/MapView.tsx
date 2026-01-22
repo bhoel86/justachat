@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useAuditLog } from "@/hooks/useAuditLog";
 import { Navigate } from "react-router-dom";
 import UserLocationMap from "@/components/map/UserLocationMap";
 import LocationAnalytics from "@/components/map/LocationAnalytics";
@@ -7,7 +9,22 @@ import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const MapView = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, isOwner, isAdmin } = useAuth();
+  const { logAction } = useAuditLog();
+
+  // Log when admin/owner accesses the map view
+  useEffect(() => {
+    if (user && (isOwner || isAdmin)) {
+      logAction({
+        action: 'view_locations',
+        resourceType: 'user_locations',
+        details: { 
+          accessedAt: new Date().toISOString(),
+          viewType: 'map_overview'
+        }
+      });
+    }
+  }, [user, isOwner, isAdmin, logAction]);
 
   if (loading) {
     return (
