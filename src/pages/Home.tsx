@@ -18,6 +18,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+// Room background images
+import generalBg from "@/assets/rooms/general-bg.jpg";
+import adultsBg from "@/assets/rooms/adults-bg.jpg";
+import musicBg from "@/assets/rooms/music-bg.jpg";
+import helpBg from "@/assets/rooms/help-bg.jpg";
+import gamesBg from "@/assets/rooms/games-bg.jpg";
+import politicsBg from "@/assets/rooms/politics-bg.jpg";
+import moviesBg from "@/assets/rooms/movies-bg.jpg";
+import sportsBg from "@/assets/rooms/sports-bg.jpg";
+import technologyBg from "@/assets/rooms/technology-bg.jpg";
+import datingBg from "@/assets/rooms/dating-bg.jpg";
+import loungeBg from "@/assets/rooms/lounge-bg.jpg";
+import triviaBg from "@/assets/rooms/trivia-bg.jpg";
+
 interface Channel {
   id: string;
   name: string;
@@ -52,6 +66,21 @@ const roomColors: Record<string, string> = {
   "dating": "from-pink-500 to-rose-500",
   "lounge": "from-amber-500 to-orange-500",
   "trivia": "from-teal-500 to-cyan-500",
+};
+
+const roomBackgrounds: Record<string, string> = {
+  "general": generalBg,
+  "adults-21-plus": adultsBg,
+  "music": musicBg,
+  "help": helpBg,
+  "games": gamesBg,
+  "politics": politicsBg,
+  "movies-tv": moviesBg,
+  "sports": sportsBg,
+  "technology": technologyBg,
+  "dating": datingBg,
+  "lounge": loungeBg,
+  "trivia": triviaBg,
 };
 
 const formatRoomName = (name: string) => {
@@ -267,19 +296,30 @@ const Home = () => {
                 onClick={() => handleJoinRoom(channel)}
                 className="group relative aspect-square rounded-xl overflow-hidden bg-card border border-border hover:border-primary/50 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-primary/20"
               >
-                {/* Gradient background */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${roomColors[channel.name] || 'from-primary to-accent'} opacity-20 group-hover:opacity-30 transition-opacity`} />
+                {/* Background image */}
+                {roomBackgrounds[channel.name] && (
+                  <div 
+                    className="absolute inset-0 bg-cover bg-center opacity-30 group-hover:opacity-50 transition-opacity"
+                    style={{ backgroundImage: `url(${roomBackgrounds[channel.name]})` }}
+                  />
+                )}
+                
+                {/* Gradient overlay */}
+                <div className={`absolute inset-0 bg-gradient-to-br ${roomColors[channel.name] || 'from-primary to-accent'} opacity-10 group-hover:opacity-20 transition-opacity`} />
+                
+                {/* Dark overlay for readability */}
+                <div className="absolute inset-0 bg-black/40" />
                 
                 {/* Content */}
                 <div className="relative h-full flex flex-col items-center justify-center p-4 text-center">
                   <div className={`mb-3 p-4 rounded-full bg-gradient-to-br ${roomColors[channel.name] || 'from-primary to-accent'} text-white shadow-lg group-hover:scale-110 transition-transform`}>
                     {roomIcons[channel.name] || <Hash className="w-8 h-8" />}
                   </div>
-                  <h3 className="font-semibold text-lg mb-1">
+                  <h3 className="font-semibold text-lg mb-1 text-white drop-shadow-md">
                     #{formatRoomName(channel.name)}
                   </h3>
                   {channel.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2">
+                    <p className="text-xs text-white/80 line-clamp-2 drop-shadow">
                       {channel.description}
                     </p>
                   )}
