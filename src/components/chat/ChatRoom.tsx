@@ -1,42 +1,25 @@
 import { useState, useRef, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth, supabaseUntyped } from "@/hooks/useAuth";
 import ChatHeader from "./ChatHeader";
 import ChatInput from "./ChatInput";
 import MessageBubble from "./MessageBubble";
 
 interface Message {
   id: string;
-  message: string;
-  sender: string;
-  timestamp: Date;
-  isOwn: boolean;
+  content: string;
+  user_id: string;
+  created_at: string;
+  profile?: {
+    username: string;
+  };
 }
 
-interface ChatRoomProps {
-  username: string;
-}
-
-const MOCK_USERS = ["Alex", "Jordan", "Sam", "Casey", "Riley"];
-const MOCK_MESSAGES = [
-  "Hey everyone! 👋",
-  "What's up?",
-  "Just chilling, you?",
-  "Anyone want to chat?",
-  "This app is pretty cool!",
-  "Love the design 💙",
-  "How's everyone doing today?",
-];
-
-const ChatRoom = ({ username }: ChatRoomProps) => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "1",
-      message: "Welcome to JAC! Start chatting with others 🎉",
-      sender: "JAC Bot",
-      timestamp: new Date(),
-      isOwn: false,
-    },
-  ]);
-  const [onlineCount] = useState(Math.floor(Math.random() * 50) + 10);
+const ChatRoom = () => {
+  const { user, isAdmin } = useAuth();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [onlineCount, setOnlineCount] = useState(1);
+  const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -47,56 +30,154 @@ const ChatRoom = ({ username }: ChatRoomProps) => {
     scrollToBottom();
   }, [messages]);
 
-  // Simulate incoming messages
+  // Fetch initial messages
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (Math.random() > 0.7) {
-        const randomUser = MOCK_USERS[Math.floor(Math.random() * MOCK_USERS.length)];
-        const randomMessage = MOCK_MESSAGES[Math.floor(Math.random() * MOCK_MESSAGES.length)];
-        
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: Date.now().toString(),
-            message: randomMessage,
-            sender: randomUser,
-            timestamp: new Date(),
-            isOwn: false,
-          },
-        ]);
-      }
-    }, 5000);
+    const fetchMessages = async () => {
+      const { data, error } = await supabaseUntyped
+        .from('messages')
+        .select(`
+          id,
+          content,
+          user_id,
+          created_at
+        `)
+        .order('created_at', { ascending: true })
+        .limit(100);
 
-    return () => clearInterval(interval);
+      if (!error && data) {
+        // Fetch profiles separately
+        const userIds = [...new Set(data.map((msg: Message) => msg.user_id))];
+        const { data: profiles } = await supabaseUntyped
+          .from('profiles')
+          .select('user_id, username')
+          .in('user_id', userIds);
+
+        const profileMap = new Map(profiles?.map((p: { user_id: string; username: string }) => [p.user_id, p]) || []);
+
+        setMessages(data.map((msg: Message) => ({
+          ...msg,
+          profile: profileMap.get(msg.user_id) as { username: string } | undefined
+        })));
+      }
+      setLoading(false);
+    };
+
+    fetchMessages();
   }, []);
 
-  const handleSend = (message: string) => {
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: Date.now().toString(),
-        message,
-        sender: username,
-        timestamp: new Date(),
-        isOwn: true,
-      },
-    ]);
+  // Subscribe to real-time messages
+  useEffect(() => {
+    const channel = supabase
+      .channel('public:messages')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages'
+        },
+        async (payload) => {
+          const newMessage = payload.new as Message;
+          
+          // Fetch the profile for the new message
+          const { data: profile } = await supabaseUntyped
+            .from('profiles')
+            .select('username')
+            .eq('user_id', newMessage.user_id)
+            .single();
+
+          setMessages(prev => [...prev, { ...newMessage, profile: profile || undefined }]);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'messages'
+        },
+        (payload) => {
+          const deletedId = (payload.old as { id: string }).id;
+          setMessages(prev => prev.filter(msg => msg.id !== deletedId));
+        }
+      )
+      .subscribe();
+
+    // Track presence for online count
+    const presenceChannel = supabase.channel('online-users', {
+      config: {
+        presence: {
+          key: user?.id || 'anonymous'
+        }
+      }
+    });
+
+    presenceChannel
+      .on('presence', { event: 'sync' }, () => {
+        const state = presenceChannel.presenceState();
+        setOnlineCount(Object.keys(state).length);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await presenceChannel.track({ user_id: user?.id });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+      supabase.removeChannel(presenceChannel);
+    };
+  }, [user?.id]);
+
+  const handleSend = async (content: string) => {
+    if (!user) return;
+
+    await supabaseUntyped
+      .from('messages')
+      .insert({
+        content,
+        user_id: user.id
+      });
   };
+
+  const handleDelete = async (messageId: string) => {
+    await supabaseUntyped
+      .from('messages')
+      .delete()
+      .eq('id', messageId);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col h-screen bg-background items-center justify-center">
+        <div className="h-12 w-12 rounded-xl jac-gradient-bg animate-pulse" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-background">
-      <ChatHeader username={username} onlineCount={onlineCount} />
+      <ChatHeader onlineCount={onlineCount} />
       
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.map((msg) => (
-          <MessageBubble
-            key={msg.id}
-            message={msg.message}
-            sender={msg.sender}
-            timestamp={msg.timestamp}
-            isOwn={msg.isOwn}
-          />
-        ))}
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+            <p>No messages yet. Be the first to say hello!</p>
+          </div>
+        ) : (
+          messages.map((msg) => (
+            <MessageBubble
+              key={msg.id}
+              id={msg.id}
+              message={msg.content}
+              sender={msg.profile?.username || 'Unknown'}
+              timestamp={new Date(msg.created_at)}
+              isOwn={msg.user_id === user?.id}
+              canDelete={msg.user_id === user?.id || isAdmin}
+              onDelete={handleDelete}
+            />
+          ))
+        )}
         <div ref={messagesEndRef} />
       </div>
       
