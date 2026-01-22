@@ -1,19 +1,31 @@
-import { useState } from "react";
-import WelcomeScreen from "@/components/WelcomeScreen";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import ChatRoom from "@/components/chat/ChatRoom";
 
 const Index = () => {
-  const [username, setUsername] = useState<string | null>(null);
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
 
-  const handleJoin = (name: string) => {
-    setUsername(name);
-  };
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/auth");
+    }
+  }, [user, loading, navigate]);
 
-  if (!username) {
-    return <WelcomeScreen onJoin={handleJoin} />;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="h-12 w-12 rounded-xl jac-gradient-bg animate-pulse" />
+      </div>
+    );
   }
 
-  return <ChatRoom username={username} />;
+  if (!user) {
+    return null;
+  }
+
+  return <ChatRoom />;
 };
 
 export default Index;
