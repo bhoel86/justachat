@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { 
   LogOut, Users, MessageSquare, Shield, Music, Gamepad2, Vote, Tv, 
   Dumbbell, Cpu, Heart, Coffee, HelpCircle, Hash, Settings, FileText,
-  Ban, Key, MapPin, UserCog, ChevronDown, Mail
+  Ban, Key, MapPin, UserCog, ChevronDown, Mail, VolumeX
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -163,6 +163,16 @@ const Home = () => {
                       <div>
                         <span>Ban List</span>
                         <p className="text-xs text-muted-foreground">Manage banned users</p>
+                      </div>
+                    </Link>
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin/mutes" className="flex items-center gap-2 cursor-pointer">
+                      <VolumeX className="w-4 h-4 text-amber-500" />
+                      <div>
+                        <span>Mute List</span>
+                        <p className="text-xs text-muted-foreground">Manage muted users</p>
                       </div>
                     </Link>
                   </DropdownMenuItem>
