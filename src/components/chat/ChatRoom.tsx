@@ -11,6 +11,7 @@ import MemberList from "./MemberList";
 import ChannelList, { Channel } from "./ChannelList";
 import PrivateMessageModal from "./PrivateMessageModal";
 import LanguageSettingsModal from "@/components/profile/LanguageSettingsModal";
+import RadioPlayer, { RadioPlayerRef } from "./RadioPlayer";
 import { parseCommand, executeCommand, isCommand, CommandContext } from "@/lib/commands";
 import { getModerator, getWelcomeMessage, getRandomTip } from "@/lib/roomConfig";
 
@@ -47,6 +48,7 @@ const ChatRoom = ({ initialChannelId }: ChatRoomProps) => {
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [translations, setTranslations] = useState<Record<string, { text: string; lang: string }>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const radioRef = useRef<RadioPlayerRef>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   
@@ -483,6 +485,38 @@ const ChatRoom = ({ initialChannelId }: ChatRoomProps) => {
         return;
       }
 
+      // Handle radio commands
+      if (result.message.startsWith('RADIO_COMMAND:')) {
+        const action = result.message.split(':')[1];
+        if (radioRef.current) {
+          switch (action) {
+            case 'toggle':
+              radioRef.current.toggle();
+              break;
+            case 'play':
+              radioRef.current.play();
+              break;
+            case 'pause':
+              radioRef.current.pause();
+              break;
+            case 'skip':
+              radioRef.current.skip();
+              break;
+            case 'nowplaying':
+              const station = radioRef.current.getCurrentStation();
+              if (station) {
+                addSystemMessage(`🎵 Now playing: **${station.name}** by ${station.artist}`);
+              } else {
+                addSystemMessage(`📻 Radio is not playing. Type /radio to start.`);
+              }
+              break;
+          }
+        } else {
+          addSystemMessage(`📻 Radio is not available. Try /radio to start.`);
+        }
+        return;
+      }
+
       if (result.isSystemMessage && !result.broadcast) {
         addSystemMessage(result.message);
       } else if (result.broadcast) {
@@ -629,6 +663,15 @@ const ChatRoom = ({ initialChannelId }: ChatRoomProps) => {
             ))
           )}
           <div ref={messagesEndRef} />
+        </div>
+        
+        {/* Radio Player */}
+        <div className="px-4 pb-2">
+          <RadioPlayer 
+            ref={radioRef}
+            onStatusChange={(status) => addSystemMessage(status)}
+            minimized
+          />
         </div>
         
         <ChatInput onSend={handleSend} isMuted={isMuted} />
