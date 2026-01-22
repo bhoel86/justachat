@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { RadioProvider } from "@/contexts/RadioContext";
 import Home from "./pages/Home";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -23,28 +24,30 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/chat/:channelId" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/map" element={<MapView />} />
-            <Route path="/admin" element={<AdminPanel />} />
-            <Route path="/admin/bans" element={<AdminBans />} />
-            <Route path="/admin/users" element={<AdminUsers />} />
-            <Route path="/admin/api" element={<AdminAPI />} />
-            <Route path="/admin/emails" element={<AdminEmails />} />
-            <Route path="/admin/messages" element={<AdminMessages />} />
-            <Route path="/admin/mutes" element={<AdminMutes />} />
-            <Route path="/admin/irc" element={<AdminIRC />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <RadioProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/chat/:channelId" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/map" element={<MapView />} />
+              <Route path="/admin" element={<AdminPanel />} />
+              <Route path="/admin/bans" element={<AdminBans />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/api" element={<AdminAPI />} />
+              <Route path="/admin/emails" element={<AdminEmails />} />
+              <Route path="/admin/messages" element={<AdminMessages />} />
+              <Route path="/admin/mutes" element={<AdminMutes />} />
+              <Route path="/admin/irc" element={<AdminIRC />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </RadioProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
