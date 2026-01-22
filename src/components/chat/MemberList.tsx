@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Crown, Shield, ShieldCheck, User, Users, MoreVertical, MessageSquareLock, Bot, Info, Ban, Flag, Camera, AtSign, Settings, FileText, VolumeX, LogOut } from "lucide-react";
+import { Crown, Shield, ShieldCheck, User, Users, MoreVertical, MessageSquareLock, Bot, Info, Ban, Flag, Camera, AtSign, Settings, FileText, VolumeX, LogOut, Music } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseUntyped, useAuth } from "@/hooks/useAuth";
@@ -21,6 +21,7 @@ import UserAvatar from "@/components/avatar/UserAvatar";
 import AvatarUploadModal from "@/components/avatar/AvatarUploadModal";
 import UsernameChangeModal from "@/components/profile/UsernameChangeModal";
 import { BioEditModal } from "@/components/profile/BioEditModal";
+import { useRadioOptional } from "@/contexts/RadioContext";
 
 interface Member {
   user_id: string;
@@ -81,6 +82,7 @@ const MemberList = ({ onlineUserIds, channelName = 'general' }: MemberListProps)
   const [bioModalOpen, setBioModalOpen] = useState(false);
   const { user, role: currentUserRole, isOwner, isAdmin } = useAuth();
   const { toast } = useToast();
+  const radio = useRadioOptional();
 
   // Get current user's username and avatar
   const [currentUsername, setCurrentUsername] = useState('');
@@ -411,6 +413,7 @@ const MemberList = ({ onlineUserIds, channelName = 'general' }: MemberListProps)
                     onAvatarClick={member.user_id === user?.id ? () => setAvatarModalOpen(true) : undefined}
                     onUsernameClick={member.user_id === user?.id ? () => setUsernameModalOpen(true) : undefined}
                     onBioClick={member.user_id === user?.id ? () => setBioModalOpen(true) : undefined}
+                    currentlyPlaying={member.user_id === user?.id && radio?.isPlaying ? radio.currentStation : null}
                   />
                 ))}
               </div>
@@ -440,6 +443,7 @@ const MemberList = ({ onlineUserIds, channelName = 'general' }: MemberListProps)
                     onAvatarClick={member.user_id === user?.id ? () => setAvatarModalOpen(true) : undefined}
                     onUsernameClick={member.user_id === user?.id ? () => setUsernameModalOpen(true) : undefined}
                     onBioClick={member.user_id === user?.id ? () => setBioModalOpen(true) : undefined}
+                    currentlyPlaying={member.user_id === user?.id && radio?.isPlaying ? radio.currentStation : null}
                   />
                 ))}
               </div>
@@ -632,9 +636,10 @@ interface MemberItemProps {
   onAvatarClick?: () => void;
   onUsernameClick?: () => void;
   onBioClick?: () => void;
+  currentlyPlaying?: { name: string; artist: string } | null;
 }
 
-const MemberItem = ({ member, canManage, canModerate, availableRoles, onRoleChange, onBan, onKick, onMute, onPmClick, isCurrentUser, onAvatarClick, onUsernameClick, onBioClick }: MemberItemProps) => {
+const MemberItem = ({ member, canManage, canModerate, availableRoles, onRoleChange, onBan, onKick, onMute, onPmClick, isCurrentUser, onAvatarClick, onUsernameClick, onBioClick, currentlyPlaying }: MemberItemProps) => {
   const config = roleConfig[member.role] || roleConfig.user;
   const Icon = config.icon;
 
@@ -747,6 +752,15 @@ const MemberItem = ({ member, canManage, canModerate, availableRoles, onRoleChan
           <Icon className={cn("h-3 w-3", config.color)} />
           <span className={cn("text-xs", config.color)}>{config.label}</span>
         </div>
+        {/* Show currently playing music for current user */}
+        {isCurrentUser && currentlyPlaying && (
+          <div className="flex items-center gap-1 mt-0.5">
+            <Music className="h-2.5 w-2.5 text-primary animate-pulse" />
+            <span className="text-[10px] text-primary truncate max-w-[120px]">
+              {currentlyPlaying.name}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* PM button */}
