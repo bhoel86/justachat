@@ -191,6 +191,11 @@ async function handlePASS(session: IRCSession, params: string[]) {
         },
       });
       console.log(`User authenticated: ${data.user.id}`);
+      
+      // Try to complete registration now that auth is done
+      if (session.nick && session.user && !session.registered) {
+        await completeRegistration(session);
+      }
     } else {
       // Access token format
       const { data, error } = await supabase.auth.getUser(password);
@@ -209,6 +214,12 @@ async function handlePASS(session: IRCSession, params: string[]) {
           },
         },
       });
+      console.log(`User authenticated via token: ${data.user.id}`);
+      
+      // Try to complete registration now that auth is done
+      if (session.nick && session.user && !session.registered) {
+        await completeRegistration(session);
+      }
     }
   } catch (e) {
     console.error("Auth error:", e);
