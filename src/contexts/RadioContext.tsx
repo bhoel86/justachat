@@ -9,6 +9,7 @@ interface RadioContextType {
   play: () => void;
   pause: () => void;
   skip: () => void;
+  skipGenre: () => void;
   previous: () => void;
   toggle: () => void;
   shuffle: () => void;
@@ -166,6 +167,24 @@ export const RadioProvider: React.FC<RadioProviderProps> = ({ children }) => {
     }
   }, [currentSongIndex, currentPlaylist, isInitialized]);
 
+  const skipGenre = useCallback(() => {
+    const currentGenreIndex = genres.indexOf(currentGenre);
+    const nextGenreIndex = (currentGenreIndex + 1) % genres.length;
+    const nextGenre = genres[nextGenreIndex];
+    
+    setCurrentGenre(nextGenre);
+    setCurrentSongIndex(0);
+    
+    const newPlaylist = nextGenre === 'All' 
+      ? getAllSongs() 
+      : MUSIC_LIBRARY.find(g => g.name === nextGenre)?.songs || getAllSongs();
+    
+    if (playerRef.current && isInitialized && newPlaylist.length > 0) {
+      playerRef.current.loadVideoById(newPlaylist[0].videoId);
+      playerRef.current.playVideo();
+    }
+  }, [currentGenre, genres, isInitialized]);
+
   const shuffle = useCallback(() => {
     const randomIndex = Math.floor(Math.random() * currentPlaylist.length);
     setCurrentSongIndex(randomIndex);
@@ -207,6 +226,7 @@ export const RadioProvider: React.FC<RadioProviderProps> = ({ children }) => {
       play,
       pause,
       skip,
+      skipGenre,
       previous,
       toggle,
       shuffle,
