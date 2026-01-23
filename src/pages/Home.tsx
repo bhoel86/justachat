@@ -287,55 +287,45 @@ const Home = () => {
             </div>
 
             {loadingChannels ? (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-2">
                 {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="aspect-square rounded-xl bg-card animate-pulse" />
+                  <div key={i} className="h-12 rounded-lg bg-card animate-pulse" />
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3 max-h-[calc(100vh-280px)] overflow-y-auto pr-2 scrollbar-thin">
+              <div className="flex flex-col gap-2 max-h-[calc(100vh-280px)] overflow-y-auto pr-2 scrollbar-thin">
                 {channels.map((channel) => (
                   <button
                     key={channel.id}
                     onClick={() => handleJoinRoom(channel)}
-                    className="group relative aspect-square rounded-xl overflow-hidden bg-card border border-border hover:border-primary/50 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-primary/20"
+                    className="group relative h-12 rounded-lg overflow-hidden bg-card border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-md hover:shadow-primary/20"
                   >
                     {/* Background image */}
                     {roomBackgrounds[channel.name] && (
                       <div 
-                        className="absolute inset-0 bg-cover bg-center opacity-50 group-hover:opacity-70 transition-opacity"
+                        className="absolute inset-0 bg-cover bg-center opacity-40 group-hover:opacity-60 transition-opacity"
                         style={{ backgroundImage: `url(${roomBackgrounds[channel.name]})` }}
                       />
                     )}
                     
-                    {/* Gradient overlay - lighter for darker themed rooms */}
-                    <div className={`absolute inset-0 bg-gradient-to-br ${roomColors[channel.name] || 'from-primary to-accent'} ${
-                      ['lounge', 'politics', 'adults-21-plus'].includes(channel.name) 
-                        ? 'opacity-30 group-hover:opacity-40' 
-                        : 'opacity-20 group-hover:opacity-30'
-                    } transition-opacity`} />
+                    {/* Gradient overlay */}
+                    <div className={`absolute inset-0 bg-gradient-to-r ${roomColors[channel.name] || 'from-primary to-accent'} opacity-20 group-hover:opacity-30 transition-opacity`} />
                     
-                    {/* Dark overlay for readability - lighter for brown/dark themed rooms */}
-                    <div className={`absolute inset-0 ${
-                      ['lounge', 'politics', 'adults-21-plus'].includes(channel.name)
-                        ? 'bg-black/15'
-                        : 'bg-black/30'
-                    }`} />
-                    
-                    {/* Vignette effect */}
-                    <div 
-                      className="absolute inset-0 pointer-events-none"
-                      style={{
-                        background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.4) 100%)'
-                      }}
-                    />
+                    {/* Dark overlay for readability */}
+                    <div className="absolute inset-0 bg-black/40" />
                     
                     {/* Content */}
-                    <div className="relative h-full flex flex-col items-center justify-center p-3 text-center">
-                      <div className={`mb-2 p-3 rounded-full bg-gradient-to-br ${roomColors[channel.name] || 'from-primary to-accent'} text-white shadow-lg group-hover:scale-110 transition-transform`}>
-                        {roomIcons[channel.name] || <Hash className="w-6 h-6" />}
+                    <div className="relative h-full flex items-center gap-3 px-3">
+                      <div className={`p-2 rounded-lg bg-gradient-to-br ${roomColors[channel.name] || 'from-primary to-accent'} text-white shadow-md group-hover:scale-105 transition-transform`}>
+                        {roomIcons[channel.name] ? (
+                          <div className="w-5 h-5 flex items-center justify-center [&>svg]:w-5 [&>svg]:h-5">
+                            {roomIcons[channel.name]}
+                          </div>
+                        ) : (
+                          <Hash className="w-5 h-5" />
+                        )}
                       </div>
-                      <h3 className="font-semibold text-sm mb-0.5 text-white drop-shadow-md">
+                      <h3 className="font-semibold text-sm text-white drop-shadow-md">
                         #{formatRoomName(channel.name)}
                       </h3>
                     </div>
