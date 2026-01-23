@@ -57,14 +57,14 @@ const MessageBubble = ({
   
   // Username dropdown component with 3-dot menu
   const UsernameWithDropdown = ({ username, userId, isOwnMessage, avatarUrl }: { username: string; userId?: string; isOwnMessage: boolean; avatarUrl?: string | null }) => {
-    if (!userId) return <span className="text-xs font-medium text-primary">{username}</span>;
+    if (!userId) return <span className="text-[10px] font-medium text-primary">{username}</span>;
     
     return (
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="p-0.5 rounded hover:bg-accent/50 transition-colors cursor-pointer opacity-60 hover:opacity-100">
-              <MoreVertical className="h-3 w-3" />
+              <MoreVertical className="h-2.5 w-2.5" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent 
@@ -143,7 +143,7 @@ const MessageBubble = ({
             )}
           </DropdownMenuContent>
         </DropdownMenu>
-        <span className="text-xs font-medium text-primary">{username}</span>
+        <span className="text-[10px] font-medium text-primary">{username}</span>
       </div>
     );
   };
@@ -152,9 +152,9 @@ const MessageBubble = ({
   if (isSystem) {
     return (
       <div className="flex justify-center animate-message-in">
-        <div className="flex items-start gap-2 max-w-[90%] px-4 py-2 bg-secondary/50 rounded-lg border border-border/50">
-          <Terminal className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-          <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+        <div className="flex items-start gap-1.5 max-w-[90%] px-2 py-1 bg-secondary/50 rounded-lg border border-border/50">
+          <Terminal className="h-3 w-3 text-primary mt-0.5 shrink-0" />
+          <div className="text-xs text-muted-foreground whitespace-pre-wrap">
             {message.split('**').map((part, i) => 
               i % 2 === 1 ? <strong key={i} className="text-foreground">{part}</strong> : part
             )}
@@ -168,14 +168,14 @@ const MessageBubble = ({
   if (isModerator) {
     return (
       <div className="flex justify-start animate-message-in">
-        <div className="max-w-[85%] rounded-2xl px-4 py-3 bg-gradient-to-br from-primary/20 to-accent/10 border border-primary/30 rounded-bl-md">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-lg">{sender.split(' ')[0]}</span>
-            <p className="text-xs font-bold text-primary">{sender.split(' ').slice(1).join(' ')}</p>
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium">MOD</span>
+        <div className="max-w-[85%] rounded-lg px-2 py-1.5 bg-gradient-to-br from-primary/20 to-accent/10 border border-primary/30 rounded-bl-sm">
+          <div className="flex items-center gap-1 mb-0.5">
+            <span className="text-sm">{sender.split(' ')[0]}</span>
+            <p className="text-[10px] font-bold text-primary">{sender.split(' ').slice(1).join(' ')}</p>
+            <span className="text-[9px] px-1 py-0.5 rounded-full bg-primary/20 text-primary font-medium">MOD</span>
           </div>
-          <p className="text-sm leading-relaxed break-words text-foreground">{message}</p>
-          <p className="text-[10px] text-muted-foreground mt-1">
+          <p className="text-xs leading-tight break-words text-foreground">{message}</p>
+          <p className="text-[9px] text-muted-foreground mt-0.5">
             {timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </p>
         </div>
@@ -189,7 +189,7 @@ const MessageBubble = ({
   if (isAction) {
     return (
       <div className="flex justify-center animate-message-in">
-        <div className="px-4 py-2 text-sm italic text-primary">
+        <div className="px-2 py-1 text-xs italic text-primary">
           {message}
         </div>
       </div>
@@ -205,25 +205,45 @@ const MessageBubble = ({
     >
       <div
         className={cn(
-          "max-w-[80%] rounded-2xl px-4 py-3 relative",
+          "max-w-[85%] rounded-lg px-2 py-1 relative",
           isOwn
-            ? "bg-jac-bubble-user text-primary-foreground rounded-br-md"
-            : "bg-jac-bubble-other text-foreground rounded-bl-md"
+            ? "bg-jac-bubble-user text-primary-foreground rounded-br-sm"
+            : "bg-jac-bubble-other text-foreground rounded-bl-sm"
         )}
       >
-        {!isOwn ? (
-          <UsernameWithDropdown username={sender} userId={senderId} isOwnMessage={false} avatarUrl={senderAvatarUrl} />
-        ) : (
-          <div className="flex justify-end mb-1">
+        <div className="flex items-center gap-1">
+          {!isOwn ? (
+            <UsernameWithDropdown username={sender} userId={senderId} isOwnMessage={false} avatarUrl={senderAvatarUrl} />
+          ) : (
             <UsernameWithDropdown username={sender} userId={senderId} isOwnMessage={true} avatarUrl={senderAvatarUrl} />
-          </div>
-        )}
-        <p className="text-sm leading-relaxed break-words pr-6 whitespace-pre-wrap">{displayMessage}</p>
+          )}
+          <span
+            className={cn(
+              "text-[9px] ml-1",
+              isOwn ? "text-primary-foreground/70" : "text-muted-foreground"
+            )}
+          >
+            {timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
+          {canDelete && onDelete && (
+            <button
+              onClick={() => onDelete(id)}
+              className={cn(
+                "opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-destructive/20 ml-auto",
+                isOwn ? "text-primary-foreground/70 hover:text-primary-foreground" : "text-muted-foreground hover:text-destructive"
+              )}
+              title="Delete message"
+            >
+              <Trash2 className="h-2.5 w-2.5" />
+            </button>
+          )}
+        </div>
+        <p className="text-xs leading-tight break-words whitespace-pre-wrap">{displayMessage}</p>
         {(translatedMessage || detectedLanguage) && (
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex items-center gap-1.5 mt-0.5">
             {detectedLanguage && (
               <span className={cn(
-                "text-[10px] px-1.5 py-0.5 rounded-full",
+                "text-[9px] px-1 py-0.5 rounded-full",
                 isOwn ? "bg-primary-foreground/10 text-primary-foreground/70" : "bg-muted text-muted-foreground"
               )}>
                 {detectedLanguage}
@@ -233,45 +253,22 @@ const MessageBubble = ({
               <button
                 onClick={() => setShowOriginal(!showOriginal)}
                 className={cn(
-                  "flex items-center gap-1 text-[10px] opacity-70 hover:opacity-100 transition-opacity",
+                  "flex items-center gap-0.5 text-[9px] opacity-70 hover:opacity-100 transition-opacity",
                   isOwn ? "text-primary-foreground/70" : "text-muted-foreground"
                 )}
               >
-                <Languages className="h-3 w-3" />
+                <Languages className="h-2.5 w-2.5" />
                 {showOriginal ? 'Show translation' : 'Show original'}
               </button>
             )}
           </div>
         )}
         {isTranslating && (
-          <span className="flex items-center gap-1 text-[10px] mt-1 opacity-50">
-            <Languages className="h-3 w-3 animate-pulse" />
+          <span className="flex items-center gap-0.5 text-[9px] mt-0.5 opacity-50">
+            <Languages className="h-2.5 w-2.5 animate-pulse" />
             Translating...
           </span>
         )}
-        <div className="flex items-center justify-between mt-1">
-          <p
-            className={cn(
-              "text-[10px]",
-              isOwn ? "text-primary-foreground/70" : "text-muted-foreground"
-            )}
-          >
-            {timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          </p>
-          
-          {canDelete && onDelete && (
-            <button
-              onClick={() => onDelete(id)}
-              className={cn(
-                "opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/20",
-                isOwn ? "text-primary-foreground/70 hover:text-primary-foreground" : "text-muted-foreground hover:text-destructive"
-              )}
-              title="Delete message"
-            >
-              <Trash2 className="h-3 w-3" />
-            </button>
-          )}
-        </div>
       </div>
     </div>
   );
