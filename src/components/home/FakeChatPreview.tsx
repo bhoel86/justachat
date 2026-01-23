@@ -367,9 +367,14 @@ const FakeChatPreview = () => {
     return () => clearTimeout(timeoutId);
   }, [usedConversations]);
 
-  // Auto-scroll to bottom
+  // Auto-scroll to bottom within container only (not page scroll)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current) {
+      const container = messagesEndRef.current.parentElement;
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
+    }
   }, [messages]);
 
   const getUserData = (username: string) => 
