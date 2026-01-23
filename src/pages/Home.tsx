@@ -17,6 +17,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import FakeChatPreview from "@/components/home/FakeChatPreview";
 
 // Room background images
 import generalBg from "@/assets/rooms/general-bg.jpg";
@@ -370,27 +371,8 @@ const Home = () => {
                 </Button>
               </div>
               
-              {/* Chat Preview Area */}
-              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-gradient-to-b from-transparent to-primary/5">
-                <div className="h-20 w-20 rounded-2xl jac-gradient-bg flex items-center justify-center mb-6 animate-pulse-glow">
-                  <MessageSquare className="w-10 h-10 text-primary-foreground" />
-                </div>
-                <h2 className="text-2xl font-bold mb-3 jac-gradient-text">Welcome to Justachat<sup className="text-sm">™</sup></h2>
-                <p className="text-muted-foreground max-w-md mb-6">
-                  Join the #General chat to start chatting with the community, or select any room from the left to explore different topics.
-                </p>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-primary" />
-                    <span>{channels.length} Rooms</span>
-                  </div>
-                  <div className="h-4 w-px bg-border" />
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="w-4 h-4 text-primary" />
-                    <span>Real-time Chat</span>
-                  </div>
-                </div>
-              </div>
+              {/* Live Chat Preview */}
+              <FakeChatPreview />
             </div>
           </div>
         </div>
