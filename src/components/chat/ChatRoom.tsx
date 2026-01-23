@@ -5,6 +5,7 @@ import { useAuth, supabaseUntyped } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useTriviaGame } from "@/hooks/useTriviaGame";
+import { useArtCurator } from "@/hooks/useArtCurator";
 import ChatHeader from "./ChatHeader";
 import ChatInput from "./ChatInput";
 import MessageBubble from "./MessageBubble";
@@ -14,6 +15,7 @@ import PrivateMessageModal from "./PrivateMessageModal";
 import LanguageSettingsModal from "@/components/profile/LanguageSettingsModal";
 import RoomSettingsModal from "./RoomSettingsModal";
 import RoomPasswordModal from "./RoomPasswordModal";
+import ArtDisplay from "./ArtDisplay";
 import { useRadioOptional } from "@/contexts/RadioContext";
 import { parseCommand, executeCommand, isCommand, CommandContext } from "@/lib/commands";
 import { getModerator, getWelcomeMessage, getRandomTip } from "@/lib/roomConfig";
@@ -393,6 +395,9 @@ const ChatRoom = ({ initialChannelId }: ChatRoomProps) => {
     addSystemMessage
   );
 
+  // Art room hook
+  const artCurator = useArtCurator();
+
   // Show welcome message and tip when entering a channel
   useEffect(() => {
     if (!currentChannel || loading) return;
@@ -408,6 +413,34 @@ const ChatRoom = ({ initialChannelId }: ChatRoomProps) => {
       setTimeout(() => {
         addModeratorMessage(tipMsg, currentChannel.name, currentChannel.id);
       }, 1500);
+      
+      // If this is the art room, fetch and display featured art
+      if (currentChannel.name === 'art') {
+        setTimeout(async () => {
+          const featured = await artCurator.fetchFeaturedArt();
+          if (featured) {
+            // Add art message with special formatting
+            const artMsg: Message = {
+              id: `art-${Date.now()}`,
+              content: `ART_DISPLAY:${JSON.stringify({
+                imageUrl: featured.image_url,
+                title: featured.piece.title,
+                artist: featured.piece.artist,
+                year: featured.piece.year,
+                period: featured.piece.period,
+                medium: featured.piece.medium,
+                commentary: featured.commentary
+              })}`,
+              user_id: 'moderator',
+              channel_id: currentChannel.id,
+              created_at: new Date().toISOString(),
+              isModerator: true,
+              profile: { username: `🎨 Vincent` }
+            };
+            setMessages(prev => [...prev, artMsg]);
+          }
+        }, 3000);
+      }
     }, 500);
 
     return () => clearTimeout(timer);
@@ -813,29 +846,53 @@ const ChatRoom = ({ initialChannelId }: ChatRoomProps) => {
               <p className="text-sm mt-2">Be the first to say hello! Type /help for commands.</p>
             </div>
           ) : (
-            messages.map((msg) => (
-              <MessageBubble
-                key={msg.id}
-                id={msg.id}
-                message={msg.content}
-                sender={msg.profile?.username || 'Unknown'}
-                senderId={msg.user_id}
-                senderAvatarUrl={msg.profile?.avatar_url}
-                timestamp={new Date(msg.created_at)}
-                isOwn={msg.user_id === user?.id}
-                isSystem={msg.isSystem || msg.user_id === 'system'}
-                isModerator={msg.isModerator || msg.user_id === 'moderator'}
-                canDelete={(msg.user_id === user?.id || isAdmin) && !msg.isModerator && msg.user_id !== 'moderator'}
-                onDelete={handleDelete}
-                onPmClick={handlePmClick}
-                onBlockClick={handleBlockClick}
-                onReportClick={handleReportClick}
-                onInfoClick={handleInfoClick}
-                translatedMessage={translations[msg.id]?.text}
-                detectedLanguage={translations[msg.id]?.lang}
-                isTranslating={isTranslating(msg.id)}
-              />
-            ))
+            messages.map((msg) => {
+              // Check if this is an art display message
+              if (msg.content.startsWith('ART_DISPLAY:')) {
+                try {
+                  const artData = JSON.parse(msg.content.replace('ART_DISPLAY:', ''));
+                  return (
+                    <div key={msg.id} className="flex justify-start animate-message-in">
+                      <ArtDisplay
+                        imageUrl={artData.imageUrl}
+                        title={artData.title}
+                        artist={artData.artist}
+                        year={artData.year}
+                        period={artData.period}
+                        medium={artData.medium}
+                        commentary={artData.commentary}
+                      />
+                    </div>
+                  );
+                } catch {
+                  // If parsing fails, render as normal message
+                }
+              }
+              
+              return (
+                <MessageBubble
+                  key={msg.id}
+                  id={msg.id}
+                  message={msg.content}
+                  sender={msg.profile?.username || 'Unknown'}
+                  senderId={msg.user_id}
+                  senderAvatarUrl={msg.profile?.avatar_url}
+                  timestamp={new Date(msg.created_at)}
+                  isOwn={msg.user_id === user?.id}
+                  isSystem={msg.isSystem || msg.user_id === 'system'}
+                  isModerator={msg.isModerator || msg.user_id === 'moderator'}
+                  canDelete={(msg.user_id === user?.id || isAdmin) && !msg.isModerator && msg.user_id !== 'moderator'}
+                  onDelete={handleDelete}
+                  onPmClick={handlePmClick}
+                  onBlockClick={handleBlockClick}
+                  onReportClick={handleReportClick}
+                  onInfoClick={handleInfoClick}
+                  translatedMessage={translations[msg.id]?.text}
+                  detectedLanguage={translations[msg.id]?.lang}
+                  isTranslating={isTranslating(msg.id)}
+                />
+              );
+            })
           )}
           <div ref={messagesEndRef} />
         </div>

@@ -66,6 +66,11 @@ const MODERATOR_PERSONAS: Record<string, { name: string; personality: string; ex
     name: 'Poulsen',
     personality: 'Kevin Poulsen - sharp wit, loves puzzles and challenges, competitive quiz master',
     expertise: 'puzzles, radio hacking, investigative journalism'
+  },
+  'art': {
+    name: 'Vincent',
+    personality: 'Vincent - passionate art major and curator, speaks eloquently about art history, technique, and emotion in artwork, loves discussing artistic movements from Renaissance to contemporary',
+    expertise: 'art history, painting techniques, sculpture, photography, artistic movements, museum curation, color theory, art criticism'
   }
 };
 
@@ -154,6 +159,14 @@ const ROOM_TIPS: Record<string, string[]> = {
     "Every trivia night champion started as a curious kid.",
     "Fun facts are the currency of interesting people.",
     "Wrong answers are just learning opportunities in disguise."
+  ],
+  'art': [
+    "Every masterpiece was once just a blank canvas and a vision.",
+    "Art doesn't have to be understood to be appreciated - feel it first.",
+    "The best art makes you feel something you can't quite put into words.",
+    "Color theory is just organized emotion on canvas.",
+    "Every artist was first an amateur who refused to stop creating.",
+    "Art movements are just conversations across centuries."
   ]
 };
 
@@ -170,7 +183,8 @@ const WELCOME_MESSAGES: Record<string, string> = {
   'technology': "Welcome to Technology. I'm Charlie. From the latest vulnerabilities to emerging tech trends, hardware hacks to software development - this is where we geek out. What's on your mind?",
   'dating': "Hey there! Welcome to Dating. I'm Phoenix. This is a space to discuss relationships, share experiences, and maybe find some connections. Be respectful, be genuine, be yourself.",
   'lounge': "Welcome to the Lounge! I'm Solo. This is the chill zone - no pressure, no agenda. Just good vibes and interesting conversations. Grab a virtual drink and relax.",
-  'trivia': "Welcome, knowledge seeker! I'm Poulsen. This is Trivia - where random facts reign supreme and curiosity is rewarded. Think you know stuff? Let's find out!"
+  'trivia': "Welcome, knowledge seeker! I'm Poulsen. This is Trivia - where random facts reign supreme and curiosity is rewarded. Think you know stuff? Let's find out!",
+  'art': "Welcome to the Art Room! I'm Vincent, your curator. We discuss masterpieces from all eras - Renaissance to Contemporary, Impressionism to Abstract. I'll be sharing featured artwork throughout the day. Let's appreciate beauty together! 🎨"
 };
 
 serve(async (req) => {

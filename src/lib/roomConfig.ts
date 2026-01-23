@@ -86,6 +86,12 @@ export const ROOM_THEMES: Record<string, RoomTheme> = {
     gradient: 'from-teal-500 to-cyan-500',
     accentColor: '174 72% 40%'
   },
+  'art': { 
+    textColor: 'text-rose-400', 
+    bgColor: 'bg-rose-500/20', 
+    gradient: 'from-rose-500 to-amber-500',
+    accentColor: '350 89% 60%'
+  },
 };
 
 // Default room topics
@@ -102,6 +108,7 @@ export const DEFAULT_TOPICS: Record<string, string> = {
   'dating': 'Connection & relationship discussions 💕',
   'lounge': 'Chill vibes only - unwind and relax ☕',
   'trivia': 'Test your knowledge! Type /trivia to play 🧠',
+  'art': 'Art appreciation from all eras - masterpieces discussed daily 🎨',
 };
 
 export const MODERATORS: Record<string, ModeratorInfo> = {
@@ -117,6 +124,7 @@ export const MODERATORS: Record<string, ModeratorInfo> = {
   'dating': { name: 'Phoenix', displayName: 'Phoenix', avatar: '💕' },
   'lounge': { name: 'Solo', displayName: 'Solo', avatar: '☕' },
   'trivia': { name: 'Poulsen', displayName: 'Kevin Poulsen', avatar: '🧠' },
+  'art': { name: 'Vincent', displayName: 'Vincent (Art Major)', avatar: '🎨' },
 };
 
 // Room welcome messages (kept concise to avoid chat clutter)
@@ -133,6 +141,7 @@ export const WELCOME_MESSAGES: Record<string, string> = {
   'dating': "I'm Phoenix. Be genuine. 💫",
   'lounge': "I'm Solo. Chill zone. ☕",
   'trivia': "I'm Poulsen. Test your knowledge! 🎯",
+  'art': "I'm Vincent, your art curator. Let's explore masterpieces together! 🖼️",
 };
 
 // Tips of the day per room
@@ -196,6 +205,13 @@ export const TIPS_OF_THE_DAY: Record<string, string[]> = {
     "💡 Tip: Useless knowledge is just knowledge waiting for its moment.",
     "💡 Tip: Every trivia night champion started as a curious kid.",
     "💡 Tip: Wrong answers are just learning opportunities in disguise.",
+  ],
+  'art': [
+    "🎨 Tip: Every masterpiece was once just a blank canvas and a vision.",
+    "🎨 Tip: Art doesn't have to be understood to be appreciated.",
+    "🎨 Tip: The best art makes you feel something you can't quite name.",
+    "🎨 Tip: Color theory is just organized emotion.",
+    "🎨 Tip: Every artist was first an amateur who refused to stop.",
   ],
 };
 
