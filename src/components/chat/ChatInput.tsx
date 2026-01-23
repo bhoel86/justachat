@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Send, AlertCircle, Play, Pause, SkipForward, SkipBack, Shuffle, Music, ChevronDown } from "lucide-react";
+import { Send, AlertCircle, Play, Pause, SkipForward, SkipBack, Shuffle, Music, ChevronDown, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import EmojiPicker from "./EmojiPicker";
 import { useRadioOptional } from "@/contexts/RadioContext";
 
@@ -96,53 +97,84 @@ const ChatInput = ({ onSend, isMuted = false }: ChatInputProps) => {
 
           {/* Controls */}
           <div className="flex items-center gap-0.5">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={radio.shuffle}
-              className="h-7 w-7"
-              title="Shuffle"
-            >
-              <Shuffle className="h-3 w-3" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={radio.shuffle}
+                  className="h-7 w-7"
+                >
+                  <Shuffle className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Shuffle</TooltipContent>
+            </Tooltip>
 
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={radio.previous}
-              className="h-7 w-7"
-              title="Previous"
-            >
-              <SkipBack className="h-3.5 w-3.5" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={radio.previous}
+                  className="h-7 w-7"
+                >
+                  <SkipBack className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Previous Song</TooltipContent>
+            </Tooltip>
 
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={radio.toggle}
-              className="h-8 w-8 bg-primary/10"
-              title={radio.isPlaying ? 'Pause' : 'Play'}
-            >
-              {radio.isPlaying ? (
-                <Pause className="h-4 w-4" />
-              ) : (
-                <Play className="h-4 w-4" />
-              )}
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={radio.toggle}
+                  className="h-8 w-8 bg-primary/10"
+                >
+                  {radio.isPlaying ? (
+                    <Pause className="h-4 w-4" />
+                  ) : (
+                    <Play className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{radio.isPlaying ? 'Pause' : 'Play'}</TooltipContent>
+            </Tooltip>
 
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={radio.skip}
-              className="h-7 w-7"
-              title="Next"
-            >
-              <SkipForward className="h-3.5 w-3.5" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={radio.skip}
+                  className="h-7 w-7"
+                >
+                  <SkipForward className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Next Song</TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={radio.skipGenre}
+                  className="h-7 w-7"
+                >
+                  <Radio className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Next Genre</TooltipContent>
+            </Tooltip>
           </div>
         </div>
       )}
