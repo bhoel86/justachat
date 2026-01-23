@@ -1,5 +1,20 @@
 import { supabaseUntyped } from '@/hooks/useAuth';
 import { logModerationAction } from './moderationAudit';
+import { 
+  registerNick, 
+  identifyNick, 
+  getNickInfo, 
+  dropNick,
+  registerChannel,
+  getChannelInfo,
+  setChannelAccess,
+  getChannelAccessList,
+  getNetworkStats,
+  setGhostMode,
+  addKline,
+  removeKline,
+  listKlines
+} from './svAgent';
 
 export interface CommandResult {
   success: boolean;
@@ -18,6 +33,7 @@ export interface CommandContext {
   channelOwnerId?: string;
   isRoomOwner?: boolean;
   isRoomAdmin?: boolean;
+  onlineUserCount?: number;
 }
 
 type CommandHandler = (
@@ -68,10 +84,26 @@ const helpCommand: CommandHandler = async (args, context) => {
 /unmute <username> - Unmute user
 /topic <new topic> - Set channel topic` : '';
 
-  const adminCommands = context.isAdmin ? `
+  const adminCommands = (context.isAdmin || context.isOwner) ? `
 **Admin Commands:**
 /admin <username> - Promote user to admin
-/deadmin <username> - Demote admin to moderator` : '';
+/deadmin <username> - Demote admin to moderator
+/kline <ip_pattern> [reason] - Add global IP ban (e.g., 192.168.1.*)
+/unkline <ip_pattern> - Remove global IP ban
+/klines - List all K-lines` : '';
+
+  const svAgentCommands = `
+**SV-Agent (Services):**
+/ns register - Register your current nickname
+/ns identify - Identify as the owner of your registered nick
+/ns info <nick> - View registration info for a nickname
+/ns drop - Drop your registered nickname
+/cs register [desc] - Register current channel (founders only)
+/cs info - View channel registration info
+/cs access list - View channel access list
+/cs access add <user> <level> - Add user to access list
+/stats - View network statistics
+/ghost - Toggle invisible mode (appear offline)`;
 
   return {
     success: true,
@@ -96,7 +128,7 @@ const helpCommand: CommandHandler = async (args, context) => {
 /trivia - Start trivia game
 /score - View your trivia stats
 /leaderboard - View top players
-/skipq - Skip current question${roomOwnerCommands}${modCommands}${adminCommands}`,
+/skipq - Skip current question${svAgentCommands}${roomOwnerCommands}${modCommands}${adminCommands}`,
     isSystemMessage: true,
   };
 };
@@ -935,6 +967,199 @@ const roomadminCommand: CommandHandler = async (args, context) => {
   };
 };
 
+// NickServ commands (/ns)
+const nsCommand: CommandHandler = async (args, context) => {
+  if (args.length === 0) {
+    return { success: false, message: 'Usage: /ns <register|identify|info|drop> [args]' };
+  }
+  
+  const subCommand = args[0].toLowerCase();
+  
+  switch (subCommand) {
+    case 'register': {
+      const result = await registerNick(context.userId, context.username);
+      return { success: result.success, message: result.message, isSystemMessage: true };
+    }
+    case 'identify': {
+      const result = await identifyNick(context.userId);
+      return { success: result.success, message: result.message, isSystemMessage: true };
+    }
+    case 'info': {
+      if (args.length < 2) {
+        return { success: false, message: 'Usage: /ns info <nickname>' };
+      }
+      const info = await getNickInfo(args[1]);
+      if (!info) {
+        return { success: false, message: `Nickname "${args[1]}" is not registered.` };
+      }
+      const registeredDate = new Date(info.registered_at).toLocaleDateString();
+      const lastSeen = info.last_identified 
+        ? new Date(info.last_identified).toLocaleDateString() 
+        : 'Never';
+      return { 
+        success: true, 
+        message: `**NickServ Info: ${info.nickname}**\nRegistered: ${registeredDate}\nLast Identified: ${lastSeen}`,
+        isSystemMessage: true 
+      };
+    }
+    case 'drop': {
+      const result = await dropNick(context.userId);
+      return { success: result.success, message: result.message, isSystemMessage: true };
+    }
+    default:
+      return { success: false, message: 'Unknown NickServ command. Use: register, identify, info, drop' };
+  }
+};
+
+// ChanServ commands (/cs)
+const csCommand: CommandHandler = async (args, context) => {
+  if (args.length === 0) {
+    return { success: false, message: 'Usage: /cs <register|info|access> [args]' };
+  }
+  
+  if (!context.channelId) {
+    return { success: false, message: 'Cannot determine current channel.' };
+  }
+  
+  const subCommand = args[0].toLowerCase();
+  
+  switch (subCommand) {
+    case 'register': {
+      const description = args.slice(1).join(' ') || undefined;
+      const result = await registerChannel(context.userId, context.channelId, description);
+      return { success: result.success, message: result.message, isSystemMessage: true };
+    }
+    case 'info': {
+      const info = await getChannelInfo(context.channelId);
+      if (!info) {
+        return { success: true, message: 'This channel is not registered.', isSystemMessage: true };
+      }
+      const registeredDate = new Date(info.registered_at).toLocaleDateString();
+      return { 
+        success: true, 
+        message: `**ChanServ Info: #${info.channel_name}**\nFounder: ${info.founder_username}\nRegistered: ${registeredDate}\nDescription: ${info.description || 'None'}`,
+        isSystemMessage: true 
+      };
+    }
+    case 'access': {
+      if (args.length < 2) {
+        return { success: false, message: 'Usage: /cs access <list|add> [args]' };
+      }
+      const accessCmd = args[1].toLowerCase();
+      if (accessCmd === 'list') {
+        const list = await getChannelAccessList(context.channelId);
+        if (list.length === 0) {
+          return { success: true, message: 'No access entries for this channel.', isSystemMessage: true };
+        }
+        const entries = list.map(e => `${e.username}: Level ${e.access_level}`).join('\n');
+        return { success: true, message: `**Channel Access List:**\n${entries}`, isSystemMessage: true };
+      }
+      if (accessCmd === 'add') {
+        if (args.length < 4) {
+          return { success: false, message: 'Usage: /cs access add <username> <level>' };
+        }
+        const targetUser = await findUserByUsername(args[2]);
+        if (!targetUser) {
+          return { success: false, message: `User "${args[2]}" not found.` };
+        }
+        const level = parseInt(args[3]);
+        if (isNaN(level) || level < 0 || level > 500) {
+          return { success: false, message: 'Access level must be between 0 and 500.' };
+        }
+        const result = await setChannelAccess(context.channelId, context.userId, targetUser.user_id, level);
+        return { success: result.success, message: `${targetUser.username} now has access level ${level}.`, isSystemMessage: true };
+      }
+      return { success: false, message: 'Unknown access command. Use: list, add' };
+    }
+    default:
+      return { success: false, message: 'Unknown ChanServ command. Use: register, info, access' };
+  }
+};
+
+// Network stats command
+const statsCommand: CommandHandler = async (args, context) => {
+  const stats = await getNetworkStats();
+  stats.online_users = context.onlineUserCount || 0;
+  
+  const uptimeDays = Math.floor(stats.uptime_hours / 24);
+  const uptimeRemainingHours = stats.uptime_hours % 24;
+  
+  return {
+    success: true,
+    message: `**JAC Network Statistics**
+Users: ${stats.total_users} total, ${stats.online_users} online
+Channels: ${stats.total_channels}
+Messages: ${stats.total_messages.toLocaleString()}
+Uptime: ${uptimeDays} days, ${uptimeRemainingHours} hours`,
+    isSystemMessage: true,
+  };
+};
+
+// Ghost mode command (invisible)
+const ghostCommand: CommandHandler = async (args, context) => {
+  // Check current ghost status
+  const { data: profile } = await supabaseUntyped
+    .from('profiles')
+    .select('ghost_mode')
+    .eq('user_id', context.userId)
+    .maybeSingle();
+  
+  const currentGhostMode = profile?.ghost_mode || false;
+  const result = await setGhostMode(context.userId, !currentGhostMode);
+  
+  return {
+    success: result.success,
+    message: result.message,
+    isSystemMessage: true,
+  };
+};
+
+// K-line commands (Owner/Admin only)
+const klineCommand: CommandHandler = async (args, context) => {
+  if (!context.isOwner && !context.isAdmin) {
+    return { success: false, message: 'Only owners and admins can use K-line commands.' };
+  }
+  if (args.length === 0) {
+    return { success: false, message: 'Usage: /kline <ip_pattern> [reason]' };
+  }
+  
+  const ipPattern = args[0];
+  const reason = args.slice(1).join(' ') || 'No reason given';
+  
+  const result = await addKline(ipPattern, context.userId, reason);
+  return { success: result.success, message: result.message, isSystemMessage: true, broadcast: true };
+};
+
+const unklineCommand: CommandHandler = async (args, context) => {
+  if (!context.isOwner && !context.isAdmin) {
+    return { success: false, message: 'Only owners and admins can use K-line commands.' };
+  }
+  if (args.length === 0) {
+    return { success: false, message: 'Usage: /unkline <ip_pattern>' };
+  }
+  
+  const result = await removeKline(args[0]);
+  return { success: result.success, message: result.message, isSystemMessage: true, broadcast: true };
+};
+
+const klinesCommand: CommandHandler = async (args, context) => {
+  if (!context.isOwner && !context.isAdmin) {
+    return { success: false, message: 'Only owners and admins can view K-lines.' };
+  }
+  
+  const klines = await listKlines();
+  if (klines.length === 0) {
+    return { success: true, message: 'No active K-lines.', isSystemMessage: true };
+  }
+  
+  const list = klines.map(k => {
+    const expires = k.expires_at ? ` (expires ${new Date(k.expires_at).toLocaleDateString()})` : ' (permanent)';
+    return `${k.ip_pattern}: ${k.reason}${expires}`;
+  }).join('\n');
+  
+  return { success: true, message: `**Active K-lines:**\n${list}`, isSystemMessage: true };
+};
+
 // Command registry
 const commands: Record<string, CommandHandler> = {
   help: helpCommand,
@@ -973,6 +1198,17 @@ const commands: Record<string, CommandHandler> = {
   leaderboard: leaderboardCommand,
   lb: leaderboardCommand, // Alias
   skipq: skipQuestionCommand,
+  // SV-Agent commands
+  ns: nsCommand,
+  nickserv: nsCommand, // Alias
+  cs: csCommand,
+  chanserv: csCommand, // Alias
+  stats: statsCommand,
+  ghost: ghostCommand,
+  // K-line commands
+  kline: klineCommand,
+  unkline: unklineCommand,
+  klines: klinesCommand,
 };
 
 export const parseCommand = (input: string): { command: string; args: string[] } | null => {

@@ -74,6 +74,41 @@ export type Database = {
         }
         Relationships: []
       }
+      channel_access_list: {
+        Row: {
+          access_level: number
+          channel_id: string
+          granted_at: string
+          granted_by: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          access_level?: number
+          channel_id: string
+          granted_at?: string
+          granted_by: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          access_level?: number
+          channel_id?: string
+          granted_at?: string
+          granted_by?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_access_list_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channel_members: {
         Row: {
           channel_id: string
@@ -98,6 +133,41 @@ export type Database = {
             foreignKeyName: "channel_members_channel_id_fkey"
             columns: ["channel_id"]
             isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      channel_registrations: {
+        Row: {
+          channel_id: string
+          description: string | null
+          founder_id: string
+          id: string
+          registered_at: string
+          url: string | null
+        }
+        Insert: {
+          channel_id: string
+          description?: string | null
+          founder_id: string
+          id?: string
+          registered_at?: string
+          url?: string | null
+        }
+        Update: {
+          channel_id?: string
+          description?: string | null
+          founder_id?: string
+          id?: string
+          registered_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_registrations_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: true
             referencedRelation: "channels"
             referencedColumns: ["id"]
           },
@@ -183,6 +253,33 @@ export type Database = {
           name_gradient_from?: string | null
           name_gradient_to?: string | null
           room_password?: string | null
+        }
+        Relationships: []
+      }
+      klines: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          ip_pattern: string
+          reason: string | null
+          set_by: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          ip_pattern: string
+          reason?: string | null
+          set_by: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          ip_pattern?: string
+          reason?: string | null
+          set_by?: string
         }
         Relationships: []
       }
@@ -272,6 +369,27 @@ export type Database = {
         }
         Relationships: []
       }
+      network_stats: {
+        Row: {
+          id: string
+          recorded_at: string
+          stat_type: string
+          stat_value: Json
+        }
+        Insert: {
+          id?: string
+          recorded_at?: string
+          stat_type: string
+          stat_value?: Json
+        }
+        Update: {
+          id?: string
+          recorded_at?: string
+          stat_type?: string
+          stat_value?: Json
+        }
+        Relationships: []
+      }
       private_messages: {
         Row: {
           created_at: string
@@ -304,6 +422,7 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           created_at: string
+          ghost_mode: boolean | null
           id: string
           preferred_language: string | null
           updated_at: string
@@ -314,6 +433,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          ghost_mode?: boolean | null
           id?: string
           preferred_language?: string | null
           updated_at?: string
@@ -324,11 +444,39 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          ghost_mode?: boolean | null
           id?: string
           preferred_language?: string | null
           updated_at?: string
           user_id?: string
           username?: string
+        }
+        Relationships: []
+      }
+      registered_nicks: {
+        Row: {
+          email_verified: boolean | null
+          id: string
+          last_identified: string | null
+          nickname: string
+          registered_at: string
+          user_id: string
+        }
+        Insert: {
+          email_verified?: boolean | null
+          id?: string
+          last_identified?: string | null
+          nickname: string
+          registered_at?: string
+          user_id: string
+        }
+        Update: {
+          email_verified?: boolean | null
+          id?: string
+          last_identified?: string | null
+          nickname?: string
+          registered_at?: string
+          user_id?: string
         }
         Relationships: []
       }
