@@ -288,31 +288,31 @@ const Home = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
         {/* Mobile: Stack vertically, Desktop: Side by side */}
-        <div className="flex flex-col lg:flex-row lg:items-start gap-4 sm:gap-6">
-          {/* Room Cards - Compact sidebar */}
-          <div className="lg:w-72 xl:w-80 flex-shrink-0">
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+          {/* Room Cards - Horizontal scroll on mobile */}
+          <div className="lg:w-80 xl:w-96 flex-shrink-0">
             <div className="rounded-xl sm:rounded-2xl border border-border bg-card/50 backdrop-blur-sm p-3 sm:p-4">
-              <div className="mb-3">
-                <h2 className="text-lg sm:text-xl font-bold mb-1">Chat Rooms</h2>
+              <div className="mb-3 sm:mb-4">
+                <h2 className="text-lg sm:text-xl font-bold mb-1 sm:mb-2">Chat Rooms</h2>
                 <p className="text-muted-foreground text-xs sm:text-sm">Select a room to join</p>
               </div>
 
               {loadingChannels ? (
                 <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-2 gap-2">
                   {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="h-14 sm:h-16 rounded-lg bg-card animate-pulse" />
+                    <div key={i} className="h-16 sm:h-20 rounded-lg bg-card animate-pulse" />
                   ))}
                 </div>
               ) : (
-                <div>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-2 gap-2">
+                <>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-2 gap-2 lg:max-h-[calc(100vh-380px)] lg:overflow-y-auto lg:pr-2 scrollbar-thin">
                     {channels.map((channel) => (
                       <button
                         key={channel.id}
                         onClick={() => handleJoinRoom(channel)}
-                        className="group relative h-14 sm:h-16 rounded-xl overflow-hidden bg-card border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-md hover:shadow-primary/20 active:scale-95"
+                        className="group relative h-16 sm:h-20 rounded-xl overflow-hidden bg-card border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-md hover:shadow-primary/20 active:scale-95"
                       >
                         {/* Background image */}
                         {roomBackgrounds[channel.name] && (
@@ -330,13 +330,13 @@ const Home = () => {
                         
                         {/* Content - stacked vertically */}
                         <div className="relative h-full flex flex-col items-center justify-center gap-1 px-2 py-2">
-                          <div className={`p-1.5 rounded-lg bg-gradient-to-br ${roomColors[channel.name] || 'from-primary to-accent'} text-white shadow-md group-hover:scale-105 transition-transform`}>
+                          <div className={`p-2 rounded-lg bg-gradient-to-br ${roomColors[channel.name] || 'from-primary to-accent'} text-white shadow-md group-hover:scale-105 transition-transform`}>
                             {roomIcons[channel.name] ? (
-                              <div className="w-4 h-4 flex items-center justify-center [&>svg]:w-4 [&>svg]:h-4">
+                              <div className="w-5 h-5 flex items-center justify-center [&>svg]:w-5 [&>svg]:h-5">
                                 {roomIcons[channel.name]}
                               </div>
                             ) : (
-                              <Hash className="w-4 h-4" />
+                              <Hash className="w-5 h-5" />
                             )}
                           </div>
                           <h3 className="font-semibold text-[10px] sm:text-xs text-white drop-shadow-md text-center leading-tight">
@@ -351,10 +351,10 @@ const Home = () => {
                   </div>
                   
                   {/* Dating Section - Fixed at bottom */}
-                  <div className="mt-3">
+                  <div className="mt-3 lg:mt-4">
                     <Link
                       to="/dating"
-                      className="group relative flex h-12 sm:h-14 w-full rounded-xl overflow-hidden bg-card border-2 border-pink-500/60 hover:border-pink-500 transition-all duration-300 hover:shadow-lg hover:shadow-pink-500/30 active:scale-[0.98]"
+                      className="group relative flex h-14 sm:h-16 w-full rounded-xl overflow-hidden bg-card border-2 border-pink-500/60 hover:border-pink-500 transition-all duration-300 hover:shadow-lg hover:shadow-pink-500/30 active:scale-[0.98]"
                     >
                       {/* Background image */}
                       <div 
@@ -385,7 +385,7 @@ const Home = () => {
                       <div className="absolute inset-0 bg-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </Link>
                   </div>
-                </div>
+                </>
               )}
             </div>
           </div>
@@ -393,11 +393,11 @@ const Home = () => {
           {/* Center - Public Chat Preview */}
           <div className="flex-1 min-w-0">
             {/* Welcome Banner */}
-            <div className="relative rounded-xl sm:rounded-2xl overflow-hidden mb-3 border border-border">
+            <div className="relative rounded-xl sm:rounded-2xl overflow-hidden mb-3 sm:mb-4 border border-border">
               <img 
                 src={welcomeBanner} 
                 alt="Welcome to Justachat" 
-                className="w-full h-20 sm:h-28 md:h-36 object-cover"
+                className="w-full h-24 sm:h-32 md:h-40 object-cover"
               />
               {/* Welcome text overlay */}
               <div className="absolute inset-0 flex items-center justify-center bg-black/20">
@@ -417,8 +417,8 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Chat Preview - Fixed height */}
-            <div className="bg-card rounded-xl sm:rounded-2xl border border-border h-[45vh] sm:h-[50vh] lg:h-[400px] flex flex-col overflow-hidden">
+            {/* Chat Preview - Smaller on mobile */}
+            <div className="bg-card rounded-xl sm:rounded-2xl border border-border h-[50vh] sm:h-[calc(100vh-340px)] flex flex-col overflow-hidden">
               {/* Topic bar */}
               <div className="px-3 sm:px-4 py-1.5 sm:py-2 border-b border-border bg-primary/5">
                 <p className="text-xs sm:text-sm text-primary font-medium">Welcome! This is the main hangout spot.</p>
