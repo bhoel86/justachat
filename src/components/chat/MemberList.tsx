@@ -223,7 +223,7 @@ const MemberList = ({ onlineUserIds, channelName = 'general' }: MemberListProps)
   };
 
   const canManageRole = (targetMember: Member): boolean => {
-    if (!isAdmin) return false;
+    if (!isAdmin && !isOwner) return false;
     if (targetMember.user_id === user?.id) return false; // Can't change own role
     if (targetMember.role === 'owner') return false; // Can't change owner
     if (!isOwner && targetMember.role === 'admin') return false; // Only owner can change admins
