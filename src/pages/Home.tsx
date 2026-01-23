@@ -391,9 +391,9 @@ const Home = () => {
           </div>
 
           {/* Center - Public Chat Preview */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 lg:flex lg:flex-col">
             {/* Welcome Banner */}
-            <div className="relative rounded-xl sm:rounded-2xl overflow-hidden mb-3 sm:mb-4 border border-border">
+            <div className="relative rounded-xl sm:rounded-2xl overflow-hidden mb-3 sm:mb-4 border border-border flex-shrink-0">
               <img 
                 src={welcomeBanner} 
                 alt="Welcome to Justachat" 
@@ -417,8 +417,8 @@ const Home = () => {
               </div>
             </div>
 
-            {/* Chat Preview - Smaller on mobile */}
-            <div className="bg-card rounded-xl sm:rounded-2xl border border-border h-[50vh] sm:h-[calc(100vh-340px)] flex flex-col overflow-hidden">
+            {/* Chat Preview - Grows to fill remaining space */}
+            <div className="bg-card rounded-xl sm:rounded-2xl border border-border h-[50vh] lg:h-auto lg:flex-1 flex flex-col overflow-hidden">
               {/* Topic bar */}
               <div className="px-3 sm:px-4 py-1.5 sm:py-2 border-b border-border bg-primary/5">
                 <p className="text-xs sm:text-sm text-primary font-medium">Welcome! This is the main hangout spot.</p>
