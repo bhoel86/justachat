@@ -589,6 +589,7 @@ const ChatRoom = ({ initialChannelId }: ChatRoomProps) => {
         channelOwnerId: currentChannel?.created_by || undefined,
         isRoomOwner,
         isRoomAdmin,
+        onlineUserCount: onlineUserIds.size,
       };
 
       const result = await executeCommand(parsed.command, parsed.args, context);
