@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.audit-log]
 verify_jwt = false
+
+[functions.art-curator]
+verify_jwt = false
