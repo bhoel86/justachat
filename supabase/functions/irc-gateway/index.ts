@@ -511,20 +511,37 @@ async function completeRegistration(session: IRCSession) {
   sendNumeric(session, RPL.MYINFO, `${SERVER_NAME} ${SERVER_VERSION} o o`);
   sendNumeric(session, RPL.ISUPPORT, "CHANTYPES=# PREFIX=(qaov)~&@+ NETWORK=JACNet CASEMAPPING=ascii :are supported by this server");
 
-  // Send MOTD
+  // Send styled MOTD
   sendNumeric(session, RPL.MOTDSTART, `:- ${SERVER_NAME} Message of the Day -`);
-  sendNumeric(session, RPL.MOTD, `:- Welcome to JAC IRC Gateway!`);
   sendNumeric(session, RPL.MOTD, `:- `);
-  sendNumeric(session, RPL.MOTD, `:- This is a bridge to JAC - Just A Chat`);
-  sendNumeric(session, RPL.MOTD, `:- Use /list to see available channels`);
-  sendNumeric(session, RPL.MOTD, `:- Use /join #channel to join a channel`);
+  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}     ██╗ █████╗  ██████╗${IRC_COLORS.RESET}`);
+  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}     ██║██╔══██╗██╔════╝${IRC_COLORS.RESET}`);
+  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}     ██║███████║██║     ${IRC_COLORS.RESET}`);
+  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}██   ██║██╔══██║██║     ${IRC_COLORS.RESET}`);
+  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}╚█████╔╝██║  ██║╚██████╗${IRC_COLORS.RESET}`);
+  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.BOLD}${IRC_COLORS.CYAN} ╚════╝ ╚═╝  ╚═╝ ╚═════╝${IRC_COLORS.RESET}`);
   sendNumeric(session, RPL.MOTD, `:- `);
-  sendNumeric(session, RPL.MOTD, `:- Enjoy your stay!`);
+  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.BOLD}${IRC_COLORS.YELLOW}Just A Chat${IRC_COLORS.RESET} ${IRC_COLORS.GREY}- Chat. Connect. Chill.${IRC_COLORS.RESET}`);
+  sendNumeric(session, RPL.MOTD, `:- `);
+  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.GREY}════════════════════════════════════════${IRC_COLORS.RESET}`);
+  sendNumeric(session, RPL.MOTD, `:- `);
+  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.GREEN}▸${IRC_COLORS.RESET} ${IRC_COLORS.BOLD}Getting Started${IRC_COLORS.RESET}`);
+  sendNumeric(session, RPL.MOTD, `:-     ${IRC_COLORS.GREY}/list${IRC_COLORS.RESET}          - See all channels`);
+  sendNumeric(session, RPL.MOTD, `:-     ${IRC_COLORS.GREY}/join #channel${IRC_COLORS.RESET} - Join a channel`);
+  sendNumeric(session, RPL.MOTD, `:-     ${IRC_COLORS.GREY}/msg nick${IRC_COLORS.RESET}      - Private message`);
+  sendNumeric(session, RPL.MOTD, `:- `);
+  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.PINK}▸${IRC_COLORS.RESET} ${IRC_COLORS.BOLD}Room Moderators${IRC_COLORS.RESET}`);
+  sendNumeric(session, RPL.MOTD, `:-     ${IRC_COLORS.GREY}Each room has an AI moderator who can help${IRC_COLORS.RESET}`);
+  sendNumeric(session, RPL.MOTD, `:-     ${IRC_COLORS.GREY}you and answer questions about the topic.${IRC_COLORS.RESET}`);
+  sendNumeric(session, RPL.MOTD, `:-     ${IRC_COLORS.GREY}Just mention their name or /msg them!${IRC_COLORS.RESET}`);
+  sendNumeric(session, RPL.MOTD, `:- `);
+  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.CYAN}▸${IRC_COLORS.RESET} ${IRC_COLORS.BOLD}User Roles${IRC_COLORS.RESET}`);
+  sendNumeric(session, RPL.MOTD, `:-     ${IRC_COLORS.YELLOW}~${IRC_COLORS.RESET} ${IRC_COLORS.GREY}Owner${IRC_COLORS.RESET}  ${IRC_COLORS.RED}&${IRC_COLORS.RESET} ${IRC_COLORS.GREY}Admin${IRC_COLORS.RESET}  ${IRC_COLORS.GREEN}@${IRC_COLORS.RESET} ${IRC_COLORS.GREY}Operator${IRC_COLORS.RESET}  ${IRC_COLORS.CYAN}+${IRC_COLORS.RESET} ${IRC_COLORS.GREY}Bot${IRC_COLORS.RESET}`);
+  sendNumeric(session, RPL.MOTD, `:- `);
+  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.GREY}════════════════════════════════════════${IRC_COLORS.RESET}`);
+  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.GREY}Online: ${IRC_COLORS.GREEN}${sessions.size}${IRC_COLORS.GREY} users${IRC_COLORS.RESET}   ${IRC_COLORS.GREY}Web: https://justachat.lovable.app${IRC_COLORS.RESET}`);
+  sendNumeric(session, RPL.MOTD, `:- `);
   sendNumeric(session, RPL.ENDOFMOTD, `:End of MOTD command`);
-
-  // User stats
-  sendNumeric(session, RPL.LUSERCLIENT, `:There are ${sessions.size} users on 1 server`);
-  sendNumeric(session, RPL.LUSERME, `:I have ${sessions.size} clients and 0 servers`);
 
   // Update the user's nickname in the database if different
   if (session.supabase && session.userId) {
@@ -651,34 +668,90 @@ async function handleJOIN(session: IRCSession, params: string[]) {
       const globalAdmins = new Set(rolesList?.filter(r => r.role === 'admin').map(r => r.user_id) || []);
       const globalMods = new Set(rolesList?.filter(r => r.role === 'moderator').map(r => r.user_id) || []);
       
-      // Build member names with IRC prefixes:
-      // ~ = owner (channel creator or global owner)
-      // & = admin (global admin)  
-      // @ = op (room admin or global moderator)
-      // (no prefix) = regular user
-      const memberNames = memberList?.map((m) => {
+      // Categorize members
+      const owners: string[] = [];
+      const admins: string[] = [];
+      const ops: string[] = [];
+      const users: string[] = [];
+      
+      for (const m of memberList || []) {
         const username = profileMap.get(m.user_id) || "unknown";
         
-        // Check hierarchy: owner > admin > mod > user
         if (globalOwners.has(m.user_id) || m.user_id === channelOwnerId) {
-          return `~${username}`;
+          owners.push(username);
         } else if (globalAdmins.has(m.user_id)) {
-          return `&${username}`;
+          admins.push(username);
         } else if (roomAdminSet.has(m.user_id) || globalMods.has(m.user_id)) {
-          return `@${username}`;
+          ops.push(username);
+        } else {
+          users.push(username);
         }
-        return username;
-      }).join(" ") || session.nick;
+      }
 
       // Add simulated bots to the channel (subset of 10 per room)
       const botNames = getBotsForChannel(dbChannelName);
       
       // Add room moderator bot with @ prefix (operator status)
       const welcomeInfo = getWelcomeInfo(dbChannelName);
-      const moderatorName = `@${welcomeInfo.moderator}`;
       
-      // Combine all names: members + moderator + bots
-      const allNames = memberNames + ` ${moderatorName}` + (botNames.length > 0 ? " " + botNames.join(" ") : "");
+      // Build colored member names for IRC prefixes:
+      // ~ = owner (channel creator or global owner) - Yellow
+      // & = admin (global admin) - Red
+      // @ = op (room admin or global moderator / room moderator) - Green
+      // + = bot - Cyan
+      // (no prefix) = regular user
+      const coloredOwners = owners.map(u => `${IRC_COLORS.BOLD}${IRC_COLORS.YELLOW}~${u}${IRC_COLORS.RESET}`);
+      const coloredAdmins = admins.map(u => `${IRC_COLORS.BOLD}${IRC_COLORS.RED}&${u}${IRC_COLORS.RESET}`);
+      const coloredOps = ops.map(u => `${IRC_COLORS.GREEN}@${u}${IRC_COLORS.RESET}`);
+      const coloredModerator = `${IRC_COLORS.GREEN}@${welcomeInfo.moderator}${IRC_COLORS.RESET}`;
+      const coloredBots = botNames.map(b => `${IRC_COLORS.CYAN}+${b}${IRC_COLORS.RESET}`);
+      const coloredUsers = users.map(u => u);
+      
+      // Total user count
+      const totalUsers = owners.length + admins.length + ops.length + users.length + botNames.length + 1;
+      
+      // Send channel header with user count
+      sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} : `);
+      sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${roomColor}══════ ${channelName.toUpperCase()} ══════${IRC_COLORS.RESET}`);
+      sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.GREY}Online: ${IRC_COLORS.GREEN}${totalUsers} users${IRC_COLORS.RESET}`);
+      sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} : `);
+      
+      // Send grouped member sections
+      if (coloredOwners.length > 0) {
+        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${IRC_COLORS.YELLOW}▸ Owners (${owners.length})${IRC_COLORS.RESET}`);
+        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :  ${coloredOwners.join(' ')}`);
+      }
+      if (coloredAdmins.length > 0) {
+        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${IRC_COLORS.RED}▸ Admins (${admins.length})${IRC_COLORS.RESET}`);
+        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :  ${coloredAdmins.join(' ')}`);
+      }
+      
+      // Ops section (including room moderator bot)
+      const allOps = [...coloredOps, coloredModerator];
+      if (allOps.length > 0) {
+        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${IRC_COLORS.GREEN}▸ Operators (${ops.length + 1})${IRC_COLORS.RESET}`);
+        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :  ${allOps.join(' ')}`);
+      }
+      
+      if (coloredBots.length > 0) {
+        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}▸ Bots (${botNames.length})${IRC_COLORS.RESET}`);
+        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :  ${coloredBots.join(' ')}`);
+      }
+      
+      if (coloredUsers.length > 0) {
+        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.GREY}▸ Users (${users.length})${IRC_COLORS.RESET}`);
+        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :  ${coloredUsers.join(' ')}`);
+      }
+      
+      sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} : `);
+      
+      // Build standard IRC NAMES reply (for IRC protocol compliance)
+      const standardOwners = owners.map(u => `~${u}`);
+      const standardAdmins = admins.map(u => `&${u}`);
+      const standardOps = ops.map(u => `@${u}`);
+      const moderatorNick = `@${welcomeInfo.moderator}`;
+      
+      const allNames = [...standardOwners, ...standardAdmins, ...standardOps, moderatorNick, ...botNames, ...users].join(' ');
 
       sendNumeric(session, RPL.NAMREPLY, `= ${channelName} :${allNames}`);
       sendNumeric(session, RPL.ENDOFNAMES, `${channelName} :End of /NAMES list`);
@@ -693,7 +766,6 @@ async function handleJOIN(session: IRCSession, params: string[]) {
       }
 
       // Send enhanced welcome message for the room with ASCII art
-      // Reuse welcomeInfo from earlier
       const asciiArt = getAsciiArt(dbChannelName);
       
       // ASCII art banner
@@ -706,16 +778,17 @@ async function handleJOIN(session: IRCSession, params: string[]) {
       // Welcome divider
       sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${roomColor}══════════════════════════════════════════════════════════════${IRC_COLORS.RESET}`);
       
-      // Moderator message
-      sendIRC(session, `:${welcomeInfo.moderator}!${welcomeInfo.moderator}@mod.${SERVER_NAME} PRIVMSG ${channelName} :${IRC_COLORS.CYAN}${welcomeInfo.message}${IRC_COLORS.RESET}`);
+      // Moderator message (colored)
+      sendIRC(session, `:${IRC_COLORS.GREEN}@${welcomeInfo.moderator}${IRC_COLORS.RESET}!${welcomeInfo.moderator}@mod.${SERVER_NAME} PRIVMSG ${channelName} :${IRC_COLORS.CYAN}${welcomeInfo.message}${IRC_COLORS.RESET}`);
       
       // Tips section
       sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} : `);
-      sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.GREY}${IRC_COLORS.BOLD}Quick Tips:${IRC_COLORS.RESET}`);
+      sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.GREY}${IRC_COLORS.BOLD}💡 Quick Tips:${IRC_COLORS.RESET}`);
       for (const tip of welcomeInfo.tips) {
-        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.GREY}  ▸ ${tip}${IRC_COLORS.RESET}`);
+        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.GREY}   ▸ ${tip}${IRC_COLORS.RESET}`);
       }
-      sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.GREY}══════════════════════════════════════════════════════════════${IRC_COLORS.RESET}`);
+      sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${roomColor}══════════════════════════════════════════════════════════════${IRC_COLORS.RESET}`);
+      sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} : `);
 
       // Join in database - use insert with conflict handling
       await (session.supabase as any)
@@ -1362,10 +1435,20 @@ async function handleLIST(session: IRCSession, _params: string[]) {
       .from("channels")
       .select("id, name, description")
       .eq("is_private", false)
-      .eq("is_hidden", false);
+      .eq("is_hidden", false)
+      .order("name");
 
     const channels = channelsData as { id: string; name: string; description: string | null }[] | null;
 
+    // Send polished header
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} : `);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}╔════════════════════════════════════════════════════════════════════════╗${IRC_COLORS.RESET}`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}║${IRC_COLORS.RESET}                    ${IRC_COLORS.BOLD}${IRC_COLORS.YELLOW}JAC CHANNEL DIRECTORY${IRC_COLORS.RESET}                        ${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}║${IRC_COLORS.RESET}`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}╠════════════════════════════════════════════════════════════════════════╣${IRC_COLORS.RESET}`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}║${IRC_COLORS.RESET} ${IRC_COLORS.GREY}Channel${IRC_COLORS.RESET}          ${IRC_COLORS.GREY}Users${IRC_COLORS.RESET}  ${IRC_COLORS.GREY}Moderator${IRC_COLORS.RESET}   ${IRC_COLORS.GREY}Description${IRC_COLORS.RESET}                     ${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}║${IRC_COLORS.RESET}`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}╟────────────────────────────────────────────────────────────────────────╢${IRC_COLORS.RESET}`);
+    
+    // Standard IRC LIST header
     sendIRC(session, `:${SERVER_NAME} 321 ${session.nick} Channel :Users  Name`);
 
     for (const channel of channels || []) {
@@ -1374,8 +1457,30 @@ async function handleLIST(session: IRCSession, _params: string[]) {
         .select("*", { count: "exact", head: true })
         .eq("channel_id", channel.id);
 
-      sendNumeric(session, RPL.LIST, `#${channel.name} ${count || 0} :${channel.description || "No description"}`);
+      // Get room color and moderator
+      const roomColor = getRoomColor(channel.name);
+      const welcomeInfo = getWelcomeInfo(channel.name);
+      const botCount = getBotsForChannel(channel.name).length;
+      const totalUsers = (count || 0) + botCount + 1; // +1 for moderator
+      
+      // Pad values for alignment
+      const channelPad = `#${channel.name}`.padEnd(17);
+      const usersPad = `${totalUsers}`.padStart(3);
+      const modPad = welcomeInfo.moderator.padEnd(12);
+      const desc = (channel.description || getDefaultTopicForRoom(channel.name)).slice(0, 28);
+
+      // Send formatted row
+      sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}║${IRC_COLORS.RESET} ${roomColor}${channelPad}${IRC_COLORS.RESET} ${IRC_COLORS.GREEN}${usersPad}${IRC_COLORS.RESET}   ${IRC_COLORS.PINK}@${modPad}${IRC_COLORS.RESET} ${IRC_COLORS.GREY}${desc}${IRC_COLORS.RESET}`);
+      
+      // Standard IRC LIST entry
+      sendNumeric(session, RPL.LIST, `#${channel.name} ${totalUsers} :${channel.description || getDefaultTopicForRoom(channel.name)}`);
     }
+
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}╠════════════════════════════════════════════════════════════════════════╣${IRC_COLORS.RESET}`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}║${IRC_COLORS.RESET}  ${IRC_COLORS.GREY}Total channels: ${channels?.length || 0}${IRC_COLORS.RESET}   ${IRC_COLORS.GREY}Total users online: ${sessions.size}${IRC_COLORS.RESET}                     ${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}║${IRC_COLORS.RESET}`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}║${IRC_COLORS.RESET}  ${IRC_COLORS.YELLOW}Use /join #channel to enter${IRC_COLORS.RESET}                                  ${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}║${IRC_COLORS.RESET}`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}╚════════════════════════════════════════════════════════════════════════╝${IRC_COLORS.RESET}`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} : `);
 
     sendNumeric(session, RPL.LISTEND, ":End of /LIST");
   } catch (e) {
