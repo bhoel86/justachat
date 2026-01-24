@@ -79,31 +79,31 @@ on *:START:{
 }
 
 alias jac.applyTheme {
-  ; Set color scheme (mIRC uses system colors 0-15)
-  ; Background: Dark (color 1)
-  ; Text: Light (color 0)
-  ; Primary accent: Cyan (color 11)
+  ; Set color scheme using mIRC color indices
+  ; mIRC /color command uses: /color <index> <fg> [bg]
+  ; Event indices: 0=Normal, 1=Join, 2=Part, 3=Quit, 4=Mode, 5=Kick
+  ; 6=Topic, 7=Invite, 8=Nick, 9=Action, 10=Notice, 11=CTCP, 12=Highlight
+  ; 13=Other, 14=Wallops, 15=Whois, 16=Own, 17=Notify
   
-  ; Apply custom colors to events
-  /color background 1
-  /color text 0
-  /color action 11
-  /color ctcp 10
-  /color highlight 12
-  /color notice 7
-  /color invite 3
-  /color join 3
-  /color kick 4
-  /color mode 6
-  /color nick 11
-  /color notify 3
-  /color other 14
-  /color own 11
-  /color part 14
-  /color quit 14
-  /color topic 7
-  /color wallops 13
-  /color whois 11
+  ; Apply JAC dark theme colors
+  color 0 0,1     ; Normal text: white on black
+  color 1 3,1     ; Join: green on black
+  color 2 14,1    ; Part: grey on black
+  color 3 14,1    ; Quit: grey on black
+  color 4 6,1     ; Mode: purple on black
+  color 5 4,1     ; Kick: red on black
+  color 6 7,1     ; Topic: orange on black
+  color 7 3,1     ; Invite: green on black
+  color 8 11,1    ; Nick: cyan on black
+  color 9 11,1    ; Action: cyan on black
+  color 10 7,1    ; Notice: orange on black
+  color 11 10,1   ; CTCP: teal on black
+  color 12 12,1   ; Highlight: blue on black
+  color 13 14,1   ; Other: grey on black
+  color 14 13,1   ; Wallops: magenta on black
+  color 15 11,1   ; Whois: cyan on black
+  color 16 11,1   ; Own text: cyan on black
+  color 17 3,1    ; Notify: green on black
 }
 
 ; =====================
