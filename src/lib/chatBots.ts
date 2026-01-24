@@ -137,8 +137,8 @@ export const shouldBotRespond = (bot: ChatBot, messageCount: number): boolean =>
 };
 
 export const getBotResponseDelay = (): number => {
-  // Between 3-15 seconds
-  return 3000 + Math.random() * 12000;
+  // Between 8-25 seconds for more natural pacing
+  return 8000 + Math.random() * 17000;
 };
 
 export const TOPICS = [
