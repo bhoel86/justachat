@@ -1138,6 +1138,7 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
         minimizedChats={privateChats.minimizedChats}
         onRestore={(chatId) => privateChats.restoreChat(chatId)}
         onClose={(chatId) => privateChats.closeChat(chatId)}
+        onReorder={(fromIndex, toIndex) => privateChats.reorderChats(fromIndex, toIndex)}
       />
 
       {/* Language Settings Modal */}
