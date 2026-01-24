@@ -1,19 +1,19 @@
 /**
  * JAC IRC Proxy - WebSocket to TCP/TLS Bridge
- * Features: Admin API, Rate Limiting, Persistent Bans
+ * Features: Admin API, Rate Limiting, Persistent Bans, GeoIP Blocking
  * 
  * Environment Variables:
- *   WS_URL            - WebSocket gateway URL
- *   HOST              - Host to bind (default: 127.0.0.1)
- *   PORT              - IRC port (default: 6667)
- *   SSL_ENABLED       - Enable SSL/TLS (default: false)
- *   SSL_PORT          - SSL port (default: 6697)
- *   SSL_CERT          - Path to SSL certificate
- *   SSL_KEY           - Path to SSL private key
- *   ADMIN_PORT        - Admin API port (default: 6680)
- *   ADMIN_TOKEN       - Admin API auth token
- *   LOG_LEVEL         - debug, info, warn, error (default: info)
- *   DATA_DIR          - Directory for persistent data (default: ./data)
+ *   WS_URL              - WebSocket gateway URL
+ *   HOST                - Host to bind (default: 127.0.0.1)
+ *   PORT                - IRC port (default: 6667)
+ *   SSL_ENABLED         - Enable SSL/TLS (default: false)
+ *   SSL_PORT            - SSL port (default: 6697)
+ *   SSL_CERT            - Path to SSL certificate
+ *   SSL_KEY             - Path to SSL private key
+ *   ADMIN_PORT          - Admin API port (default: 6680)
+ *   ADMIN_TOKEN         - Admin API auth token
+ *   LOG_LEVEL           - debug, info, warn, error (default: info)
+ *   DATA_DIR            - Directory for persistent data (default: ./data)
  * 
  * Rate Limiting:
  *   RATE_CONN_PER_MIN   - Max connections per IP per minute (default: 5)
@@ -21,11 +21,19 @@
  *   RATE_MSG_BURST      - Message burst allowance (default: 20)
  *   RATE_AUTO_BAN       - Auto-ban after N violations (default: 3, 0=disable)
  *   RATE_BAN_DURATION   - Auto-ban duration in minutes (default: 60)
+ * 
+ * GeoIP Blocking:
+ *   GEOIP_ENABLED       - Enable GeoIP blocking (default: false)
+ *   GEOIP_MODE          - 'block' or 'allow' (default: block)
+ *   GEOIP_COUNTRIES     - Comma-separated country codes (e.g., CN,RU,KP)
+ *   GEOIP_CACHE_TTL     - Cache TTL in minutes (default: 60)
+ *   GEOIP_FAIL_OPEN     - Allow if lookup fails (default: true)
  */
 
 const net = require('net');
 const tls = require('tls');
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const WebSocket = require('ws');
@@ -51,7 +59,13 @@ const config = {
   rateMsgPerSec: parseInt(process.env.RATE_MSG_PER_SEC || '10', 10),
   rateMsgBurst: parseInt(process.env.RATE_MSG_BURST || '20', 10),
   rateAutoBan: parseInt(process.env.RATE_AUTO_BAN || '3', 10),
-  rateBanDuration: parseInt(process.env.RATE_BAN_DURATION || '60', 10)
+  rateBanDuration: parseInt(process.env.RATE_BAN_DURATION || '60', 10),
+  // GeoIP
+  geoipEnabled: process.env.GEOIP_ENABLED === 'true',
+  geoipMode: process.env.GEOIP_MODE || 'block', // 'block' or 'allow'
+  geoipCountries: (process.env.GEOIP_COUNTRIES || '').split(',').map(c => c.trim().toUpperCase()).filter(Boolean),
+  geoipCacheTTL: parseInt(process.env.GEOIP_CACHE_TTL || '60', 10),
+  geoipFailOpen: process.env.GEOIP_FAIL_OPEN !== 'false'
 };
 
 // Logging
@@ -63,6 +77,189 @@ function log(level, ...args) {
     console.log(`[${new Date().toISOString()}] [${level.toUpperCase()}]`, ...args);
   }
 }
+
+// ============================================
+// GeoIP Lookup
+// ============================================
+
+class GeoIPLookup {
+  constructor() {
+    this.cache = new Map(); // IP -> { country, countryCode, city, expiry }
+    this.stats = { hits: 0, misses: 0, blocked: 0, allowed: 0, errors: 0 };
+    
+    // Cleanup expired cache entries every 10 minutes
+    setInterval(() => this.cleanup(), 600000);
+  }
+  
+  async lookup(ip) {
+    // Check cache first
+    const cached = this.cache.get(ip);
+    if (cached && Date.now() < cached.expiry) {
+      this.stats.hits++;
+      return cached;
+    }
+    
+    this.stats.misses++;
+    
+    // Use ip-api.com (free, no API key, 45 requests/min limit)
+    try {
+      const data = await this.fetchGeoData(ip);
+      
+      const result = {
+        ip,
+        countryCode: data.countryCode || 'XX',
+        country: data.country || 'Unknown',
+        city: data.city || 'Unknown',
+        region: data.regionName || 'Unknown',
+        isp: data.isp || 'Unknown',
+        expiry: Date.now() + (config.geoipCacheTTL * 60000)
+      };
+      
+      this.cache.set(ip, result);
+      return result;
+    } catch (err) {
+      this.stats.errors++;
+      log('error', `[GEOIP] Lookup failed for ${ip}:`, err.message);
+      return null;
+    }
+  }
+  
+  fetchGeoData(ip) {
+    return new Promise((resolve, reject) => {
+      const url = `http://ip-api.com/json/${ip}?fields=status,message,country,countryCode,region,regionName,city,isp`;
+      
+      http.get(url, { timeout: 5000 }, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            if (json.status === 'success') {
+              resolve(json);
+            } else {
+              reject(new Error(json.message || 'Lookup failed'));
+            }
+          } catch (e) {
+            reject(e);
+          }
+        });
+      }).on('error', reject).on('timeout', () => reject(new Error('Timeout')));
+    });
+  }
+  
+  async shouldAllow(ip) {
+    if (!config.geoipEnabled || config.geoipCountries.length === 0) {
+      return { allowed: true, reason: 'GeoIP disabled' };
+    }
+    
+    // Skip private/local IPs
+    if (this.isPrivateIP(ip)) {
+      return { allowed: true, reason: 'Private IP' };
+    }
+    
+    const geo = await this.lookup(ip);
+    
+    if (!geo) {
+      // Lookup failed
+      if (config.geoipFailOpen) {
+        return { allowed: true, reason: 'Lookup failed (fail-open)' };
+      } else {
+        this.stats.blocked++;
+        return { allowed: false, reason: 'Lookup failed (fail-closed)', countryCode: 'XX' };
+      }
+    }
+    
+    const countryCode = geo.countryCode;
+    const isInList = config.geoipCountries.includes(countryCode);
+    
+    if (config.geoipMode === 'block') {
+      // Block mode: countries in list are blocked
+      if (isInList) {
+        this.stats.blocked++;
+        return { 
+          allowed: false, 
+          reason: `Country blocked: ${geo.country}`,
+          countryCode,
+          country: geo.country,
+          city: geo.city
+        };
+      }
+    } else {
+      // Allow mode: only countries in list are allowed
+      if (!isInList) {
+        this.stats.blocked++;
+        return { 
+          allowed: false, 
+          reason: `Country not allowed: ${geo.country}`,
+          countryCode,
+          country: geo.country,
+          city: geo.city
+        };
+      }
+    }
+    
+    this.stats.allowed++;
+    return { 
+      allowed: true, 
+      countryCode, 
+      country: geo.country, 
+      city: geo.city 
+    };
+  }
+  
+  isPrivateIP(ip) {
+    // Check for private/local IP ranges
+    if (ip === '127.0.0.1' || ip === 'localhost') return true;
+    if (ip.startsWith('10.')) return true;
+    if (ip.startsWith('192.168.')) return true;
+    if (ip.startsWith('172.')) {
+      const second = parseInt(ip.split('.')[1], 10);
+      if (second >= 16 && second <= 31) return true;
+    }
+    return false;
+  }
+  
+  getStats() {
+    return {
+      ...this.stats,
+      cacheSize: this.cache.size,
+      mode: config.geoipMode,
+      countries: config.geoipCountries,
+      enabled: config.geoipEnabled
+    };
+  }
+  
+  getCachedLocations() {
+    const locations = [];
+    for (const [ip, data] of this.cache) {
+      if (Date.now() < data.expiry) {
+        locations.push({
+          ip,
+          countryCode: data.countryCode,
+          country: data.country,
+          city: data.city
+        });
+      }
+    }
+    return locations;
+  }
+  
+  cleanup() {
+    const now = Date.now();
+    let cleaned = 0;
+    for (const [ip, data] of this.cache) {
+      if (now >= data.expiry) {
+        this.cache.delete(ip);
+        cleaned++;
+      }
+    }
+    if (cleaned > 0) {
+      log('debug', `[GEOIP] Cleaned ${cleaned} expired cache entries`);
+    }
+  }
+}
+
+const geoip = new GeoIPLookup();
 
 // ============================================
 // Persistent Storage
@@ -79,10 +276,10 @@ class PersistentStorage {
     try {
       if (!fs.existsSync(this.dataDir)) {
         fs.mkdirSync(this.dataDir, { recursive: true });
-        log('info', `[STORAGE] Created data directory: ${this.dataDir}`);
+        log('info', `[STORAGE] Created: ${this.dataDir}`);
       }
     } catch (err) {
-      log('error', `[STORAGE] Failed to create data directory:`, err.message);
+      log('error', `[STORAGE] Failed to create dir:`, err.message);
     }
   }
   
@@ -91,7 +288,7 @@ class PersistentStorage {
       if (fs.existsSync(this.bansFile)) {
         const data = fs.readFileSync(this.bansFile, 'utf8');
         const bans = JSON.parse(data);
-        log('info', `[STORAGE] Loaded ${Object.keys(bans).length} bans from disk`);
+        log('info', `[STORAGE] Loaded ${Object.keys(bans).length} bans`);
         return bans;
       }
     } catch (err) {
@@ -102,12 +299,11 @@ class PersistentStorage {
   
   saveBans(bans) {
     try {
-      const data = JSON.stringify(bans, null, 2);
-      fs.writeFileSync(this.bansFile, data, 'utf8');
-      log('debug', `[STORAGE] Saved ${Object.keys(bans).length} bans to disk`);
+      fs.writeFileSync(this.bansFile, JSON.stringify(bans, null, 2), 'utf8');
+      log('debug', `[STORAGE] Saved ${Object.keys(bans).length} bans`);
       return true;
     } catch (err) {
-      log('error', `[STORAGE] Failed to save bans:`, err.message);
+      log('error', `[STORAGE] Failed to save:`, err.message);
       return false;
     }
   }
@@ -138,11 +334,7 @@ class RateLimiter {
     
     if (record.count >= config.rateConnPerMin) {
       this.recordViolation(ip, 'connection');
-      return { 
-        allowed: false, 
-        reason: `Too many connections (${config.rateConnPerMin}/min)`,
-        retryAfter: Math.ceil((record.resetAt - now) / 1000)
-      };
+      return { allowed: false, retryAfter: Math.ceil((record.resetAt - now) / 1000) };
     }
     
     record.count++;
@@ -150,30 +342,21 @@ class RateLimiter {
   }
   
   initConnection(connId) {
-    this.messageTokens.set(connId, {
-      tokens: config.rateMsgBurst,
-      lastRefill: Date.now()
-    });
+    this.messageTokens.set(connId, { tokens: config.rateMsgBurst, lastRefill: Date.now() });
   }
   
   canSendMessage(connId, ip) {
     const now = Date.now();
     const bucket = this.messageTokens.get(connId);
+    if (!bucket) { this.initConnection(connId); return { allowed: true }; }
     
-    if (!bucket) {
-      this.initConnection(connId);
-      return { allowed: true };
-    }
-    
-    const timePassed = (now - bucket.lastRefill) / 1000;
-    bucket.tokens = Math.min(config.rateMsgBurst, bucket.tokens + timePassed * config.rateMsgPerSec);
+    bucket.tokens = Math.min(config.rateMsgBurst, bucket.tokens + ((now - bucket.lastRefill) / 1000) * config.rateMsgPerSec);
     bucket.lastRefill = now;
     
     if (bucket.tokens < 1) {
       this.recordViolation(ip, 'message');
-      return { allowed: false, reason: `Rate limited` };
+      return { allowed: false };
     }
-    
     bucket.tokens--;
     return { allowed: true };
   }
@@ -181,37 +364,22 @@ class RateLimiter {
   recordViolation(ip, type) {
     const now = Date.now();
     const record = this.violations.get(ip) || { count: 0, lastViolation: 0 };
-    
     if (now - record.lastViolation > 3600000) record.count = 0;
-    
     record.count++;
     record.lastViolation = now;
     this.violations.set(ip, record);
-    
     log('warn', `[RATE] Violation #${record.count} from ${ip}: ${type}`);
-    
-    if (config.rateAutoBan > 0 && record.count >= config.rateAutoBan) {
-      return { shouldBan: true, violations: record.count };
-    }
-    return { shouldBan: false };
+    return config.rateAutoBan > 0 && record.count >= config.rateAutoBan ? { shouldBan: true, violations: record.count } : { shouldBan: false };
   }
   
-  removeConnection(connId) {
-    this.messageTokens.delete(connId);
-  }
+  removeConnection(connId) { this.messageTokens.delete(connId); }
+  clearViolations(ip) { return this.violations.delete(ip); }
   
   getStats() {
     return {
       trackedIPs: this.connectionAttempts.size,
       activeConnections: this.messageTokens.size,
-      violatingIPs: this.violations.size,
-      config: {
-        connPerMin: config.rateConnPerMin,
-        msgPerSec: config.rateMsgPerSec,
-        msgBurst: config.rateMsgBurst,
-        autoBanThreshold: config.rateAutoBan,
-        banDurationMin: config.rateBanDuration
-      }
+      violatingIPs: this.violations.size
     };
   }
   
@@ -221,118 +389,90 @@ class RateLimiter {
       .sort((a, b) => b.violations - a.violations);
   }
   
-  clearViolations(ip) {
-    return this.violations.delete(ip);
-  }
-  
   cleanup() {
     const now = Date.now();
-    for (const [ip, record] of this.connectionAttempts) {
-      if (now > record.resetAt + 60000) this.connectionAttempts.delete(ip);
-    }
-    for (const [ip, record] of this.violations) {
-      if (now - record.lastViolation > 7200000) this.violations.delete(ip);
-    }
+    for (const [ip, r] of this.connectionAttempts) if (now > r.resetAt + 60000) this.connectionAttempts.delete(ip);
+    for (const [ip, r] of this.violations) if (now - r.lastViolation > 7200000) this.violations.delete(ip);
   }
 }
 
 const rateLimiter = new RateLimiter();
 
 // ============================================
-// Ban Management (Persistent)
+// Ban Management
 // ============================================
 
 let connectionCount = 0;
 const activeConnections = new Map();
 const startTime = Date.now();
 
-// Load bans from disk
 const bannedIPsData = storage.loadBans();
 const bannedIPs = new Map(Object.entries(bannedIPsData));
 
-// Save bans to disk (debounced)
 let saveTimeout = null;
 function scheduleSave() {
   if (saveTimeout) clearTimeout(saveTimeout);
-  saveTimeout = setTimeout(() => {
-    const bansObj = Object.fromEntries(bannedIPs);
-    storage.saveBans(bansObj);
-  }, 1000);
+  saveTimeout = setTimeout(() => storage.saveBans(Object.fromEntries(bannedIPs)), 1000);
 }
 
 function isIPBanned(ip) {
   const ban = bannedIPs.get(ip);
   if (!ban) return false;
-  
   if (!ban.permanent && ban.expires && Date.now() > ban.expires) {
     bannedIPs.delete(ip);
     scheduleSave();
     log('info', `[BAN] Expired: ${ip}`);
     return false;
   }
-  
   return true;
 }
 
 function banIP(ip, reason = 'Manual ban', durationMinutes = 0, kickExisting = true) {
   const ban = {
-    reason,
-    bannedAt: new Date().toISOString(),
+    reason, bannedAt: new Date().toISOString(),
     permanent: durationMinutes === 0,
     expires: durationMinutes > 0 ? Date.now() + (durationMinutes * 60000) : null
   };
-  
   bannedIPs.set(ip, ban);
   scheduleSave();
-  
-  log('info', `[BAN] Added: ${ip} - ${reason} (${ban.permanent ? 'permanent' : durationMinutes + 'min'})`);
+  log('info', `[BAN] ${ip} - ${reason} (${ban.permanent ? 'permanent' : durationMinutes + 'min'})`);
   
   if (kickExisting) {
-    for (const [id, conn] of activeConnections) {
+    for (const conn of activeConnections.values()) {
       if (conn.ip === ip) {
         conn.socket.write(`:server 465 * :Banned: ${reason}\r\n`);
         conn.socket.end();
       }
     }
   }
-  
   return ban;
 }
 
 function unbanIP(ip) {
   const existed = bannedIPs.delete(ip);
-  if (existed) {
-    scheduleSave();
-    log('info', `[BAN] Removed: ${ip}`);
-  }
+  if (existed) { scheduleSave(); log('info', `[BAN] Removed: ${ip}`); }
   return existed;
 }
 
-// Cleanup expired bans periodically
 setInterval(() => {
   const now = Date.now();
   let cleaned = 0;
   for (const [ip, ban] of bannedIPs) {
-    if (!ban.permanent && ban.expires && now > ban.expires) {
-      bannedIPs.delete(ip);
-      cleaned++;
-    }
+    if (!ban.permanent && ban.expires && now > ban.expires) { bannedIPs.delete(ip); cleaned++; }
   }
-  if (cleaned > 0) {
-    scheduleSave();
-    log('info', `[BAN] Cleaned ${cleaned} expired bans`);
-  }
-}, 300000); // Every 5 minutes
+  if (cleaned > 0) { scheduleSave(); log('info', `[BAN] Cleaned ${cleaned} expired`); }
+}, 300000);
 
 // ============================================
 // Connection Handler
 // ============================================
 
-function handleConnection(socket, isSecure = false) {
+async function handleConnection(socket, isSecure = false) {
   const clientIP = socket.remoteAddress?.replace('::ffff:', '') || 'unknown';
   const clientPort = socket.remotePort;
   const connType = isSecure ? 'SSL' : 'TCP';
   
+  // Check ban
   if (isIPBanned(clientIP)) {
     const ban = bannedIPs.get(clientIP);
     log('warn', `[REJECT] Banned: ${clientIP}`);
@@ -340,14 +480,23 @@ function handleConnection(socket, isSecure = false) {
     return;
   }
   
+  // Check GeoIP
+  if (config.geoipEnabled) {
+    const geoCheck = await geoip.shouldAllow(clientIP);
+    if (!geoCheck.allowed) {
+      log('warn', `[REJECT] GeoIP: ${clientIP} (${geoCheck.countryCode} - ${geoCheck.reason})`);
+      socket.end(`:server 465 * :Connection not allowed from your region\r\n`);
+      return;
+    }
+  }
+  
+  // Check rate limit
   const connCheck = rateLimiter.canConnect(clientIP);
   if (!connCheck.allowed) {
-    log('warn', `[REJECT] Rate limited: ${clientIP}`);
+    log('warn', `[REJECT] Rate: ${clientIP}`);
     socket.end(`:server 465 * :Rate limited. Try in ${connCheck.retryAfter}s\r\n`);
-    const violation = rateLimiter.recordViolation(clientIP, 'rejected');
-    if (violation.shouldBan) {
-      banIP(clientIP, `Auto-ban: ${violation.violations} violations`, config.rateBanDuration, false);
-    }
+    const v = rateLimiter.recordViolation(clientIP, 'rejected');
+    if (v.shouldBan) banIP(clientIP, `Auto-ban: ${v.violations} violations`, config.rateBanDuration, false);
     return;
   }
   
@@ -360,30 +509,22 @@ function handleConnection(socket, isSecure = false) {
   let buffer = '';
   let throttleWarnings = 0;
   
+  // Get geo info for connection tracking
+  const geoInfo = config.geoipEnabled ? await geoip.lookup(clientIP) : null;
+  
   const conn = {
-    id: connId,
-    socket,
-    ip: clientIP,
-    port: clientPort,
-    secure: isSecure,
-    connected: new Date(),
-    nickname: null,
-    username: null,
-    authenticated: false,
-    messageCount: 0,
-    throttledCount: 0
+    id: connId, socket, ip: clientIP, port: clientPort, secure: isSecure,
+    connected: new Date(), nickname: null, username: null, authenticated: false,
+    messageCount: 0, throttledCount: 0,
+    country: geoInfo?.country || null, countryCode: geoInfo?.countryCode || null, city: geoInfo?.city || null
   };
   
   activeConnections.set(connId, conn);
   
   try {
     ws = new WebSocket(config.wsUrl);
-    
     ws.on('open', () => log('info', `[${connId}] Gateway connected`));
-    ws.on('message', (data) => {
-      log('debug', `[${connId}] [GW->IRC]`, data.toString().trim());
-      socket.write(data.toString());
-    });
+    ws.on('message', (data) => { log('debug', `[${connId}] [GW->IRC]`, data.toString().trim()); socket.write(data.toString()); });
     ws.on('close', () => { log('info', `[${connId}] Gateway closed`); socket.end(); });
     ws.on('error', (err) => { log('error', `[${connId}] WS error:`, err.message); socket.end(); });
   } catch (err) {
@@ -403,10 +544,7 @@ function handleConnection(socket, isSecure = false) {
       const msgCheck = rateLimiter.canSendMessage(connId, clientIP);
       if (!msgCheck.allowed) {
         conn.throttledCount++;
-        throttleWarnings++;
-        if (throttleWarnings % 5 === 1) {
-          socket.write(`:server NOTICE * :Slow down!\r\n`);
-        }
+        if (++throttleWarnings % 5 === 1) socket.write(`:server NOTICE * :Slow down!\r\n`);
         if (throttleWarnings >= 50) {
           const v = rateLimiter.recordViolation(clientIP, 'flooding');
           if (v.shouldBan) banIP(clientIP, 'Auto-ban: Flooding', config.rateBanDuration, true);
@@ -454,10 +592,10 @@ const adminServer = http.createServer((req, res) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
   const isAuthed = config.adminToken && token === config.adminToken;
   const url = new URL(req.url, `http://${req.headers.host}`);
-  const path = url.pathname;
+  const reqPath = url.pathname;
   
   // Public status
-  if (path === '/status' && req.method === 'GET') {
+  if (reqPath === '/status' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       uptime: Math.floor((Date.now() - startTime) / 1000),
@@ -465,7 +603,8 @@ const adminServer = http.createServer((req, res) => {
       totalConnections: connectionCount,
       bannedIPs: bannedIPs.size,
       ssl: config.sslEnabled,
-      rateLimit: rateLimiter.getStats()
+      rateLimit: rateLimiter.getStats(),
+      geoip: geoip.getStats()
     }));
     return;
   }
@@ -476,14 +615,14 @@ const adminServer = http.createServer((req, res) => {
     return;
   }
   
-  // Connections
-  if (path === '/connections' && req.method === 'GET') {
+  // Connections (with geo info)
+  if (reqPath === '/connections' && req.method === 'GET') {
     const conns = Array.from(activeConnections.values()).map(c => ({
       id: c.id, ip: c.ip, port: c.port, secure: c.secure,
       nickname: c.nickname, username: c.username, authenticated: c.authenticated,
       connected: c.connected.toISOString(), messageCount: c.messageCount,
-      throttledCount: c.throttledCount,
-      duration: Math.floor((Date.now() - c.connected.getTime()) / 1000)
+      throttledCount: c.throttledCount, duration: Math.floor((Date.now() - c.connected.getTime()) / 1000),
+      country: c.country, countryCode: c.countryCode, city: c.city
     }));
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ connections: conns }));
@@ -491,8 +630,8 @@ const adminServer = http.createServer((req, res) => {
   }
   
   // Kick
-  if (path.startsWith('/kick/') && req.method === 'POST') {
-    const connId = parseInt(path.split('/')[2], 10);
+  if (reqPath.startsWith('/kick/') && req.method === 'POST') {
+    const connId = parseInt(reqPath.split('/')[2], 10);
     const conn = activeConnections.get(connId);
     if (conn) {
       conn.socket.write(`:server KILL ${conn.nickname || '*'} :Kicked\r\n`);
@@ -507,10 +646,9 @@ const adminServer = http.createServer((req, res) => {
   }
   
   // Bans
-  if (path === '/bans' && req.method === 'GET') {
+  if (reqPath === '/bans' && req.method === 'GET') {
     const bans = Array.from(bannedIPs.entries()).map(([ip, ban]) => ({
-      ip, reason: ban.reason, bannedAt: ban.bannedAt,
-      permanent: ban.permanent,
+      ip, reason: ban.reason, bannedAt: ban.bannedAt, permanent: ban.permanent,
       expires: ban.expires ? new Date(ban.expires).toISOString() : null
     }));
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -519,7 +657,7 @@ const adminServer = http.createServer((req, res) => {
   }
   
   // Ban
-  if (path === '/ban' && req.method === 'POST') {
+  if (reqPath === '/ban' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
@@ -542,7 +680,7 @@ const adminServer = http.createServer((req, res) => {
   }
   
   // Unban
-  if (path === '/unban' && req.method === 'POST') {
+  if (reqPath === '/unban' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
@@ -565,14 +703,24 @@ const adminServer = http.createServer((req, res) => {
   }
   
   // Violations
-  if (path === '/violations' && req.method === 'GET') {
+  if (reqPath === '/violations' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ violations: rateLimiter.getViolations() }));
     return;
   }
   
+  // GeoIP stats and cache
+  if (reqPath === '/geoip' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ 
+      stats: geoip.getStats(),
+      cachedLocations: geoip.getCachedLocations()
+    }));
+    return;
+  }
+  
   // Broadcast
-  if (path === '/broadcast' && req.method === 'POST') {
+  if (reqPath === '/broadcast' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
@@ -620,14 +768,8 @@ if (config.sslEnabled && config.sslCert && config.sslKey) {
 
 function shutdown() {
   log('info', 'Shutting down...');
-  
-  // Save bans immediately
-  const bansObj = Object.fromEntries(bannedIPs);
-  storage.saveBans(bansObj);
-  
-  for (const conn of activeConnections.values()) {
-    conn.socket.end(':server NOTICE * :Server shutting down\r\n');
-  }
+  storage.saveBans(Object.fromEntries(bannedIPs));
+  for (const conn of activeConnections.values()) conn.socket.end(':server NOTICE * :Shutting down\r\n');
   tcpServer.close();
   if (tlsServer) tlsServer.close();
   adminServer.close();
@@ -642,15 +784,14 @@ console.log('\n' + '='.repeat(60));
 console.log('JAC IRC Proxy');
 console.log('='.repeat(60) + '\n');
 
-console.log('Persistent Storage:');
-console.log(`  Data directory: ${config.dataDir}`);
-console.log(`  Loaded bans:    ${bannedIPs.size}`);
-console.log('');
+console.log('Storage:     ' + config.dataDir + ` (${bannedIPs.size} bans loaded)`);
+console.log('Rate Limit:  ' + `${config.rateConnPerMin} conn/min, ${config.rateMsgPerSec} msg/sec`);
 
-console.log('Rate Limiting:');
-console.log(`  Connections: ${config.rateConnPerMin}/min per IP`);
-console.log(`  Messages:    ${config.rateMsgPerSec}/sec (burst: ${config.rateMsgBurst})`);
-console.log(`  Auto-ban:    ${config.rateAutoBan > 0 ? `After ${config.rateAutoBan} violations (${config.rateBanDuration}min)` : 'Disabled'}`);
+if (config.geoipEnabled) {
+  console.log('GeoIP:       ' + `${config.geoipMode.toUpperCase()} mode - ${config.geoipCountries.join(', ') || 'none configured'}`);
+} else {
+  console.log('GeoIP:       Disabled');
+}
 console.log('');
 
 tcpServer.listen(config.port, config.host, () => log('info', `TCP: ${config.host}:${config.port}`));
