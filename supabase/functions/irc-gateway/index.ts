@@ -209,6 +209,119 @@ const ROOM_WELCOME_MESSAGES: Record<string, { moderator: string; message: string
   },
 };
 
+// ASCII art banners for each room
+const ROOM_ASCII_ART: Record<string, string[]> = {
+  'general': [
+    "   ██████╗ ███████╗███╗   ██╗███████╗██████╗  █████╗ ██╗     ",
+    "  ██╔════╝ ██╔════╝████╗  ██║██╔════╝██╔══██╗██╔══██╗██║     ",
+    "  ██║  ███╗█████╗  ██╔██╗ ██║█████╗  ██████╔╝███████║██║     ",
+    "  ██║   ██║██╔══╝  ██║╚██╗██║██╔══╝  ██╔══██╗██╔══██║██║     ",
+    "  ╚██████╔╝███████╗██║ ╚████║███████╗██║  ██║██║  ██║███████╗",
+    "   ╚═════╝ ╚══════╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝",
+  ],
+  'adults-21-plus': [
+    "   █████╗ ██████╗ ██╗   ██╗██╗  ████████╗███████╗    ██████╗  ██╗ ██╗    ",
+    "  ██╔══██╗██╔══██╗██║   ██║██║  ╚══██╔══╝██╔════╝    ╚════██╗███║██╔╝    ",
+    "  ███████║██║  ██║██║   ██║██║     ██║   ███████╗     █████╔╝╚██║██║     ",
+    "  ██╔══██║██║  ██║██║   ██║██║     ██║   ╚════██║    ██╔═══╝  ██║██║     ",
+    "  ██║  ██║██████╔╝╚██████╔╝███████╗██║   ███████║    ███████╗ ██║╚██████╗",
+    "  ╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚══════╝╚═╝   ╚══════╝    ╚══════╝ ╚═╝ ╚═════╝",
+  ],
+  'music': [
+    "  ███╗   ███╗██╗   ██╗███████╗██╗ ██████╗    ♪ ♫ ♬",
+    "  ████╗ ████║██║   ██║██╔════╝██║██╔════╝   ♫     ♪",
+    "  ██╔████╔██║██║   ██║███████╗██║██║        ♪   ♫  ",
+    "  ██║╚██╔╝██║██║   ██║╚════██║██║██║          ♬   ♪",
+    "  ██║ ╚═╝ ██║╚██████╔╝███████║██║╚██████╗   ♪   ♫  ",
+    "  ╚═╝     ╚═╝ ╚═════╝ ╚══════╝╚═╝ ╚═════╝    ♫ ♪ ♬ ",
+  ],
+  'help': [
+    "  ██╗  ██╗███████╗██╗     ██████╗     ██████╗ ███████╗███████╗██╗  ██╗",
+    "  ██║  ██║██╔════╝██║     ██╔══██╗    ██╔══██╗██╔════╝██╔════╝██║ ██╔╝",
+    "  ███████║█████╗  ██║     ██████╔╝    ██║  ██║█████╗  ███████╗█████╔╝ ",
+    "  ██╔══██║██╔══╝  ██║     ██╔═══╝     ██║  ██║██╔══╝  ╚════██║██╔═██╗ ",
+    "  ██║  ██║███████╗███████╗██║         ██████╔╝███████╗███████║██║  ██╗",
+    "  ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝         ╚═════╝ ╚══════╝╚══════╝╚═╝  ╚═╝",
+  ],
+  'games': [
+    "   ██████╗  █████╗ ███╗   ███╗███████╗███████╗   ▄▄▄▄▄",
+    "  ██╔════╝ ██╔══██╗████╗ ████║██╔════╝██╔════╝  █ ● ● █",
+    "  ██║  ███╗███████║██╔████╔██║█████╗  ███████╗  █  ▄  █",
+    "  ██║   ██║██╔══██║██║╚██╔╝██║██╔══╝  ╚════██║  █ █▄█ █",
+    "  ╚██████╔╝██║  ██║██║ ╚═╝ ██║███████╗███████║  ▀▀▀▀▀▀▀",
+    "   ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝         ",
+  ],
+  'politics': [
+    "  ██████╗  ██████╗ ██╗     ██╗████████╗██╗ ██████╗███████╗",
+    "  ██╔══██╗██╔═══██╗██║     ██║╚══██╔══╝██║██╔════╝██╔════╝",
+    "  ██████╔╝██║   ██║██║     ██║   ██║   ██║██║     ███████╗",
+    "  ██╔═══╝ ██║   ██║██║     ██║   ██║   ██║██║     ╚════██║",
+    "  ██║     ╚██████╔╝███████╗██║   ██║   ██║╚██████╗███████║",
+    "  ╚═╝      ╚═════╝ ╚══════╝╚═╝   ╚═╝   ╚═╝ ╚═════╝╚══════╝",
+  ],
+  'movies-tv': [
+    "  ███╗   ███╗ ██████╗ ██╗   ██╗██╗███████╗███████╗   📽️ 🎬",
+    "  ████╗ ████║██╔═══██╗██║   ██║██║██╔════╝██╔════╝   🎥    ",
+    "  ██╔████╔██║██║   ██║██║   ██║██║█████╗  ███████╗      📺 ",
+    "  ██║╚██╔╝██║██║   ██║╚██╗ ██╔╝██║██╔══╝  ╚════██║   🍿    ",
+    "  ██║ ╚═╝ ██║╚██████╔╝ ╚████╔╝ ██║███████╗███████║      🎞️ ",
+    "  ╚═╝     ╚═╝ ╚═════╝   ╚═══╝  ╚═╝╚══════╝╚══════╝         ",
+  ],
+  'sports': [
+    "  ███████╗██████╗  ██████╗ ██████╗ ████████╗███████╗  ⚽🏀🏈",
+    "  ██╔════╝██╔══██╗██╔═══██╗██╔══██╗╚══██╔══╝██╔════╝  🎾⚾🏒",
+    "  ███████╗██████╔╝██║   ██║██████╔╝   ██║   ███████╗  🏆🥇🎖️",
+    "  ╚════██║██╔═══╝ ██║   ██║██╔══██╗   ██║   ╚════██║        ",
+    "  ███████║██║     ╚██████╔╝██║  ██║   ██║   ███████║        ",
+    "  ╚══════╝╚═╝      ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝        ",
+  ],
+  'technology': [
+    "  ████████╗███████╗ ██████╗██╗  ██╗   </> {;} [#]",
+    "  ╚══██╔══╝██╔════╝██╔════╝██║  ██║   ▄▄▄▄▄▄▄▄▄▄▄",
+    "     ██║   █████╗  ██║     ███████║   █ 01001011 █",
+    "     ██║   ██╔══╝  ██║     ██╔══██║   █ 10110100 █",
+    "     ██║   ███████╗╚██████╗██║  ██║   ▀▀▀▀▀▀▀▀▀▀▀",
+    "     ╚═╝   ╚══════╝ ╚═════╝╚═╝  ╚═╝   </>  ⌨️  💻 ",
+  ],
+  'dating': [
+    "  ██████╗  █████╗ ████████╗██╗███╗   ██╗ ██████╗     💕",
+    "  ██╔══██╗██╔══██╗╚══██╔══╝██║████╗  ██║██╔════╝    💖 💗",
+    "  ██║  ██║███████║   ██║   ██║██╔██╗ ██║██║  ███╗  💘   💝",
+    "  ██║  ██║██╔══██║   ██║   ██║██║╚██╗██║██║   ██║   💓 💞",
+    "  ██████╔╝██║  ██║   ██║   ██║██║ ╚████║╚██████╔╝    💕  ",
+    "  ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚═╝╚═╝  ╚═══╝ ╚═════╝         ",
+  ],
+  'lounge': [
+    "  ██╗      ██████╗ ██╗   ██╗███╗   ██╗ ██████╗ ███████╗",
+    "  ██║     ██╔═══██╗██║   ██║████╗  ██║██╔════╝ ██╔════╝",
+    "  ██║     ██║   ██║██║   ██║██╔██╗ ██║██║  ███╗█████╗  ",
+    "  ██║     ██║   ██║██║   ██║██║╚██╗██║██║   ██║██╔══╝  ",
+    "  ███████╗╚██████╔╝╚██████╔╝██║ ╚████║╚██████╔╝███████╗",
+    "  ╚══════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝ ╚══════╝",
+    "           ☕ Chill Vibes Only ☕                      ",
+  ],
+  'trivia': [
+    "  ████████╗██████╗ ██╗██╗   ██╗██╗ █████╗     ❓",
+    "  ╚══██╔══╝██╔══██╗██║██║   ██║██║██╔══██╗   ❔ ❓",
+    "     ██║   ██████╔╝██║██║   ██║██║███████║  ❓   ❔",
+    "     ██║   ██╔══██╗██║╚██╗ ██╔╝██║██╔══██║   ❔ ❓",
+    "     ██║   ██║  ██║██║ ╚████╔╝ ██║██║  ██║    ❓  ",
+    "     ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═══╝  ╚═╝╚═╝  ╚═╝   🧠💡 ",
+  ],
+  'art': [
+    "   █████╗ ██████╗ ████████╗    ╔═══════════╗",
+    "  ██╔══██╗██╔══██╗╚══██╔══╝    ║  🎨 🖼️ 🖌️  ║",
+    "  ███████║██████╔╝   ██║       ║   ╭───╮   ║",
+    "  ██╔══██║██╔══██╗   ██║       ║   │ ◉ │   ║",
+    "  ██║  ██║██║  ██║   ██║       ║   ╰───╯   ║",
+    "  ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝       ╚═══════════╝",
+  ],
+};
+
+function getAsciiArt(channelName: string): string[] {
+  return ROOM_ASCII_ART[channelName.toLowerCase()] || ROOM_ASCII_ART['general'];
+}
+
 function getRoomColor(channelName: string): string {
   return ROOM_IRC_COLORS[channelName.toLowerCase()] || IRC_COLORS.BLUE;
 }
@@ -573,24 +686,30 @@ async function handleJOIN(session: IRCSession, params: string[]) {
         sendIRC(session, `:${SERVER_NAME} MODE ${channelName} +o ${session.nick}`);
       }
 
-      // Send enhanced welcome message for the room
+      // Send enhanced welcome message for the room with ASCII art
       const welcomeInfo = getWelcomeInfo(dbChannelName);
-      // Reuse roomColor from earlier in this scope
+      const asciiArt = getAsciiArt(dbChannelName);
       
-      // Welcome header
-      sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${roomColor}════════════════════════════════════════${IRC_COLORS.RESET}`);
-      sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${roomColor}  Welcome to ${formatColoredRoomName(dbChannelName)}!${IRC_COLORS.RESET}`);
-      sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${roomColor}════════════════════════════════════════${IRC_COLORS.RESET}`);
+      // ASCII art banner
+      sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} : `);
+      for (const line of asciiArt) {
+        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${roomColor}${line}${IRC_COLORS.RESET}`);
+      }
+      sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} : `);
+      
+      // Welcome divider
+      sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${roomColor}══════════════════════════════════════════════════════════════${IRC_COLORS.RESET}`);
       
       // Moderator message
       sendIRC(session, `:${welcomeInfo.moderator}!${welcomeInfo.moderator}@mod.${SERVER_NAME} PRIVMSG ${channelName} :${IRC_COLORS.CYAN}${welcomeInfo.message}${IRC_COLORS.RESET}`);
       
-      // Tips
-      sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.GREY}${IRC_COLORS.ITALIC}Tips:${IRC_COLORS.RESET}`);
+      // Tips section
+      sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} : `);
+      sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.GREY}${IRC_COLORS.BOLD}Quick Tips:${IRC_COLORS.RESET}`);
       for (const tip of welcomeInfo.tips) {
-        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.GREY}  • ${tip}${IRC_COLORS.RESET}`);
+        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.GREY}  ▸ ${tip}${IRC_COLORS.RESET}`);
       }
-      sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.GREY}${IRC_COLORS.ITALIC}────────────────────────────────────────${IRC_COLORS.RESET}`);
+      sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.GREY}══════════════════════════════════════════════════════════════${IRC_COLORS.RESET}`);
 
       // Join in database - use insert with conflict handling
       await (session.supabase as any)
