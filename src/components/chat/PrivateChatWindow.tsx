@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { X, Lock, Send, Minus, Shield, Maximize2, Minimize2 } from "lucide-react";
+import { X, Lock, Send, Minus, Shield, Check, CheckCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { generateSessionKey, encryptMessage, encryptWithMasterKey, decryptMessage, exportKey, importKey, generateSessionId } from "@/lib/encryption";
@@ -25,6 +25,7 @@ interface PrivateMessage {
   senderName: string;
   timestamp: Date;
   isOwn: boolean;
+  seenByBot?: boolean;
 }
 
 interface PrivateChatWindowProps {
@@ -70,11 +71,13 @@ const PrivateChatWindow = ({
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [resizeStart, setResizeStart] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const [isBotTyping, setIsBotTyping] = useState(false);
+  const [seenMessageIds, setSeenMessageIds] = useState<Set<string>>(new Set());
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const windowRef = useRef<HTMLDivElement>(null);
   const botResponseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const seenTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
   // Check if target user is a bot
@@ -304,14 +307,29 @@ const PrivateChatWindow = ({
     }, delay);
   }, [targetBotId, messages, currentUsername, targetUsername, targetUserId, onNewMessage]);
 
-  // Cleanup bot response timeout on unmount
+  // Cleanup timeouts on unmount
   useEffect(() => {
     return () => {
       if (botResponseTimeoutRef.current) {
         clearTimeout(botResponseTimeoutRef.current);
       }
+      if (seenTimeoutRef.current) {
+        clearTimeout(seenTimeoutRef.current);
+      }
     };
   }, []);
+
+  // Simulate bot "seeing" messages after a short delay
+  const markMessageAsSeen = useCallback((msgId: string) => {
+    if (!isTargetBot) return;
+    
+    // Random delay between 1-3 seconds before marking as "seen"
+    const seenDelay = 1000 + Math.random() * 2000;
+    
+    seenTimeoutRef.current = setTimeout(() => {
+      setSeenMessageIds(prev => new Set(prev).add(msgId));
+    }, seenDelay);
+  }, [isTargetBot]);
 
   const handleSend = async () => {
     if (!message.trim() || !sessionKey || !channelRef.current) return;
@@ -362,8 +380,9 @@ const PrivateChatWindow = ({
       monitorMessage(trimmedMessage, currentUserId, currentUsername);
       setMessage('');
 
-      // Trigger bot response if chatting with a simulated user
+      // Trigger bot "seen" and response if chatting with a simulated user
       if (isTargetBot) {
+        markMessageAsSeen(msgId);
         generateBotResponse(trimmedMessage);
       }
     } catch (error) {
@@ -488,9 +507,21 @@ const PrivateChatWindow = ({
                   <p className="text-[10px] font-medium mb-0.5 opacity-70">{msg.senderName}</p>
                 )}
                 <p className="text-xs break-words">{msg.content}</p>
-                <p className="text-[9px] opacity-50 mt-0.5 text-right">
-                  {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
+                <div className="flex items-center justify-end gap-1 mt-0.5">
+                  <span className="text-[9px] opacity-50">
+                    {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  {/* Read receipts for own messages to bots */}
+                  {msg.isOwn && isTargetBot && (
+                    <span className="flex items-center">
+                      {seenMessageIds.has(msg.id) ? (
+                        <CheckCheck className="h-3 w-3 text-primary-foreground/70" />
+                      ) : (
+                        <Check className="h-3 w-3 text-primary-foreground/50" />
+                      )}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           ))
