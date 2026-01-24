@@ -461,18 +461,6 @@ const MemberList = ({ onlineUserIds, channelName = 'general', onOpenPm, onAction
         </div>
 
         <div className="flex-1 overflow-y-auto p-2">
-          {/* Admin Panel Link - Owner Only */}
-          {isOwner && (
-            <div className="mb-4">
-              <Link 
-                to="/admin"
-                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-colors group"
-              >
-                <Settings className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium text-primary">Admin Panel</span>
-              </Link>
-            </div>
-          )}
           {/* Channel Moderator - Always on top */}
           <div className="mb-4 p-2 rounded-lg bg-muted/40 border border-border/50">
             <p className="text-xs font-medium text-muted-foreground uppercase px-1 mb-2">
