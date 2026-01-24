@@ -1,0 +1,36 @@
+# JAC IRC Proxy - Docker Compose
+# 
+# Quick start:
+#   docker-compose up -d
+#
+# View logs:
+#   docker-compose logs -f
+#
+# Stop:
+#   docker-compose down
+
+version: '3.8'
+
+services:
+  irc-proxy:
+    build: .
+    container_name: jac-irc-proxy
+    restart: unless-stopped
+    ports:
+      - "6667:6667"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=6667
+      - LOG_LEVEL=info
+      # Uncomment to use a custom gateway URL:
+      # - WS_URL=wss://your-custom-gateway-url
+    healthcheck:
+      test: ["CMD", "pgrep", "-x", "node"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

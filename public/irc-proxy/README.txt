@@ -4,6 +4,7 @@ JAC IRC Proxy v2.0
 
 Connect mIRC, HexChat, and other IRC clients to JAC chat.
 
+
 ========================================
 OPTION 1: LOCAL USE (Personal)
 ========================================
@@ -23,33 +24,58 @@ MIRC SETTINGS:
 
 
 ========================================
-OPTION 2: VPS/SERVER HOSTING (Public)
+OPTION 2: DOCKER (Recommended for VPS)
 ========================================
 
-Host the proxy on a VPS so users can connect without 
-running their own proxy.
+The easiest way to host publicly.
+
+REQUIREMENTS:
+- Docker & Docker Compose
+
+QUICK START:
+  docker-compose up -d
+
+VIEW LOGS:
+  docker-compose logs -f
+
+STOP:
+  docker-compose down
+
+CUSTOM PORT:
+Edit docker-compose.yml:
+  ports:
+    - "7000:6667"
+
+BUILD & RUN MANUALLY:
+  docker build -t jac-irc-proxy .
+  docker run -d -p 6667:6667 --name jac-irc jac-irc-proxy
+
+YOUR USERS' MIRC SETTINGS:
+- Server: your-vps-ip-address
+- Port: 6667
+- Password: their-email@example.com:their-password
+
+
+========================================
+OPTION 3: NODE.JS ON VPS
+========================================
+
+If you prefer not to use Docker.
 
 REQUIREMENTS:
 - Linux VPS (Ubuntu, Debian, etc.)
 - Node.js 14+
-- Open port 6667 (or custom port)
+- Open port 6667
 
 QUICK SETUP:
 1. Upload proxy files to your VPS
 2. Run: npm install
 3. Run: HOST=0.0.0.0 node proxy.js
 
-USING ENVIRONMENT VARIABLES:
-  export WS_URL=wss://your-gateway-url
-  export HOST=0.0.0.0
-  export PORT=6667
-  export LOG_LEVEL=info
-  node proxy.js
-
 USING .ENV FILE:
 1. Copy .env.example to .env
 2. Edit .env with your settings
-3. Run: npm install  (includes dotenv)
+3. Run: npm install
 4. Run: node proxy.js
 
 RUNNING AS A SERVICE (systemd):
@@ -75,11 +101,6 @@ Then run:
   sudo systemctl daemon-reload
   sudo systemctl enable jac-irc
   sudo systemctl start jac-irc
-
-YOUR USERS' MIRC SETTINGS:
-- Server: your-vps-ip-address
-- Port: 6667
-- Password: their-email@example.com:their-password
 
 
 ========================================
@@ -121,5 +142,8 @@ TROUBLESHOOTING
 
 View debug logs:
   LOG_LEVEL=debug node proxy.js
+
+Docker logs:
+  docker-compose logs -f
 
 ========================================
