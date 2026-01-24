@@ -49,6 +49,34 @@ const ImagePreview = ({ url }: { url: string }) => {
   );
 };
 
+// Parse @mentions in text
+const parseMentions = (content: string): (string | { type: 'mention'; username: string })[] => {
+  const mentionRegex = /@(\w+)/g;
+  const parts: (string | { type: 'mention'; username: string })[] = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = mentionRegex.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(content.slice(lastIndex, match.index));
+    }
+    parts.push({ type: 'mention', username: match[1] });
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < content.length) {
+    parts.push(content.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : [content];
+};
+
+const MentionSpan = ({ username }: { username: string }) => (
+  <span className="text-primary font-medium bg-primary/10 px-1 rounded cursor-pointer hover:bg-primary/20 transition-colors">
+    @{username}
+  </span>
+);
+
 const FormattedText = ({ text, className = '' }: FormattedTextProps) => {
   // First check for images
   const { hasImage, imageUrl, textContent } = extractImage(text);
@@ -60,9 +88,24 @@ const FormattedText = ({ text, className = '' }: FormattedTextProps) => {
   
   const decoded = decodeFormat(textContent);
   
+  const renderTextWithMentions = (content: string, additionalClassName?: string) => {
+    const parts = parseMentions(content);
+    return (
+      <span className={additionalClassName}>
+        {parts.map((part, i) =>
+          typeof part === 'string' ? (
+            <span key={i}>{part}</span>
+          ) : (
+            <MentionSpan key={i} username={part.username} />
+          )
+        )}
+      </span>
+    );
+  };
+  
   const renderText = () => {
     if (!decoded) {
-      return <span className={className}>{textContent}</span>;
+      return renderTextWithMentions(textContent, className);
     }
     
     const { format, text: content } = decoded;
@@ -84,25 +127,60 @@ const FormattedText = ({ text, className = '' }: FormattedTextProps) => {
     
     switch (format.textStyle) {
       case 'rainbow':
+        // Rainbow with mentions - parse mentions first, then apply rainbow to non-mention parts
+        const rainbowParts = parseMentions(content);
+        let charIndex = 0;
         return (
           <BgWrapper>
             <span className={className}>
-              {content.split('').map((char, i) => (
-                <span
-                  key={i}
-                  style={{
-                    color: rainbowColors[i % rainbowColors.length],
-                    fontWeight: 500,
-                  }}
-                >
-                  {char}
-                </span>
-              ))}
+              {rainbowParts.map((part, partIdx) => {
+                if (typeof part !== 'string') {
+                  return <MentionSpan key={partIdx} username={part.username} />;
+                }
+                return part.split('').map((char, i) => {
+                  const idx = charIndex++;
+                  return (
+                    <span
+                      key={`${partIdx}-${i}`}
+                      style={{
+                        color: rainbowColors[idx % rainbowColors.length],
+                        fontWeight: 500,
+                      }}
+                    >
+                      {char}
+                    </span>
+                  );
+                });
+              })}
             </span>
           </BgWrapper>
         );
       
       case 'gradient':
+        // For gradient, show mentions differently since gradient clips
+        const gradientParts = parseMentions(content);
+        const hasMentions = gradientParts.some(p => typeof p !== 'string');
+        if (hasMentions) {
+          return (
+            <BgWrapper>
+              <span className={className}>
+                {gradientParts.map((part, i) =>
+                  typeof part === 'string' ? (
+                    <span
+                      key={i}
+                      className="bg-clip-text text-transparent font-medium"
+                      style={{ backgroundImage: format.textValue }}
+                    >
+                      {part}
+                    </span>
+                  ) : (
+                    <MentionSpan key={i} username={part.username} />
+                  )
+                )}
+              </span>
+            </BgWrapper>
+          );
+        }
         return (
           <BgWrapper>
             <span
@@ -115,13 +193,23 @@ const FormattedText = ({ text, className = '' }: FormattedTextProps) => {
         );
       
       case 'color':
+        const colorParts = parseMentions(content);
         return (
           <BgWrapper>
-            <span 
-              className={`font-medium ${className}`} 
-              style={{ color: format.textValue }}
-            >
-              {content}
+            <span className={className}>
+              {colorParts.map((part, i) =>
+                typeof part === 'string' ? (
+                  <span 
+                    key={i}
+                    className="font-medium" 
+                    style={{ color: format.textValue }}
+                  >
+                    {part}
+                  </span>
+                ) : (
+                  <MentionSpan key={i} username={part.username} />
+                )
+              )}
             </span>
           </BgWrapper>
         );
@@ -133,11 +221,11 @@ const FormattedText = ({ text, className = '' }: FormattedTextProps) => {
               className={`px-1.5 py-0.5 rounded inline-block ${className}`}
               style={{ backgroundColor: format.bgColor }}
             >
-              {content}
+              {renderTextWithMentions(content)}
             </span>
           );
         }
-        return <span className={className}>{content}</span>;
+        return renderTextWithMentions(content, className);
     }
   };
   
