@@ -13,6 +13,11 @@ interface Message {
   };
 }
 
+interface BotSettings {
+  enabled: boolean;
+  allowed_channels: string[];
+}
+
 interface UseChatBotsProps {
   channelId: string | null;
   channelName: string;
@@ -29,14 +34,49 @@ export const useChatBots = ({
   enabled = true,
 }: UseChatBotsProps) => {
   const [activeBots, setActiveBots] = useState<Set<string>>(new Set());
+  const [botSettings, setBotSettings] = useState<BotSettings | null>(null);
   const lastBotActivityRef = useRef<number>(Date.now());
   const pendingResponseRef = useRef<boolean>(false);
   const conversationIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const responseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Only enable bots in general channel
-  const isGeneralChannel = channelName === 'general';
-  const botsEnabled = enabled && isGeneralChannel;
+  // Fetch bot settings from database
+  useEffect(() => {
+    const fetchSettings = async () => {
+      const { data, error } = await supabase
+        .from('bot_settings')
+        .select('enabled, allowed_channels')
+        .limit(1)
+        .single();
+
+      if (!error && data) {
+        setBotSettings(data);
+      }
+    };
+
+    fetchSettings();
+
+    // Subscribe to changes
+    const channel = supabase
+      .channel('bot-settings-changes')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'bot_settings' },
+        (payload) => {
+          setBotSettings(payload.new as BotSettings);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // Check if bots are enabled for this channel
+  const botsEnabled = enabled && 
+    botSettings?.enabled === true && 
+    botSettings?.allowed_channels?.includes(channelName);
 
   // Get recent messages for context
   const getRecentMessages = useCallback(() => {

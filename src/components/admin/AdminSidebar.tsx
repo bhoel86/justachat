@@ -10,6 +10,7 @@ import {
   Server,
   ChevronLeft,
   ChevronRight,
+  Bot,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ const navItems: NavItem[] = [
   { label: "Bans", href: "/admin/bans", icon: Ban },
   { label: "Mutes", href: "/admin/mutes", icon: VolumeX },
   { label: "Messages", href: "/admin/messages", icon: MessageSquare },
+  { label: "Bots", href: "/admin/bots", icon: Bot },
   { label: "Emails", href: "/admin/emails", icon: Mail, ownerOnly: true },
   { label: "API Keys", href: "/admin/api", icon: Key, ownerOnly: true },
   { label: "IRC Gateway", href: "/admin/irc", icon: Server },
