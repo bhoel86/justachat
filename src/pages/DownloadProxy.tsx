@@ -47,17 +47,17 @@ const DownloadProxy = () => {
               </div>
               <div className="flex items-center gap-4 p-3 bg-muted/50 rounded-lg">
                 <span className="text-muted-foreground min-w-24 font-medium">Password:</span>
-                <code className="bg-background px-3 py-1 rounded border font-mono text-xs sm:text-sm">your-email:your-password</code>
+                <code className="bg-background px-3 py-1 rounded border font-mono text-xs sm:text-sm">username@email.com:password</code>
               </div>
             </div>
             
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-sm">
               <p className="font-medium text-primary mb-2">💡 Password Format</p>
               <p className="text-muted-foreground">
-                Your password is your <strong>email</strong> and <strong>password</strong> separated by a colon.
+                Your server password is your <strong>JAC email</strong> and <strong>account password</strong> separated by a colon.
               </p>
               <p className="text-muted-foreground mt-1">
-                Example: <code className="bg-background px-1.5 py-0.5 rounded">john@email.com:MyPassword123</code>
+                Example: <code className="bg-background px-1.5 py-0.5 rounded">myname@gmail.com:MySecretPass123</code>
               </p>
             </div>
           </CardContent>
@@ -81,7 +81,7 @@ const DownloadProxy = () => {
                   <div>Description: <code className="bg-muted px-1 rounded">Justachat</code></div>
                   <div>Address: <code className="bg-muted px-1 rounded">157.245.174.197</code></div>
                   <div>Port: <code className="bg-muted px-1 rounded">6667</code></div>
-                  <div>Password: <code className="bg-muted px-1 rounded">your-email:your-password</code></div>
+                  <div>Password: <code className="bg-muted px-1 rounded">username@email.com:password</code></div>
                 </div>
               </li>
               <li>Click <strong>Add</strong>, then <strong>Select</strong>, then <strong>Connect</strong></li>
@@ -98,11 +98,11 @@ const DownloadProxy = () => {
               <div className="bg-muted/50 rounded-lg p-3 text-xs font-mono space-y-2">
                 <div>
                   <span className="text-muted-foreground">Non-SSL:</span>
-                  <code className="block mt-1 text-foreground">/server 157.245.174.197 6667 bhoel86@gmail.com:Khoel15$$</code>
+                  <code className="block mt-1 text-foreground">/server 157.245.174.197 6667 username@email.com:password</code>
                 </div>
                 <div className="border-t border-border pt-2">
                   <span className="text-muted-foreground">SSL:</span>
-                  <code className="block mt-1 text-foreground">/server -ssl 157.245.174.197 6697 bhoel86@gmail.com:Khoel15$$</code>
+                  <code className="block mt-1 text-foreground">/server -ssl 157.245.174.197 6697 username@email.com:password</code>
                 </div>
                 <div className="border-t border-border pt-2">
                   <span className="text-muted-foreground">Then join a room:</span>
@@ -124,12 +124,12 @@ const DownloadProxy = () => {
               </p>
               <div className="bg-muted/50 rounded-lg p-3 text-xs space-y-2 font-mono">
                 <div className="flex flex-col gap-1">
-                  <span className="text-muted-foreground">Example password: <code className="text-foreground">Khoel15$$</code></span>
-                  <span className="text-muted-foreground">In mIRC script: <code className="text-primary">Khoel15$$$$</code></span>
+                  <span className="text-muted-foreground">Example password: <code className="text-foreground">MyPass$$123</code></span>
+                  <span className="text-muted-foreground">In mIRC script: <code className="text-primary">MyPass$$$$123</code></span>
                 </div>
                 <div className="border-t border-border pt-2 mt-2">
                   <span className="text-muted-foreground">Command in script:</span>
-                  <code className="block mt-1 text-primary">/raw -q PASS email@example.com:Khoel15$$$$</code>
+                  <code className="block mt-1 text-primary">/raw -q PASS username@email.com:MyPass$$$$123</code>
                 </div>
               </div>
               <p className="text-muted-foreground text-xs">
