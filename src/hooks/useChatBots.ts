@@ -78,11 +78,12 @@ export const useChatBots = ({
     botSettings?.enabled === true && 
     botSettings?.allowed_channels?.includes(channelName);
 
-  // Get recent messages for context
+  // Get recent messages for context - include more history for better context
   const getRecentMessages = useCallback(() => {
-    return messages.slice(-15).map(m => ({
+    return messages.slice(-25).map(m => ({
       username: m.profile?.username || 'Unknown',
       content: m.content,
+      timestamp: m.created_at,
     }));
   }, [messages]);
 
