@@ -18,6 +18,43 @@ export async function proxyAdminRequest<T = unknown>(args: {
   body?: unknown;
   timeoutMs?: number;
 }): Promise<ProxyAdminRelayResponse<T>> {
+  // Prefer direct browser calls when the proxy URL is HTTPS.
+  // This avoids relying on backend egress access to your VPS.
+  try {
+    const u = new URL(args.proxyUrl);
+    const isBrowser = typeof window !== "undefined";
+    if (isBrowser && u.protocol === "https:") {
+      const base = args.proxyUrl.replace(/\/+$/, "");
+      const url = `${base}${args.path}`;
+      const method = (args.method ?? "GET") as ProxyAdminMethod;
+
+      const headers: Record<string, string> = {};
+      if (args.adminToken) headers.Authorization = `Bearer ${args.adminToken}`;
+
+      let body: string | undefined;
+      if (args.body !== undefined && method !== "GET") {
+        headers["Content-Type"] = "application/json";
+        body = JSON.stringify(args.body);
+      }
+
+      const res = await fetch(url, { method, headers, body });
+      const contentType = res.headers.get("content-type") || "";
+      const text = await res.text();
+      const data = contentType.includes("application/json")
+        ? (text ? (JSON.parse(text) as T) : (null as unknown as T))
+        : ((text as unknown) as T);
+
+      return {
+        ok: res.ok,
+        status: res.status,
+        statusText: res.statusText,
+        data,
+      };
+    }
+  } catch {
+    // fall through to relay
+  }
+
   const { data, error } = await supabase.functions.invoke("irc-proxy-admin", {
     body: {
       proxyUrl: args.proxyUrl,

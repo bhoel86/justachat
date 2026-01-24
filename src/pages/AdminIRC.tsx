@@ -125,6 +125,25 @@ const AdminIRC = () => {
 
   const fetchStatus = useCallback(async () => {
     try {
+      // Browsers block HTTP subrequests from HTTPS pages (mixed content).
+      // If the user enters an http:// proxy URL, guide them to enable HTTPS on the proxy.
+      try {
+        const u = new URL(proxyUrl);
+        const isHttpsSite = typeof window !== 'undefined' && window.location.protocol === 'https:';
+        const isHttpProxy = u.protocol === 'http:';
+        const isLocalhost = u.hostname === 'localhost' || u.hostname === '127.0.0.1';
+        if (isHttpsSite && isHttpProxy && !isLocalhost) {
+          toast.error('Proxy Admin URL must be HTTPS', {
+            description:
+              'You are on an HTTPS site, so the browser blocks HTTP proxy admin APIs. Enable SSL on the proxy (ADMIN_SSL_ENABLED=true) and use an https:// domain URL.',
+          });
+          setIsConnected(false);
+          return false;
+        }
+      } catch {
+        // ignore parse errors here; existing validation/toasts will handle connectivity
+      }
+
       const relay = await proxyAdminRequest<ProxyStatus>({
         proxyUrl,
         path: "/status",
