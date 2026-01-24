@@ -374,7 +374,7 @@ const MemberList = ({ onlineUserIds, channelName = 'general' }: MemberListProps)
   return (
     <>
       <div className="w-64 sm:w-60 bg-card border-l border-border flex flex-col h-full max-h-screen">
-        <div className="p-3 sm:p-4 border-b border-border">
+        <div className="p-3 sm:p-4 border-b border-border bg-muted/30">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             <h2 className="font-semibold text-sm sm:text-base text-foreground">Members</h2>
@@ -395,8 +395,8 @@ const MemberList = ({ onlineUserIds, channelName = 'general' }: MemberListProps)
             </div>
           )}
           {/* Channel Moderator - Always on top */}
-          <div className="mb-4">
-            <p className="text-xs font-medium text-muted-foreground uppercase px-2 mb-2">
+          <div className="mb-4 p-2 rounded-lg bg-muted/40 border border-border/50">
+            <p className="text-xs font-medium text-muted-foreground uppercase px-1 mb-2">
               Moderator
             </p>
             <div className="space-y-1">
@@ -424,8 +424,8 @@ const MemberList = ({ onlineUserIds, channelName = 'general' }: MemberListProps)
 
           {/* Online Members */}
           {onlineMembers.length > 0 && (
-            <div className="mb-4">
-              <p className="text-xs font-medium text-muted-foreground uppercase px-2 mb-2">
+            <div className="mb-4 p-2 rounded-lg bg-muted/40 border border-border/50">
+              <p className="text-xs font-medium text-muted-foreground uppercase px-1 mb-2">
                 Online — {onlineMembers.length}
               </p>
               <div className="space-y-1">
@@ -454,10 +454,10 @@ const MemberList = ({ onlineUserIds, channelName = 'general' }: MemberListProps)
 
           {/* Offline Members Toggle */}
           {offlineMembers.length > 0 && (
-            <div>
+            <div className="p-2 rounded-lg bg-muted/40 border border-border/50">
               <button
                 onClick={() => setShowOffline(!showOffline)}
-                className="flex items-center gap-2 w-full px-2 mb-2 text-xs font-medium text-muted-foreground uppercase hover:text-foreground transition-colors"
+                className="flex items-center gap-2 w-full px-1 mb-2 text-xs font-medium text-muted-foreground uppercase hover:text-foreground transition-colors"
               >
                 {showOffline ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                 <span>Offline — {offlineMembers.length}</span>
