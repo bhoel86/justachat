@@ -84,9 +84,13 @@ const AdminIRC = () => {
   const navigate = useNavigate();
   const [copied, setCopied] = useState<string | null>(null);
   
-  // Proxy admin state
-  const [proxyUrl, setProxyUrl] = useState("http://localhost:6680");
-  const [adminToken, setAdminToken] = useState("");
+  // Proxy admin state - load from localStorage
+  const [proxyUrl, setProxyUrl] = useState(() => 
+    localStorage.getItem('irc_proxy_url') || "http://localhost:6680"
+  );
+  const [adminToken, setAdminToken] = useState(() => 
+    localStorage.getItem('irc_admin_token') || ""
+  );
   const [status, setStatus] = useState<ProxyStatus | null>(null);
   const [connections, setConnections] = useState<ProxyConnection[]>([]);
   const [bans, setBans] = useState<string[]>([]);
@@ -100,6 +104,17 @@ const AdminIRC = () => {
   const [myIp, setMyIp] = useState<string | null>(null);
   const [isUnbanningMyIp, setIsUnbanningMyIp] = useState(false);
   const [allowlistLabelInput, setAllowlistLabelInput] = useState("Admin");
+
+  // Persist proxy URL and token to localStorage
+  useEffect(() => {
+    localStorage.setItem('irc_proxy_url', proxyUrl);
+  }, [proxyUrl]);
+
+  useEffect(() => {
+    if (adminToken) {
+      localStorage.setItem('irc_admin_token', adminToken);
+    }
+  }, [adminToken]);
 
   useEffect(() => {
     if (!loading && (!user || (!isOwner && !isAdmin))) {

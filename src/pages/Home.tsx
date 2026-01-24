@@ -7,7 +7,7 @@ import {
   LogOut, Users, MessageSquare, Shield, Music, Gamepad2, Vote, Tv, 
   Dumbbell, Cpu, Heart, Coffee, HelpCircle, Hash, Settings, FileText,
   Ban, Key, MapPin, UserCog, ChevronDown, Mail, VolumeX, Menu, 
-  Download, Terminal, LifeBuoy, MessageCircle
+  Download, Terminal, LifeBuoy, MessageCircle, Server, Bot, RefreshCw, Unlock
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -107,6 +107,7 @@ const Home = () => {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loadingChannels, setLoadingChannels] = useState(true);
   const [roomUserCounts, setRoomUserCounts] = useState<RoomUserCounts>({});
+  const [isUnbanningIp, setIsUnbanningIp] = useState(false);
 
   // Scroll to top on page load - use requestAnimationFrame to ensure it runs after render
   useEffect(() => {
@@ -174,6 +175,76 @@ const Home = () => {
   const handleSignOut = async () => {
     await signOut();
     navigate("/auth");
+  };
+
+  // Quick unban/allowlist my IP via IRC proxy
+  const handleUnbanMyIp = async () => {
+    setIsUnbanningIp(true);
+    try {
+      // Detect user's current IP
+      const services = [
+        'https://api.ipify.org?format=json',
+        'https://api.my-ip.io/v2/ip.json',
+      ];
+      
+      let myIp: string | null = null;
+      for (const service of services) {
+        try {
+          const res = await fetch(service, { signal: AbortSignal.timeout(3000) });
+          if (res.ok) {
+            const data = await res.json();
+            myIp = data.ip || data.IP;
+            if (myIp) break;
+          }
+        } catch {
+          continue;
+        }
+      }
+      
+      if (!myIp) {
+        toast.error("Could not detect your IP address");
+        return;
+      }
+
+      // Get proxy URL and token from localStorage (set in AdminIRC)
+      const proxyUrl = localStorage.getItem('irc_proxy_url') || 'http://localhost:6680';
+      const adminToken = localStorage.getItem('irc_admin_token');
+      
+      if (!adminToken) {
+        toast.error("IRC proxy not configured. Visit Admin → IRC Gateway first.");
+        return;
+      }
+
+      // Unban the IP
+      const unbanRes = await fetch(`${proxyUrl}/unban`, {
+        method: 'POST',
+        headers: { 
+          Authorization: `Bearer ${adminToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ip: myIp })
+      });
+
+      // Add to allowlist
+      const allowRes = await fetch(`${proxyUrl}/allowlist`, {
+        method: 'POST',
+        headers: { 
+          Authorization: `Bearer ${adminToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ ip: myIp, label: `Admin (${user?.email?.split('@')[0] || 'self'})` })
+      });
+
+      if (unbanRes.ok || allowRes.ok) {
+        toast.success(`Unbanned & allowlisted your IP: ${myIp}`);
+      } else {
+        toast.error("Failed to unban/allowlist IP");
+      }
+    } catch (e) {
+      toast.error("Failed to connect to IRC proxy");
+    } finally {
+      setIsUnbanningIp(false);
+    }
   };
 
   if (loading) {
@@ -359,9 +430,31 @@ const Home = () => {
                     </Link>
                   </DropdownMenuItem>
                   
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin/klines" className="flex items-center gap-2 cursor-pointer">
+                      <Server className="w-4 h-4 text-orange-500" />
+                      <div>
+                        <span>K-Lines</span>
+                        <p className="text-xs text-muted-foreground">Global IP bans</p>
+                      </div>
+                    </Link>
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem asChild>
+                    <Link to="/admin/bots" className="flex items-center gap-2 cursor-pointer">
+                      <Bot className="w-4 h-4 text-cyan-500" />
+                      <div>
+                        <span>Chat Bots</span>
+                        <p className="text-xs text-muted-foreground">Manage AI personalities</p>
+                      </div>
+                    </Link>
+                  </DropdownMenuItem>
+                  
                   {isOwner && (
                     <>
                       <DropdownMenuSeparator />
+                      <DropdownMenuLabel className="text-xs text-muted-foreground">Owner Only</DropdownMenuLabel>
+                      
                       <DropdownMenuItem asChild>
                         <Link to="/admin/emails" className="flex items-center gap-2 cursor-pointer">
                           <Mail className="w-4 h-4 text-green-500" />
@@ -371,6 +464,7 @@ const Home = () => {
                           </div>
                         </Link>
                       </DropdownMenuItem>
+                      
                       <DropdownMenuItem asChild>
                         <Link to="/admin/api" className="flex items-center gap-2 cursor-pointer">
                           <Key className="w-4 h-4 text-amber-500" />
@@ -379,6 +473,35 @@ const Home = () => {
                             <p className="text-xs text-muted-foreground">View API info</p>
                           </div>
                         </Link>
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/irc" className="flex items-center gap-2 cursor-pointer">
+                          <Terminal className="w-4 h-4 text-purple-500" />
+                          <div>
+                            <span>IRC Gateway</span>
+                            <p className="text-xs text-muted-foreground">Proxy & connections</p>
+                          </div>
+                        </Link>
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel className="text-xs text-muted-foreground">Quick Actions</DropdownMenuLabel>
+                      
+                      <DropdownMenuItem 
+                        onClick={handleUnbanMyIp}
+                        disabled={isUnbanningIp}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        {isUnbanningIp ? (
+                          <RefreshCw className="w-4 h-4 text-primary animate-spin" />
+                        ) : (
+                          <Unlock className="w-4 h-4 text-primary" />
+                        )}
+                        <div>
+                          <span>Unban My IP</span>
+                          <p className="text-xs text-muted-foreground">Quick IRC proxy fix</p>
+                        </div>
                       </DropdownMenuItem>
                     </>
                   )}
