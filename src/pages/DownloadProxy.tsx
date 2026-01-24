@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import JSZip from "jszip";
+import MircSetupPackage from "@/components/proxy/MircSetupPackage";
 
 // Current version - must match proxy.js PROXY_VERSION
 const LATEST_VERSION = '2.2.0';
@@ -824,6 +825,9 @@ USER CONNECTION:
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* mIRC Setup Package */}
+        <MircSetupPackage isDownloadingZip={isDownloadingZip} setIsDownloadingZip={setIsDownloadingZip} />
 
         {/* mIRC Setup Guide */}
         <Card>
