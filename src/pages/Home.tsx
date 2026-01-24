@@ -210,6 +210,23 @@ const Home = () => {
       // Get proxy URL and token from localStorage (set in AdminIRC)
       const proxyUrl = localStorage.getItem('irc_proxy_url') || 'http://localhost:6680';
       const adminToken = localStorage.getItem('irc_admin_token');
+
+      // Prevent confusing mixed-content failures when the app runs on HTTPS.
+      try {
+        const u = new URL(proxyUrl);
+        const isHttpsSite = typeof window !== 'undefined' && window.location.protocol === 'https:';
+        const isHttpProxy = u.protocol === 'http:';
+        const isLocalhost = u.hostname === 'localhost' || u.hostname === '127.0.0.1';
+        if (isHttpsSite && isHttpProxy && !isLocalhost) {
+          toast.error('Proxy Admin URL must be HTTPS', {
+            description:
+              'Open Admin → IRC Gateway and switch the Proxy URL to an https:// domain (enable ADMIN_SSL_ENABLED=true on the VPS).',
+          });
+          return;
+        }
+      } catch {
+        // ignore
+      }
       
       if (!adminToken) {
         toast.error("IRC proxy not configured", {

@@ -42,6 +42,7 @@ const PROXY_VERSION = '2.2.0';
 const net = require('net');
 const tls = require('tls');
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const WebSocket = require('ws');
@@ -59,6 +60,7 @@ const config = {
   sslCert: process.env.SSL_CERT || '',
   sslKey: process.env.SSL_KEY || '',
   adminPort: parseInt(process.env.ADMIN_PORT || '6680', 10),
+  adminSslEnabled: process.env.ADMIN_SSL_ENABLED === 'true',
   adminToken: process.env.ADMIN_TOKEN || '',
   logLevel: process.env.LOG_LEVEL || 'info',
   dataDir: process.env.DATA_DIR || './data',
@@ -743,7 +745,7 @@ async function handleConnection(socket, isSecure = false) {
 // Admin HTTP API
 // ============================================
 
-const adminServer = http.createServer((req, res) => {
+const handleAdminRequest = (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -979,7 +981,26 @@ const adminServer = http.createServer((req, res) => {
   
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Not found' }));
-});
+};
+
+// Admin server can optionally run over HTTPS (recommended when calling from an HTTPS website)
+let adminServer = null;
+if (config.adminSslEnabled && config.sslCert && config.sslKey) {
+  try {
+    adminServer = https.createServer(
+      {
+        cert: fs.readFileSync(config.sslCert),
+        key: fs.readFileSync(config.sslKey),
+      },
+      handleAdminRequest,
+    );
+  } catch (err) {
+    log('error', '[ADMIN] HTTPS init failed:', err.message);
+    adminServer = http.createServer(handleAdminRequest);
+  }
+} else {
+  adminServer = http.createServer(handleAdminRequest);
+}
 
 // ============================================
 // Server Setup
@@ -1024,7 +1045,7 @@ fileLogger.audit('STARTUP', 'system', { bans: bannedIPs.size, geoip: config.geoi
 
 tcpServer.listen(config.port, config.host, () => log('info', `TCP: ${config.host}:${config.port}`));
 if (tlsServer) tlsServer.listen(config.sslPort, config.host, () => log('info', `SSL: ${config.host}:${config.sslPort}`));
-adminServer.listen(config.adminPort, config.host, () => log('info', `Admin: ${config.host}:${config.adminPort}`));
+adminServer.listen(config.adminPort, config.host, () => log('info', `Admin: ${config.adminSslEnabled ? 'https' : 'http'}://${config.host}:${config.adminPort}`));
 
 console.log('\nWaiting for connections...\n');
 
