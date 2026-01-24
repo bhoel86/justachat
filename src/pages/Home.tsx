@@ -334,16 +334,6 @@ const Home = () => {
                   </Link>
                 </DropdownMenuItem>
                 
-                <DropdownMenuItem asChild>
-                  <Link to="/download-proxy" className="flex items-center gap-2 cursor-pointer">
-                    <Terminal className="w-4 h-4 text-amber-500" />
-                    <div>
-                      <span>IRC Proxy Download</span>
-                      <p className="text-xs text-muted-foreground">Local & VPS deployment</p>
-                    </div>
-                  </Link>
-                </DropdownMenuItem>
-                
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs text-muted-foreground">Contact</DropdownMenuLabel>
                 
