@@ -337,8 +337,11 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
 
   // Track presence
   useEffect(() => {
+    // Don't track presence until user is loaded
+    if (!user?.id) return;
+    
     const presenceChannel = supabase.channel('online-users', {
-      config: { presence: { key: user?.id || 'anonymous' } }
+      config: { presence: { key: user.id } }
     });
 
     presenceChannel
@@ -366,8 +369,8 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
         }
       })
       .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await presenceChannel.track({ user_id: user?.id });
+        if (status === 'SUBSCRIBED' && user?.id) {
+          await presenceChannel.track({ user_id: user.id });
         }
       });
 
