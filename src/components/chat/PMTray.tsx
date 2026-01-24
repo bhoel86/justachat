@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageSquare, X, GripHorizontal } from "lucide-react";
+import { MessageSquare, X, GripHorizontal, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -13,14 +13,18 @@ interface PMTrayProps {
   minimizedChats: MinimizedChat[];
   onRestore: (chatId: string) => void;
   onClose: (chatId: string) => void;
+  onReorder?: (fromIndex: number, toIndex: number) => void;
 }
 
-const PMTray = ({ minimizedChats, onRestore, onClose }: PMTrayProps) => {
+const PMTray = ({ minimizedChats, onRestore, onClose, onReorder }: PMTrayProps) => {
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const [draggedTab, setDraggedTab] = useState<number | null>(null);
+  const [dragOverTab, setDragOverTab] = useState<number | null>(null);
   const dragRef = useRef<{ startX: number; startY: number; initialX: number; initialY: number } | null>(null);
   const trayRef = useRef<HTMLDivElement>(null);
 
+  // Tray position dragging
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging || !dragRef.current) return;
@@ -61,6 +65,38 @@ const PMTray = ({ minimizedChats, onRestore, onClose }: PMTrayProps) => {
     };
   };
 
+  // Tab drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedTab(index);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', index.toString());
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverTab(index);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverTab(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, toIndex: number) => {
+    e.preventDefault();
+    const fromIndex = draggedTab;
+    if (fromIndex !== null && fromIndex !== toIndex && onReorder) {
+      onReorder(fromIndex, toIndex);
+    }
+    setDraggedTab(null);
+    setDragOverTab(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTab(null);
+    setDragOverTab(null);
+  };
+
   if (minimizedChats.length === 0) return null;
 
   return (
@@ -71,7 +107,7 @@ const PMTray = ({ minimizedChats, onRestore, onClose }: PMTrayProps) => {
         transform: `translate(calc(-50% + ${position.x}px), ${position.y}px)`,
       }}
     >
-      {/* Drag handle */}
+      {/* Drag handle for whole tray */}
       <div
         onMouseDown={handleMouseDown}
         className={cn(
@@ -82,15 +118,31 @@ const PMTray = ({ minimizedChats, onRestore, onClose }: PMTrayProps) => {
         <GripHorizontal className="h-4 w-4 text-muted-foreground" />
       </div>
 
-      {minimizedChats.map((chat) => (
+      {minimizedChats.map((chat, index) => (
         <div
           key={chat.id}
+          draggable
+          onDragStart={(e) => handleDragStart(e, index)}
+          onDragOver={(e) => handleDragOver(e, index)}
+          onDragLeave={handleDragLeave}
+          onDrop={(e) => handleDrop(e, index)}
+          onDragEnd={handleDragEnd}
           className={cn(
             "group relative flex items-center gap-2 px-3 py-2 rounded-t-lg border border-b-0 border-border bg-card shadow-lg cursor-pointer transition-all hover:bg-muted",
-            chat.hasUnread && "border-primary bg-primary/10"
+            chat.hasUnread && "border-primary bg-primary/10",
+            draggedTab === index && "opacity-50",
+            dragOverTab === index && "border-l-2 border-l-primary"
           )}
           onClick={() => onRestore(chat.id)}
         >
+          {/* Drag grip for reordering */}
+          <div 
+            className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <GripVertical className="h-3 w-3" />
+          </div>
+
           {/* Unread indicator */}
           {chat.hasUnread && (
             <span className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-primary animate-pulse" />

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { playPMNotificationSound } from '@/lib/notificationSound';
 
 interface PrivateChat {
   id: string;
@@ -72,9 +73,30 @@ export const usePrivateChats = (currentUserId: string, currentUsername: string) 
   }, [topZIndex]);
 
   const setUnread = useCallback((chatId: string) => {
-    setChats(prev => prev.map(c => 
-      c.id === chatId && c.isMinimized ? { ...c, hasUnread: true } : c
-    ));
+    setChats(prev => {
+      const chat = prev.find(c => c.id === chatId);
+      if (chat?.isMinimized && !chat.hasUnread) {
+        // Play sound when marking as unread (new message while minimized)
+        playPMNotificationSound();
+      }
+      return prev.map(c => 
+        c.id === chatId && c.isMinimized ? { ...c, hasUnread: true } : c
+      );
+    });
+  }, []);
+
+  const reorderChats = useCallback((fromIndex: number, toIndex: number) => {
+    setChats(prev => {
+      const minimized = prev.filter(c => c.isMinimized);
+      const active = prev.filter(c => !c.isMinimized);
+      
+      // Reorder minimized chats
+      const reordered = [...minimized];
+      const [removed] = reordered.splice(fromIndex, 1);
+      reordered.splice(toIndex, 0, removed);
+      
+      return [...active, ...reordered];
+    });
   }, []);
 
   const minimizedChats = chats.filter(c => c.isMinimized);
@@ -90,6 +112,7 @@ export const usePrivateChats = (currentUserId: string, currentUsername: string) 
     minimizeChat,
     restoreChat,
     setUnread,
+    reorderChats,
     currentUserId,
     currentUsername
   };
