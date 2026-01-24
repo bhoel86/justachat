@@ -85,10 +85,16 @@ const AdminIRC = () => {
   const navigate = useNavigate();
   const [copied, setCopied] = useState<string | null>(null);
   
-  // Proxy admin state - load from localStorage
-  const [proxyUrl, setProxyUrl] = useState(() => 
-    localStorage.getItem('irc_proxy_url') || "https://ircadmin.justachat.net"
-  );
+  // Proxy admin state - force HTTPS URL, clear any old HTTP values
+  const [proxyUrl, setProxyUrl] = useState(() => {
+    const stored = localStorage.getItem('irc_proxy_url');
+    // If stored URL is HTTP, clear it and use default HTTPS
+    if (stored && stored.startsWith('http://')) {
+      localStorage.removeItem('irc_proxy_url');
+      return "https://ircadmin.justachat.net";
+    }
+    return stored || "https://ircadmin.justachat.net";
+  });
   const [adminToken, setAdminToken] = useState(() => 
     localStorage.getItem('irc_admin_token') || ""
   );
