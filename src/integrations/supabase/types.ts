@@ -918,6 +918,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_channel_visits: {
+        Row: {
+          channel_name: string
+          first_visit_at: string
+          id: string
+          last_visit_at: string
+          user_id: string
+          username: string
+          visit_count: number
+        }
+        Insert: {
+          channel_name: string
+          first_visit_at?: string
+          id?: string
+          last_visit_at?: string
+          user_id: string
+          username: string
+          visit_count?: number
+        }
+        Update: {
+          channel_name?: string
+          first_visit_at?: string
+          id?: string
+          last_visit_at?: string
+          user_id?: string
+          username?: string
+          visit_count?: number
+        }
+        Relationships: []
+      }
       user_locations: {
         Row: {
           city: string | null
