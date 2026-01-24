@@ -1,12 +1,14 @@
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, ArrowLeft } from "lucide-react";
+import { MessageSquare, ArrowLeft, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import MircSetupPackage from "@/components/proxy/MircSetupPackage";
+import MircThemePackage from "@/components/proxy/MircThemePackage";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const DownloadProxy = () => {
   const [isDownloadingZip, setIsDownloadingZip] = useState(false);
+  const [isDownloadingTheme, setIsDownloadingTheme] = useState(false);
 
   return (
     <div className="min-h-screen bg-background p-4 sm:p-8">
@@ -63,8 +65,30 @@ const DownloadProxy = () => {
           </CardContent>
         </Card>
 
-        {/* mIRC Setup Package - auto-generates scripts */}
-        <MircSetupPackage isDownloadingZip={isDownloadingZip} setIsDownloadingZip={setIsDownloadingZip} />
+        {/* Package Selection Tabs */}
+        <Tabs defaultValue="theme" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="theme" className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              2026 Theme Package
+            </TabsTrigger>
+            <TabsTrigger value="basic">Basic Setup</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="theme" className="mt-4">
+            <MircThemePackage 
+              isDownloadingZip={isDownloadingTheme} 
+              setIsDownloadingZip={setIsDownloadingTheme} 
+            />
+          </TabsContent>
+          
+          <TabsContent value="basic" className="mt-4">
+            <MircSetupPackage 
+              isDownloadingZip={isDownloadingZip} 
+              setIsDownloadingZip={setIsDownloadingZip} 
+            />
+          </TabsContent>
+        </Tabs>
 
         {/* Manual Setup Guide */}
         <Card>
@@ -90,9 +114,9 @@ const DownloadProxy = () => {
             <div className="border-t pt-4 mt-4 space-y-3">
               <p className="font-medium">No-script quick connect (type in the status window)</p>
               <p className="text-muted-foreground text-xs">
-                If you don’t want to use any script, you must either set the <strong>Password</strong> field in your server entry
+                If you don't want to use any script, you must either set the <strong>Password</strong> field in your server entry
                 (recommended), or connect with <code className="bg-muted px-1 rounded">/server</code> including the password.
-                If mIRC connects without sending PASS right away, you’ll get disconnected ("timed out").
+                If mIRC connects without sending PASS right away, you'll get disconnected ("timed out").
               </p>
 
               <div className="bg-muted/50 rounded-lg p-3 text-xs font-mono space-y-2">
@@ -111,8 +135,8 @@ const DownloadProxy = () => {
               </div>
 
               <p className="text-muted-foreground text-xs">
-                <strong>Important:</strong> the <code className="bg-muted px-1 rounded">/join</code> command is only for after you’re connected.
-                It won’t log you in.
+                <strong>Important:</strong> the <code className="bg-muted px-1 rounded">/join</code> command is only for after you're connected.
+                It won't log you in.
               </p>
             </div>
             
