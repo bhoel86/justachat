@@ -402,7 +402,8 @@ class RateLimiter {
       return { allowed: true };
     }
     if (record.count >= config.rateConnPerMin) {
-      this.recordViolation(ip, 'connection');
+      // Don't record a violation here; the caller will record ONE violation for the rejected connection.
+      // (Previously this double-counted and could auto-ban users after just a couple of retries.)
       return { allowed: false, retryAfter: Math.ceil((record.resetAt - now) / 1000) };
     }
     record.count++;

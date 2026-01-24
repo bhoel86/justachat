@@ -1,6 +1,6 @@
 ; ========================================
 ; JAC Chat 2026 - Ultimate mIRC Theme
-; Version: 2026.1.5
+; Version: 2026.1.6
 ; ========================================
 ;
 ; FEATURES:
@@ -35,7 +35,7 @@ alias -l jac.email { return $readini($jac.cfg, auth, email) }
 alias -l jac.pass_raw { return $readini($jac.cfg, auth, pass) }
 alias -l jac.nick { return $readini($jac.cfg, auth, nick) }
 alias -l jac.radio { return https://justachat.lovable.app }
-alias -l jac.version { return 2026.1.5 }
+alias -l jac.version { return 2026.1.6 }
 
 ; =====================
 ; THEME COLORS
@@ -93,12 +93,32 @@ alias jac {
     jac.setup
     return
   }
+
+  ; Avoid triggering the proxy's connection rate limiter / auto-ban.
+  if (%jac_last_attempt != $null) && ($calc($ticks - %jac_last_attempt) < 20000) {
+    echo -a 7[JAC] Please wait at least 20 seconds before retrying /jac.
+    return
+  }
+  set %jac_last_attempt $ticks
+  unset %jac_blocked
+
   echo -a 11[JAC 2026] Connecting to JAC Chat...
   ; mIRC strips everything before ':' in the /server password argument (server password becomes just the password).
   ; The gateway accepts multiple delimiters, so we use ';' which is safe in mIRC scripts.
   var %auth = $jac.email $+ $chr(59) $+ $jac.pass
   nick $jac.nick
   server -m $jac.server $jac.port %auth
+}
+
+; Numeric 465 is used by the proxy for ban / rate-limit notices.
+raw 465:*:{
+  if ($jac.isJac) {
+    var %msg = $4-
+    echo -a 4[JAC] $remove(%msg,$chr(58))
+    if ($regex(%msg,/(banned|rate limited|auto-ban)/i)) {
+      set %jac_blocked 1
+    }
+  }
 }
 
 on *:CONNECT:{
@@ -122,8 +142,13 @@ on *:DISCONNECT:{
   if ($jac.isJac) {
     .timerjac.keepalive off
     .timerjac.autojoin off
-    echo -a 7[JAC] Disconnected. Reconnecting in 10s...
-    .timerjac.reconnect 1 10 jac
+    ; Do NOT auto-reconnect: mIRC already retries, and extra retries trigger the proxy auto-ban.
+    if (%jac_blocked) {
+      echo -a 4[JAC] You appear to be banned / rate-limited. Not auto-reconnecting.
+      echo -a 7[JAC] If you have access, unban your IP in the IRC Proxy Admin. Otherwise wait ~60 minutes and try /jac again.
+    } else {
+      echo -a 7[JAC] Disconnected. Type /jac to reconnect (wait at least 20s between attempts).
+    }
   }
 }
 
