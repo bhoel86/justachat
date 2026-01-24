@@ -1,18 +1,15 @@
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Sparkles, Copy, CheckCircle } from "lucide-react";
+import { MessageSquare, Copy, CheckCircle } from "lucide-react";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
-import MircSetupPackage from "@/components/proxy/MircSetupPackage";
 import MircThemePackage from "@/components/proxy/MircThemePackage";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const AdminIRC = () => {
   const { user, isOwner, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const [copied, setCopied] = useState<string | null>(null);
-  const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [isDownloadingTheme, setIsDownloadingTheme] = useState(false);
 
   useEffect(() => {
@@ -90,30 +87,11 @@ const AdminIRC = () => {
           </CardContent>
         </Card>
 
-        {/* Package Selection Tabs */}
-        <Tabs defaultValue="theme" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="theme" className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              2026 Theme Package
-            </TabsTrigger>
-            <TabsTrigger value="basic">Basic Setup</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="theme" className="mt-4">
-            <MircThemePackage 
-              isDownloadingZip={isDownloadingTheme} 
-              setIsDownloadingZip={setIsDownloadingTheme} 
-            />
-          </TabsContent>
-          
-          <TabsContent value="basic" className="mt-4">
-            <MircSetupPackage 
-              isDownloadingZip={isDownloadingZip} 
-              setIsDownloadingZip={setIsDownloadingZip} 
-            />
-          </TabsContent>
-        </Tabs>
+        {/* Theme Package Download */}
+        <MircThemePackage 
+          isDownloadingZip={isDownloadingTheme} 
+          setIsDownloadingZip={setIsDownloadingTheme} 
+        />
 
         {/* Manual Setup Guide */}
         <Card>
