@@ -2433,6 +2433,160 @@ async function handleUNKLINE(session: IRCSession, params: string[]) {
   await handleKLINE(session, [`-${params[0]}`]);
 }
 
+// ============================================
+// KILL - Immediately disconnect a user (Operator only)
+// ============================================
+async function handleKILL(session: IRCSession, params: string[]) {
+  if (!session.registered || !session.supabase || !session.userId) {
+    sendNumeric(session, ERR.NOTREGISTERED, ":You have not registered");
+    return;
+  }
+
+  if (params.length === 0) {
+    sendNumeric(session, ERR.NEEDMOREPARAMS, "KILL :Not enough parameters");
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.GREY}Usage: /KILL <nickname> [reason]${IRC_COLORS.RESET}`);
+    return;
+  }
+
+  // Check if user is admin or owner
+  const { data: roleData } = await session.supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", session.userId)
+    .maybeSingle();
+  
+  const role = (roleData as { role: string } | null)?.role || "user";
+  const isOperator = role === "owner" || role === "admin";
+  
+  if (!isOperator) {
+    sendNumeric(session, ERR.CHANOPRIVSNEEDED, ":Permission Denied - You're not an IRC operator");
+    return;
+  }
+
+  const targetNick = params[0];
+  const reason = params.slice(1).join(" ").replace(/^:/, "") || `Killed by ${session.nick}`;
+
+  // Don't allow killing yourself
+  if (targetNick.toLowerCase() === session.nick?.toLowerCase()) {
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.RED}You cannot KILL yourself.${IRC_COLORS.RESET}`);
+    return;
+  }
+
+  // Find target session(s)
+  let targetFound = false;
+  let targetProfile: { user_id: string; username: string } | null = null;
+
+  // First try to find by nickname in active sessions
+  for (const [, s] of sessions) {
+    if (s.nick?.toLowerCase() === targetNick.toLowerCase() && s.registered) {
+      targetFound = true;
+      
+      // Check target's role - can't kill owners, and admins can't kill other admins
+      if (s.userId) {
+        const { data: targetRoleData } = await session.supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", s.userId)
+          .maybeSingle();
+        
+        const targetRole = (targetRoleData as { role: string } | null)?.role || "user";
+        
+        if (targetRole === "owner") {
+          sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.RED}You cannot KILL an owner.${IRC_COLORS.RESET}`);
+          return;
+        }
+        
+        if (role === "admin" && targetRole === "admin") {
+          sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.RED}Admins cannot KILL other admins.${IRC_COLORS.RESET}`);
+          return;
+        }
+      }
+      
+      // Send KILL message to target
+      sendIRC(s, `:${session.nick}!${session.user}@${SERVER_NAME} KILL ${s.nick} :${reason}`);
+      sendIRC(s, `ERROR :Closing Link: ${s.nick}[${SERVER_NAME}] (Killed (${session.nick} (${reason})))`);
+      
+      // Clean up channel subscriptions
+      for (const channelId of s.channels) {
+        const subscribers = channelSubscriptions.get(channelId);
+        if (subscribers) {
+          subscribers.delete(s.sessionId);
+          if (subscribers.size === 0) {
+            channelSubscriptions.delete(channelId);
+          }
+        }
+      }
+      
+      // Close the connection
+      try {
+        s.ws.close();
+      } catch (e) {
+        console.error("Error closing killed connection:", e);
+      }
+      
+      // Remove from sessions
+      sessions.delete(s.sessionId);
+      
+      targetProfile = { user_id: s.userId || '', username: s.nick || targetNick };
+    }
+  }
+
+  if (!targetFound) {
+    // Check if user exists in database but isn't connected
+    const { data: userData } = await session.supabase
+      .from("profiles")
+      .select("user_id, username")
+      .ilike("username", targetNick)
+      .maybeSingle();
+    
+    if (userData) {
+      sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.YELLOW}User ${targetNick} is not currently connected to IRC.${IRC_COLORS.RESET}`);
+    } else {
+      sendNumeric(session, ERR.NOSUCHNICK, `${targetNick} :No such nick`);
+    }
+    return;
+  }
+
+  // Log the KILL action
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const serviceClient = createClient(supabaseUrl, serviceRoleKey);
+
+  await serviceClient
+    .from("audit_logs")
+    .insert({
+      user_id: session.userId,
+      action: "irc_kill",
+      resource_type: "user",
+      resource_id: targetProfile?.user_id,
+      details: {
+        target_username: targetProfile?.username,
+        reason: reason,
+        killed_by: session.nick,
+      },
+    });
+
+  // Confirm KILL to operator
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.GREEN}✓ ${targetNick} has been killed (${reason})${IRC_COLORS.RESET}`);
+
+  // Broadcast to other operators
+  for (const [, s] of sessions) {
+    if (s.sessionId !== session.sessionId && s.registered && s.userId) {
+      // Check if this user is an operator
+      const { data: otherRoleData } = await session.supabase!
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", s.userId)
+        .maybeSingle();
+      
+      const otherRole = (otherRoleData as { role: string } | null)?.role || "user";
+      if (otherRole === "owner" || otherRole === "admin") {
+        sendIRC(s, `:${SERVER_NAME} NOTICE ${s.nick} :${IRC_COLORS.RED}*** Notice -- ${session.nick} has killed ${targetNick} (${reason})${IRC_COLORS.RESET}`);
+      }
+    }
+  }
+}
+
 function handlePING(session: IRCSession, params: string[]) {
   const token = params[0] || SERVER_NAME;
   sendIRC(session, `:${SERVER_NAME} PONG ${SERVER_NAME} :${token}`);
@@ -2589,6 +2743,10 @@ async function handleIRCCommand(session: IRCSession, line: string) {
       break;
     case "UNKLINE":
       await handleUNKLINE(session, params);
+      break;
+    // ========== KILL COMMAND ==========
+    case "KILL":
+      await handleKILL(session, params);
       break;
     default:
       if (session.registered) {
