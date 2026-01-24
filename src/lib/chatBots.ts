@@ -15,7 +15,7 @@ export interface ChatBot {
 export const CHAT_BOTS: ChatBot[] = [
   {
     id: 'user-nova',
-    username: 'itsnova_',
+    username: 'NovaStarr',
     avatarUrl: null,
     personality: 'Enthusiastic about tech, space, and sci-fi. Always optimistic and supportive. Loves sharing cool discoveries.',
     interests: ['technology', 'space', 'AI', 'sci-fi', 'gaming'],
@@ -25,7 +25,7 @@ export const CHAT_BOTS: ChatBot[] = [
   },
   {
     id: 'user-max',
-    username: 'chillmax22',
+    username: 'MaxChillin',
     avatarUrl: null,
     personality: 'Super laid-back vibes. Takes things easy, gives solid advice. Loves music and good conversations.',
     interests: ['surfing', 'nature', 'music', 'philosophy', 'food'],
@@ -35,7 +35,7 @@ export const CHAT_BOTS: ChatBot[] = [
   },
   {
     id: 'user-luna',
-    username: 'lunawrites',
+    username: 'LunaRose',
     avatarUrl: null,
     personality: 'Creative and artistic. Loves deep conversations about life, art, and dreams. Thoughtful responder.',
     interests: ['art', 'poetry', 'philosophy', 'music', 'dreams'],
@@ -45,7 +45,7 @@ export const CHAT_BOTS: ChatBot[] = [
   },
   {
     id: 'user-jay',
-    username: 'jayyy.exe',
+    username: 'JayPlays',
     avatarUrl: null,
     personality: 'High-energy gamer who gets hyped about everything. Competitive but always friendly.',
     interests: ['gaming', 'esports', 'anime', 'technology', 'music'],
@@ -55,7 +55,7 @@ export const CHAT_BOTS: ChatBot[] = [
   },
   {
     id: 'user-sage',
-    username: 'thatsage',
+    username: 'SageVibes',
     avatarUrl: null,
     personality: 'Knowledgeable about random topics. Enjoys sharing interesting facts without being preachy.',
     interests: ['history', 'science', 'books', 'philosophy', 'trivia'],
@@ -65,7 +65,7 @@ export const CHAT_BOTS: ChatBot[] = [
   },
   {
     id: 'user-marcus',
-    username: 'marc.wav',
+    username: 'MarcusBeats',
     avatarUrl: null,
     personality: 'Music head who knows all genres. Smooth conversationalist who vibes with everyone.',
     interests: ['music', 'movies', 'dance', 'food', 'culture'],
@@ -75,7 +75,7 @@ export const CHAT_BOTS: ChatBot[] = [
   },
   {
     id: 'user-pixel',
-    username: 'retropixel',
+    username: 'RetroKid88',
     avatarUrl: null,
     personality: 'Nostalgic about 90s/2000s culture. Into retro games and classic movies. Chill nerd energy.',
     interests: ['retro gaming', 'technology', 'movies', 'comics', 'collecting'],
@@ -85,7 +85,7 @@ export const CHAT_BOTS: ChatBot[] = [
   },
   {
     id: 'user-riley',
-    username: 'rileyy.xo',
+    username: 'RileyAdventures',
     avatarUrl: null,
     personality: 'Adventurous spirit who loves travel stories. Bold opinions but open-minded.',
     interests: ['travel', 'sports', 'photography', 'nature', 'adventure'],
@@ -95,7 +95,7 @@ export const CHAT_BOTS: ChatBot[] = [
   },
   {
     id: 'user-kai',
-    username: 'kaii_mp4',
+    username: 'KaiThinks',
     avatarUrl: null,
     personality: 'Curious and asks thought-provoking questions. Loves philosophical debates but keeps it light.',
     interests: ['philosophy', 'science', 'mysteries', 'psychology', 'books'],
@@ -105,7 +105,7 @@ export const CHAT_BOTS: ChatBot[] = [
   },
   {
     id: 'user-zoe',
-    username: 'zoecodes',
+    username: 'ZoeTech',
     avatarUrl: null,
     personality: 'Tech-savvy with witty humor. Helpful with tech questions. Makes clever observations.',
     interests: ['programming', 'cybersecurity', 'technology', 'gaming'],
