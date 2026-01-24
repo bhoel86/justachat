@@ -211,7 +211,13 @@ const Home = () => {
       const adminToken = localStorage.getItem('irc_admin_token');
       
       if (!adminToken) {
-        toast.error("IRC proxy not configured. Visit Admin → IRC Gateway first.");
+        toast.error("IRC proxy not configured", {
+          description: "Set up the proxy connection first",
+          action: {
+            label: "Go to IRC Gateway",
+            onClick: () => navigate("/admin/irc")
+          }
+        });
         return;
       }
 
