@@ -141,7 +141,8 @@ export const useChatBots = ({
     for (const bot of CHAT_BOTS) {
       const botName = bot.username.toLowerCase().replace(/[^a-z]/g, '');
       if (content.includes(botName) || content.includes(`@${botName}`)) {
-        const delay = 2000 + Math.random() * 3000;
+        // 5-12 seconds delay when mentioned
+        const delay = 5000 + Math.random() * 7000;
         responseTimeoutRef.current = setTimeout(async () => {
           setActiveBots(prev => new Set(prev).add(bot.id));
           await generateBotResponse(bot, message.content);
@@ -171,20 +172,20 @@ export const useChatBots = ({
   useEffect(() => {
     if (!botsEnabled) return;
 
-    // Start initial conversation after a delay
+    // Start initial conversation after a longer delay
     const initialDelay = setTimeout(() => {
       startBotConversation();
-    }, 10000); // 10 seconds after joining
+    }, 20000); // 20 seconds after joining
 
-    // Periodic conversations every 30-90 seconds
+    // Periodic conversations every 45-120 seconds
     conversationIntervalRef.current = setInterval(() => {
       const timeSinceLastActivity = Date.now() - lastBotActivityRef.current;
       
-      // Only start new conversation if there's been a gap
-      if (timeSinceLastActivity > 20000) {
+      // Only start new conversation if there's been a 30+ second gap
+      if (timeSinceLastActivity > 30000) {
         startBotConversation();
       }
-    }, 30000 + Math.random() * 60000);
+    }, 45000 + Math.random() * 75000);
 
     return () => {
       clearTimeout(initialDelay);
