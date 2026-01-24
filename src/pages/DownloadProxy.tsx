@@ -1,13 +1,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, ArrowLeft, Sparkles } from "lucide-react";
+import { MessageSquare, ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import MircSetupPackage from "@/components/proxy/MircSetupPackage";
 import MircThemePackage from "@/components/proxy/MircThemePackage";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const DownloadProxy = () => {
-  const [isDownloadingZip, setIsDownloadingZip] = useState(false);
   const [isDownloadingTheme, setIsDownloadingTheme] = useState(false);
 
   return (
@@ -65,30 +62,11 @@ const DownloadProxy = () => {
           </CardContent>
         </Card>
 
-        {/* Package Selection Tabs */}
-        <Tabs defaultValue="theme" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="theme" className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              2026 Theme Package
-            </TabsTrigger>
-            <TabsTrigger value="basic">Basic Setup</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="theme" className="mt-4">
-            <MircThemePackage 
-              isDownloadingZip={isDownloadingTheme} 
-              setIsDownloadingZip={setIsDownloadingTheme} 
-            />
-          </TabsContent>
-          
-          <TabsContent value="basic" className="mt-4">
-            <MircSetupPackage 
-              isDownloadingZip={isDownloadingZip} 
-              setIsDownloadingZip={setIsDownloadingZip} 
-            />
-          </TabsContent>
-        </Tabs>
+        {/* Theme Package Download */}
+        <MircThemePackage 
+          isDownloadingZip={isDownloadingTheme} 
+          setIsDownloadingZip={setIsDownloadingTheme} 
+        />
 
         {/* Manual Setup Guide */}
         <Card>
