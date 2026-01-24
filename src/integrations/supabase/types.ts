@@ -161,6 +161,30 @@ export type Database = {
         }
         Relationships: []
       }
+      bot_settings: {
+        Row: {
+          allowed_channels: string[]
+          enabled: boolean
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          allowed_channels?: string[]
+          enabled?: boolean
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          allowed_channels?: string[]
+          enabled?: boolean
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       channel_access_list: {
         Row: {
           access_level: number
