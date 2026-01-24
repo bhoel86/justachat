@@ -58,13 +58,16 @@ const MessageBubble = ({
   
   // Username dropdown component with 3-dot menu
   const UsernameWithDropdown = ({ username, userId, isOwnMessage, avatarUrl }: { username: string; userId?: string; isOwnMessage: boolean; avatarUrl?: string | null }) => {
-    if (!userId) return <span className="text-[10px] font-medium text-primary">{username}</span>;
+    const textColor = isOwnMessage ? "text-primary-foreground/90" : "text-primary";
+    const iconColor = isOwnMessage ? "text-primary-foreground/70" : "text-muted-foreground";
+    
+    if (!userId) return <span className={`text-[10px] font-medium ${textColor}`}>{username}</span>;
     
     return (
       <div className="flex items-center gap-0.5">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="p-0.5 rounded hover:bg-accent/50 transition-colors cursor-pointer opacity-60 hover:opacity-100">
+            <button className={`p-0.5 rounded hover:bg-accent/50 transition-colors cursor-pointer opacity-60 hover:opacity-100 ${iconColor}`}>
               <MoreVertical className="h-2.5 w-2.5" />
             </button>
           </DropdownMenuTrigger>
@@ -144,7 +147,7 @@ const MessageBubble = ({
             )}
           </DropdownMenuContent>
         </DropdownMenu>
-        <span className="text-[10px] font-medium text-primary">{username}</span>
+        <span className={`text-[10px] font-medium ${textColor}`}>{username}</span>
       </div>
     );
   };
