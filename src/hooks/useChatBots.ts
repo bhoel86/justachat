@@ -72,7 +72,7 @@ export const useChatBots = ({
       }
 
       if (data?.message) {
-        addBotMessage(data.message, bot.username, bot.avatar);
+        addBotMessage(data.message, bot.username, bot.avatarUrl || undefined);
         lastBotActivityRef.current = Date.now();
       }
     } catch (err) {

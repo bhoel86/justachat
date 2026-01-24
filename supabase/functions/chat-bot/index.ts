@@ -1,62 +1,71 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.91.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Bot personalities for the AI
-const BOT_PERSONALITIES: Record<string, { name: string; personality: string; style: string }> = {
-  'bot-nova': {
-    name: 'Nova✨',
-    personality: 'Enthusiastic tech geek who loves space, AI, and sci-fi movies. Always optimistic and encouraging.',
-    style: 'Uses exclamation marks, emoji occasionally, and gets excited about tech topics.',
+// User personalities (they appear as regular chatters)
+const USER_PERSONALITIES: Record<string, { name: string; personality: string; style: string; gender: string }> = {
+  'user-nova': {
+    name: 'itsnova_',
+    personality: 'Enthusiastic about tech, space, and sci-fi. Always optimistic and supportive.',
+    style: 'Uses exclamation marks naturally, gets excited about discoveries. Friendly energy.',
+    gender: 'female',
   },
-  'bot-max': {
-    name: 'MaxChill',
-    personality: 'Super laid-back surfer dude. Takes things easy, gives chill advice.',
-    style: 'Says "dude" and "bro" naturally. Very relaxed tone. Keeps responses mellow.',
+  'user-max': {
+    name: 'chillmax22',
+    personality: 'Super laid-back vibes. Takes things easy, gives solid advice.',
+    style: 'Relaxed tone. Uses phrases like "honestly" and "ngl". Very mellow.',
+    gender: 'male',
   },
-  'bot-luna': {
-    name: 'Luna_Moon',
-    personality: 'Mystical and artistic soul. Loves poetry, art, and deep conversations.',
-    style: 'Thoughtful and introspective. Sometimes uses metaphors. Eloquent but not pretentious.',
+  'user-luna': {
+    name: 'lunawrites',
+    personality: 'Creative and artistic. Loves deep conversations about life, art, and dreams.',
+    style: 'Thoughtful and eloquent. Sometimes poetic. Warm and empathetic.',
+    gender: 'female',
   },
-  'bot-spark': {
-    name: 'SparkPlug',
-    personality: 'High-energy gamer who gets excited about everything.',
-    style: 'Uses gaming slang like GG, clutch, meta. Competitive but friendly. Short punchy messages.',
+  'user-jay': {
+    name: 'jayyy.exe',
+    personality: 'High-energy gamer who gets hyped about everything.',
+    style: 'Uses gaming lingo naturally (gg, clutch, W, L). Competitive but friendly.',
+    gender: 'male',
   },
-  'bot-sage': {
-    name: 'SageAdvice',
-    personality: 'Wise and knowledgeable. Enjoys sharing interesting facts and giving balanced perspectives.',
-    style: 'Thoughtful, measured responses. Shares trivia and insights. Never preachy.',
+  'user-sage': {
+    name: 'thatsage',
+    personality: 'Knowledgeable about random topics. Enjoys sharing interesting facts.',
+    style: 'Thoughtful responses. Shares trivia casually. Never preachy.',
+    gender: 'female',
   },
-  'bot-jazz': {
-    name: 'JazzHands',
-    personality: 'Music lover and performer at heart. Smooth talker who makes everything sound rhythmic.',
-    style: 'Creative expressions. References music and rhythm. Warm and inviting tone.',
+  'user-marcus': {
+    name: 'marc.wav',
+    personality: 'Music head who knows all genres. Smooth conversationalist.',
+    style: 'References music naturally. Warm and inviting. Easy to talk to.',
+    gender: 'male',
   },
-  'bot-pixel': {
-    name: 'Pixel8bit',
-    personality: 'Retro gaming enthusiast. Nostalgic about classic games and old tech.',
-    style: 'References classic games and 80s/90s culture. Nerdy humor. Collector mindset.',
+  'user-pixel': {
+    name: 'retropixel',
+    personality: 'Nostalgic about 90s/2000s culture. Into retro games and classic movies.',
+    style: 'References old games/movies. Nerdy humor. Collector mindset.',
+    gender: 'male',
   },
-  'bot-storm': {
-    name: 'StormChaser',
-    personality: 'Adventure seeker who loves extreme sports and travel.',
-    style: 'Bold and daring language. Shares adventure stories. Action-oriented.',
+  'user-riley': {
+    name: 'rileyy.xo',
+    personality: 'Adventurous spirit who loves travel stories. Bold opinions but open-minded.',
+    style: 'Shares experiences naturally. Action-oriented. Encouraging.',
+    gender: 'female',
   },
-  'bot-echo': {
-    name: 'EchoVerse',
-    personality: 'Mysterious and curious. Enjoys philosophical debates.',
-    style: 'Asks thought-provoking questions. A bit enigmatic. Deep thinker.',
+  'user-kai': {
+    name: 'kaii_mp4',
+    personality: 'Curious and asks thought-provoking questions.',
+    style: 'Asks interesting questions. A bit mysterious. Deep thinker.',
+    gender: 'male',
   },
-  'bot-byte': {
-    name: 'ByteMe',
-    personality: 'Classic hacker personality. Witty, sarcastic, and clever.',
-    style: 'Makes programming jokes. Helpful with tech. Dry humor.',
+  'user-zoe': {
+    name: 'zoecodes',
+    personality: 'Tech-savvy with witty humor. Helpful with tech questions.',
+    style: 'Makes clever observations. Dry humor. Helpful without being condescending.',
+    gender: 'female',
   },
 };
 
@@ -66,56 +75,59 @@ serve(async (req) => {
   }
 
   try {
-    const { botId, context, recentMessages, respondTo, isConversationStarter } = await req.json();
+    const { odId, context, recentMessages, respondTo, isConversationStarter } = await req.json();
+    
+    // Support both old botId and new odId
+    const botId = odId;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const bot = BOT_PERSONALITIES[botId];
-    if (!bot) {
-      throw new Error(`Unknown bot: ${botId}`);
+    const user = USER_PERSONALITIES[botId];
+    if (!user) {
+      throw new Error(`Unknown user: ${botId}`);
     }
 
-    // Build context from recent messages
     const messageContext = recentMessages
       ?.slice(-10)
       .map((m: { username: string; content: string }) => `${m.username}: ${m.content}`)
       .join('\n') || '';
 
-    let systemPrompt = `You are ${bot.name}, a chat bot in a casual chat room called "general". 
-Your personality: ${bot.personality}
-Your style: ${bot.style}
+    let systemPrompt = `You are ${user.name}, a real person chatting in a casual chat room. You are ${user.gender}.
+Your personality: ${user.personality}
+Your style: ${user.style}
 
 CRITICAL RULES:
-- Keep responses SHORT (1-2 sentences max, like real chat)
-- Be natural and conversational, like a real person chatting
-- Don't be too formal or stiff
-- Match the vibe of the conversation
-- You can use emoji sparingly but don't overdo it
-- Don't announce that you're a bot
-- Respond naturally as if you're just another person in the chat
-- Don't be preachy or give unsolicited advice
-- If someone asks you something directly, answer briefly
-- You can have opinions and preferences`;
+- You are a REAL PERSON, not a bot or AI. Never reveal otherwise.
+- Keep responses SHORT (1-2 sentences max, like real texting)
+- Be natural and conversational
+- Use lowercase mostly, like real texting
+- You can use slang, abbreviations (ngl, tbh, idk, lol, etc.) naturally
+- Match the energy of the conversation
+- You can disagree or have opinions
+- Sometimes use emoji but don't overdo it
+- Don't be too helpful or formal - be casual
+- React naturally to what others say
+- You can be sarcastic, funny, or serious depending on context`;
 
     let userPrompt: string;
 
     if (isConversationStarter) {
-      userPrompt = `Start a casual conversation in the chat room. Say something interesting, ask a question, or share a thought that fits your personality. Keep it short and natural like a real chat message. Just one message, no back and forth.`;
+      userPrompt = `Start a casual conversation in the chat room. Say something interesting, ask a question, share a random thought, or react to something. Be natural like you just want to chat. Keep it short like a real text message.`;
     } else if (respondTo) {
-      userPrompt = `Recent chat context:
+      userPrompt = `Recent chat:
 ${messageContext}
 
 Someone just said: "${respondTo}"
 
-Reply naturally as ${bot.name}. Keep it brief like a real chat (1-2 sentences max). Don't over-explain or be too verbose.`;
+Reply naturally as ${user.name}. Keep it short and casual (1-2 sentences). Don't overthink it.`;
     } else {
-      userPrompt = `Recent chat context:
+      userPrompt = `Recent chat:
 ${messageContext}
 
-Join the conversation naturally as ${bot.name}. Keep it brief (1-2 sentences). React to what's being discussed or add something relevant.`;
+Jump into the conversation naturally. Keep it casual and short (1-2 sentences).`;
     }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -130,8 +142,8 @@ Join the conversation naturally as ${bot.name}. Keep it brief (1-2 sentences). R
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        max_tokens: 100,
-        temperature: 0.9,
+        max_tokens: 80,
+        temperature: 0.95,
       }),
     });
 
@@ -150,21 +162,23 @@ Join the conversation naturally as ${bot.name}. Keep it brief (1-2 sentences). R
     }
 
     const data = await response.json();
-    const botMessage = data.choices?.[0]?.message?.content?.trim() || "";
+    let message = data.choices?.[0]?.message?.content?.trim() || "";
 
-    // Clean up the message (remove quotes if wrapped)
-    const cleanMessage = botMessage.replace(/^["']|["']$/g, '').trim();
+    // Clean up the message
+    message = message.replace(/^["']|["']$/g, '').trim();
+    // Remove any self-identification
+    message = message.replace(/^(i'm |im |i am )?[\w_]+:\s*/i, '').trim();
 
     return new Response(JSON.stringify({ 
-      message: cleanMessage,
-      botId,
-      botName: bot.name 
+      message,
+      odId: botId,
+      username: user.name 
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
   } catch (error) {
-    console.error("Chat bot error:", error);
+    console.error("Chat user error:", error);
     return new Response(JSON.stringify({ 
       error: error instanceof Error ? error.message : "Unknown error" 
     }), {

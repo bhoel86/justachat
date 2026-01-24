@@ -410,21 +410,21 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
   // Art room hook
   const artCurator = useArtCurator();
 
-  // Function to add bot messages
-  const addBotMessage = useCallback((content: string, botUsername: string, avatar?: string) => {
+  // Function to add simulated user messages (they look like real users)
+  const addBotMessage = useCallback((content: string, username: string, avatarUrl?: string) => {
     if (!currentChannel?.id) return;
-    const botMsg: Message = {
-      id: `bot-${Date.now()}-${Math.random()}`,
+    const userMsg: Message = {
+      id: `sim-${Date.now()}-${Math.random()}`,
       content,
-      user_id: `bot-${botUsername}`,
+      user_id: `sim-${username}`,
       channel_id: currentChannel.id,
       created_at: new Date().toISOString(),
       profile: { 
-        username: `${avatar || '🤖'} ${botUsername}`,
-        avatar_url: null
+        username: username,
+        avatar_url: avatarUrl || null
       }
     };
-    setMessages(prev => [...prev, botMsg]);
+    setMessages(prev => [...prev, userMsg]);
   }, [currentChannel?.id]);
 
   // Chat bots for general channel

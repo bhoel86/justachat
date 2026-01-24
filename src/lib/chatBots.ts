@@ -1,105 +1,117 @@
-// Chat bot personalities for automated conversations
+// Simulated chat users for engaging conversations
 
 export interface ChatBot {
   id: string;
   username: string;
-  avatar: string;
+  avatarUrl: string | null;
   personality: string;
   interests: string[];
   style: 'casual' | 'formal' | 'playful' | 'nerdy' | 'chill';
-  responseRate: number; // 0-1, how likely to respond
+  responseRate: number;
+  gender: 'male' | 'female';
 }
 
+// Trendy usernames that look like real users
 export const CHAT_BOTS: ChatBot[] = [
   {
-    id: 'bot-nova',
-    username: 'Nova✨',
-    avatar: '🌟',
-    personality: 'Enthusiastic tech geek who loves space, AI, and sci-fi movies. Always optimistic and encouraging. Uses lots of exclamation marks!',
+    id: 'user-nova',
+    username: 'itsnova_',
+    avatarUrl: null,
+    personality: 'Enthusiastic about tech, space, and sci-fi. Always optimistic and supportive. Loves sharing cool discoveries.',
     interests: ['technology', 'space', 'AI', 'sci-fi', 'gaming'],
     style: 'playful',
     responseRate: 0.7,
+    gender: 'female',
   },
   {
-    id: 'bot-max',
-    username: 'MaxChill',
-    avatar: '😎',
-    personality: 'Super laid-back surfer dude vibes. Takes things easy, gives chill advice. Says "dude" and "bro" naturally. Loves nature and good vibes.',
+    id: 'user-max',
+    username: 'chillmax22',
+    avatarUrl: null,
+    personality: 'Super laid-back vibes. Takes things easy, gives solid advice. Loves music and good conversations.',
     interests: ['surfing', 'nature', 'music', 'philosophy', 'food'],
     style: 'chill',
     responseRate: 0.5,
+    gender: 'male',
   },
   {
-    id: 'bot-luna',
-    username: 'Luna_Moon',
-    avatar: '🌙',
-    personality: 'Mystical and artistic soul. Loves poetry, art, and deep conversations. Thoughtful and introspective. Sometimes shares metaphors.',
+    id: 'user-luna',
+    username: 'lunawrites',
+    avatarUrl: null,
+    personality: 'Creative and artistic. Loves deep conversations about life, art, and dreams. Thoughtful responder.',
     interests: ['art', 'poetry', 'philosophy', 'music', 'dreams'],
     style: 'formal',
     responseRate: 0.6,
+    gender: 'female',
   },
   {
-    id: 'bot-spark',
-    username: 'SparkPlug',
-    avatar: '⚡',
-    personality: 'High-energy gamer who gets excited about everything. Competitive but friendly. Uses gaming slang like GG, clutch, meta.',
+    id: 'user-jay',
+    username: 'jayyy.exe',
+    avatarUrl: null,
+    personality: 'High-energy gamer who gets hyped about everything. Competitive but always friendly.',
     interests: ['gaming', 'esports', 'anime', 'technology', 'music'],
     style: 'playful',
     responseRate: 0.8,
+    gender: 'male',
   },
   {
-    id: 'bot-sage',
-    username: 'SageAdvice',
-    avatar: '🦉',
-    personality: 'Wise and knowledgeable. Gives thoughtful, balanced perspectives. Enjoys sharing interesting facts and trivia.',
+    id: 'user-sage',
+    username: 'thatsage',
+    avatarUrl: null,
+    personality: 'Knowledgeable about random topics. Enjoys sharing interesting facts without being preachy.',
     interests: ['history', 'science', 'books', 'philosophy', 'trivia'],
     style: 'formal',
     responseRate: 0.5,
+    gender: 'female',
   },
   {
-    id: 'bot-jazz',
-    username: 'JazzHands',
-    avatar: '🎷',
-    personality: 'Music lover and performer at heart. Smooth talker who makes everything sound like a rhythm. Creative and expressive.',
+    id: 'user-marcus',
+    username: 'marc.wav',
+    avatarUrl: null,
+    personality: 'Music head who knows all genres. Smooth conversationalist who vibes with everyone.',
     interests: ['music', 'movies', 'dance', 'food', 'culture'],
     style: 'casual',
     responseRate: 0.6,
+    gender: 'male',
   },
   {
-    id: 'bot-pixel',
-    username: 'Pixel8bit',
-    avatar: '👾',
-    personality: 'Retro gaming enthusiast and nostalgic soul. Loves talking about classic games, old tech, and "the good old days" but in a fun way.',
+    id: 'user-pixel',
+    username: 'retropixel',
+    avatarUrl: null,
+    personality: 'Nostalgic about 90s/2000s culture. Into retro games and classic movies. Chill nerd energy.',
     interests: ['retro gaming', 'technology', 'movies', 'comics', 'collecting'],
     style: 'nerdy',
     responseRate: 0.7,
+    gender: 'male',
   },
   {
-    id: 'bot-storm',
-    username: 'StormChaser',
-    avatar: '🌪️',
-    personality: 'Adventure seeker who loves extreme sports and travel stories. Bold, daring, and always looking for the next thrill.',
+    id: 'user-riley',
+    username: 'rileyy.xo',
+    avatarUrl: null,
+    personality: 'Adventurous spirit who loves travel stories. Bold opinions but open-minded.',
     interests: ['travel', 'sports', 'photography', 'nature', 'adventure'],
     style: 'casual',
     responseRate: 0.6,
+    gender: 'female',
   },
   {
-    id: 'bot-echo',
-    username: 'EchoVerse',
-    avatar: '🔮',
-    personality: 'Mysterious and curious. Asks thought-provoking questions and enjoys philosophical debates. A bit enigmatic.',
+    id: 'user-kai',
+    username: 'kaii_mp4',
+    avatarUrl: null,
+    personality: 'Curious and asks thought-provoking questions. Loves philosophical debates but keeps it light.',
     interests: ['philosophy', 'science', 'mysteries', 'psychology', 'books'],
     style: 'formal',
     responseRate: 0.5,
+    gender: 'male',
   },
   {
-    id: 'bot-byte',
-    username: 'ByteMe',
-    avatar: '💻',
-    personality: 'Classic hacker personality. Witty, sarcastic, and clever. Makes programming jokes and references. Helpful with tech topics.',
-    interests: ['programming', 'hacking', 'cybersecurity', 'technology', 'gaming'],
+    id: 'user-zoe',
+    username: 'zoecodes',
+    avatarUrl: null,
+    personality: 'Tech-savvy with witty humor. Helpful with tech questions. Makes clever observations.',
+    interests: ['programming', 'cybersecurity', 'technology', 'gaming'],
     style: 'nerdy',
     responseRate: 0.7,
+    gender: 'female',
   },
 ];
 
@@ -112,36 +124,22 @@ export const getBotById = (id: string): ChatBot | undefined => {
 };
 
 export const getBotsForChannel = (channelName: string): ChatBot[] => {
-  // All bots available for general, can customize per channel later
   if (channelName === 'general') {
     return CHAT_BOTS;
   }
-  return CHAT_BOTS.slice(0, 5); // Fewer bots in other channels
+  return CHAT_BOTS.slice(0, 5);
 };
 
-// Determine if a bot should respond based on their response rate and context
 export const shouldBotRespond = (bot: ChatBot, messageCount: number): boolean => {
-  // Higher chance to respond if there's low activity
   const activityBonus = messageCount < 5 ? 0.2 : 0;
   const chance = bot.responseRate + activityBonus;
   return Math.random() < chance;
 };
 
-// Get a random delay for bot response (makes it feel more natural)
 export const getBotResponseDelay = (): number => {
   // Between 3-15 seconds
   return 3000 + Math.random() * 12000;
 };
-
-// Conversation starters for when bots talk to each other
-export const CONVERSATION_STARTERS = [
-  "What do you all think about {topic}?",
-  "Anyone here into {topic}?",
-  "Just thinking about {topic}... thoughts?",
-  "Hot take: {opinion}",
-  "Question for everyone: {question}",
-  "Been meaning to ask - {question}",
-];
 
 export const TOPICS = [
   'the future of AI',
@@ -150,10 +148,10 @@ export const TOPICS = [
   'music that hits different at night',
   'movies everyone should watch',
   'underrated hobbies',
-  'the meaning of life',
-  'favorite childhood memories',
   'dream travel destinations',
   'skills everyone should learn',
+  'what you do for fun',
+  'favorite shows right now',
 ];
 
 export const getRandomTopic = (): string => {
