@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, AlertCircle, Play, Pause, SkipForward, SkipBack, Shuffle, Music, ChevronDown, Radio, Zap, Volume2, VolumeX, Power, Smile, MoreHorizontal, Palette, Sparkles, ImagePlus, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
@@ -7,10 +7,12 @@ import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import EmojiPicker from "./EmojiPicker";
 import TextFormatMenu, { TextFormat, encodeFormat } from "./TextFormatMenu";
+import MentionAutocomplete from "./MentionAutocomplete";
 import { useRadioOptional } from "@/contexts/RadioContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+
 // Fun IRC-style user actions
 const USER_ACTIONS = {
   funny: [
@@ -39,7 +41,7 @@ interface ChatInputProps {
   onSend: (message: string) => void;
   isMuted?: boolean;
   canControlRadio?: boolean;
-  onlineUsers?: { username: string }[];
+  onlineUsers?: { username: string; avatarUrl?: string | null }[];
 }
 
 const ChatInput = ({ onSend, isMuted = false, canControlRadio = false, onlineUsers = [] }: ChatInputProps) => {
@@ -49,10 +51,73 @@ const ChatInput = ({ onSend, isMuted = false, canControlRadio = false, onlineUse
   const [attachedImage, setAttachedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [showMentions, setShowMentions] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState("");
+  const [mentionPosition, setMentionPosition] = useState({ top: 48, left: 0 });
+  const [cursorPosition, setCursorPosition] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const radio = useRadioOptional();
   const isMobile = useIsMobile();
   const { toast } = useToast();
+
+  // Detect @mention typing
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const cursorPos = e.target.selectionStart || 0;
+    setMessage(value);
+    setCursorPosition(cursorPos);
+
+    // Find if we're currently typing a mention
+    const textBeforeCursor = value.slice(0, cursorPos);
+    const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
+
+    if (mentionMatch) {
+      setMentionQuery(mentionMatch[1]);
+      setShowMentions(true);
+      // Position the autocomplete above the input
+      if (inputRef.current) {
+        const inputRect = inputRef.current.getBoundingClientRect();
+        setMentionPosition({ top: 48, left: Math.min(mentionMatch.index! * 8, inputRect.width - 200) });
+      }
+    } else {
+      setShowMentions(false);
+      setMentionQuery("");
+    }
+  }, []);
+
+  // Handle mention selection
+  const handleMentionSelect = useCallback((username: string) => {
+    const textBeforeCursor = message.slice(0, cursorPosition);
+    const textAfterCursor = message.slice(cursorPosition);
+    const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
+
+    if (mentionMatch) {
+      const newTextBefore = textBeforeCursor.slice(0, mentionMatch.index) + `@${username} `;
+      setMessage(newTextBefore + textAfterCursor);
+      // Move cursor to after the mention
+      setTimeout(() => {
+        if (inputRef.current) {
+          const newPos = newTextBefore.length;
+          inputRef.current.setSelectionRange(newPos, newPos);
+          inputRef.current.focus();
+        }
+      }, 0);
+    }
+    setShowMentions(false);
+    setMentionQuery("");
+  }, [message, cursorPosition]);
+
+  // Close mentions on click outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (showMentions) {
+        setShowMentions(false);
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [showMentions]);
 
   // Emoji categories for mobile dropdown
   const QUICK_EMOJIS = ['😀', '😂', '❤️', '👍', '🔥', '😮', '😢', '😡', '🎉', '💯'];
@@ -679,13 +744,25 @@ const ChatInput = ({ onSend, isMuted = false, canControlRadio = false, onlineUse
           </div>
         )}
 
-        <input
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder={isMuted ? "Commands only..." : "Type a message..."}
-          className="flex-1 min-w-0 bg-input rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
-        />
+        <div className="relative flex-1 min-w-0">
+          <input
+            ref={inputRef}
+            type="text"
+            value={message}
+            onChange={handleInputChange}
+            placeholder={isMuted ? "Commands only..." : "Type a message... (use @ to mention)"}
+            className="w-full bg-input rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+          />
+          {showMentions && (
+            <MentionAutocomplete
+              query={mentionQuery}
+              users={onlineUsers}
+              onSelect={handleMentionSelect}
+              onClose={() => setShowMentions(false)}
+              position={mentionPosition}
+            />
+          )}
+        </div>
         <Button
           type="submit"
           variant="jac"
