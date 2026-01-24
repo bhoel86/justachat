@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, FileCode, FileText, Terminal, Server, Copy, CheckCircle, RefreshCw, AlertTriangle, Check, X, Loader2, Archive } from "lucide-react";
+import { Download, FileCode, FileText, Terminal, Server, Copy, CheckCircle, RefreshCw, AlertTriangle, Check, X, Loader2, Archive, Lock } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import JSZip from "jszip";
 import MircSetupPackage from "@/components/proxy/MircSetupPackage";
+import { useAuth } from "@/hooks/useAuth";
 
 // Current version - must match proxy.js PROXY_VERSION
 const LATEST_VERSION = '2.2.0';
@@ -229,6 +230,7 @@ TROUBLESHOOTING:
 ========================================`;
 
 const DownloadProxy = () => {
+  const { isOwner } = useAuth();
   const [copied, setCopied] = useState(false);
   const [proxyHost, setProxyHost] = useState('');
   const [versionStatus, setVersionStatus] = useState<'idle' | 'checking' | 'current' | 'outdated' | 'error'>('idle');
@@ -540,19 +542,30 @@ USER CONNECTION:
           <p className="text-muted-foreground">Connect mIRC, HexChat, and other IRC clients to Justachat</p>
         </div>
 
-        <Tabs defaultValue="vps" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="vps" className="flex items-center gap-2">
-              <Server className="h-4 w-4" />
-              VPS Deployment (Recommended)
-            </TabsTrigger>
+        <Tabs defaultValue={isOwner ? "vps" : "local"} className="w-full">
+          <TabsList className={`grid w-full ${isOwner ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {isOwner && (
+              <TabsTrigger value="vps" className="flex items-center gap-2">
+                <Server className="h-4 w-4" />
+                VPS Deployment (Recommended)
+              </TabsTrigger>
+            )}
             <TabsTrigger value="local" className="flex items-center gap-2">
               <Terminal className="h-4 w-4" />
               Local Proxy
             </TabsTrigger>
           </TabsList>
 
+          {isOwner && (
           <TabsContent value="vps" className="space-y-4 mt-4">
+            <Card className="border-primary">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Lock className="h-4 w-4 text-amber-500" />
+                  <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/30">Owner Only</Badge>
+                </CardTitle>
+              </CardHeader>
+            </Card>
             <Card className="border-primary">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -743,6 +756,7 @@ USER CONNECTION:
               </CardContent>
             </Card>
           </TabsContent>
+          )}
 
           <TabsContent value="local" className="space-y-4 mt-4">
             <Card>
