@@ -1112,14 +1112,34 @@ if (supabaseUrl && supabaseServiceKey) {
           return;
         }
 
-        // Get sender's username
-        const { data: senderProfile } = await realtimeClient
-          .from("profiles")
-          .select("username")
-          .eq("user_id", newMessage.user_id)
-          .single();
+        // Determine sender username - check if it's a bot message
+        let senderUsername = "unknown";
+        let senderHost = "web";
+        
+        if (newMessage.user_id.startsWith("bot-")) {
+          // Bot message - extract bot name from user_id
+          // Format: bot-cryptoking, bot-nightowl88, etc.
+          const botNamePart = newMessage.user_id.slice(4); // Remove "bot-" prefix
+          
+          // Try to find a matching bot name in our channel bots (case-insensitive)
+          const allBotNames = Array.from(new Set(Object.values(channelBots).flat()));
+          const matchedBot = allBotNames.find(
+            (b) => b.toLowerCase().replace(/[^a-z0-9]/g, "") === botNamePart.toLowerCase().replace(/[^a-z0-9]/g, "")
+          );
+          
+          senderUsername = matchedBot || botNamePart;
+          senderHost = "bot";
+          console.log(`[Realtime] Bot message from: ${senderUsername}`);
+        } else {
+          // Regular user - look up from profiles
+          const { data: senderProfile } = await realtimeClient
+            .from("profiles")
+            .select("username")
+            .eq("user_id", newMessage.user_id)
+            .single();
 
-        const senderUsername = (senderProfile as { username: string } | null)?.username || "unknown";
+          senderUsername = (senderProfile as { username: string } | null)?.username || "unknown";
+        }
 
         // Get channel name
         const { data: channelData } = await realtimeClient
@@ -1130,19 +1150,19 @@ if (supabaseUrl && supabaseServiceKey) {
 
         const channelName = `#${(channelData as { name: string } | null)?.name || "unknown"}`;
 
-        // Relay message to all subscribed IRC sessions (except sender)
+        // Relay message to all subscribed IRC sessions (except sender for non-bot messages)
         for (const subscriberId of subscribers) {
           const subscriberSession = sessions.get(subscriberId);
           if (
             subscriberSession &&
             subscriberSession.registered &&
-            subscriberSession.userId !== newMessage.user_id // Don't echo back to sender
+            (newMessage.user_id.startsWith("bot-") || subscriberSession.userId !== newMessage.user_id) // Always relay bot messages, skip echo for own messages
           ) {
             sendIRC(
               subscriberSession,
-              `:${senderUsername}!${senderUsername}@web.${SERVER_NAME} PRIVMSG ${channelName} :${newMessage.content}`
+              `:${senderUsername}!${senderUsername}@${senderHost}.${SERVER_NAME} PRIVMSG ${channelName} :${newMessage.content}`
             );
-            console.log(`[Realtime] Relayed message to ${subscriberSession.nick}`);
+            console.log(`[Realtime] Relayed ${senderHost} message from ${senderUsername} to ${subscriberSession.nick}`);
           }
         }
       }
