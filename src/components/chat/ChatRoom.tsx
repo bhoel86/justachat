@@ -425,54 +425,125 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
     enabled: currentChannel?.name === 'general',
   });
 
-  // Show welcome message and tip when entering a channel
+  // Show personalized welcome message when entering a channel
   useEffect(() => {
-    if (!currentChannel || loading) return;
+    if (!currentChannel || loading || !user || !username) return;
     
-    // Add welcome message from moderator
-    const welcomeMsg = getWelcomeMessage(currentChannel.name);
-    const tipMsg = getRandomTip(currentChannel.name);
-    
-    // Small delay to let messages load first
-    const timer = setTimeout(() => {
-      addModeratorMessage(welcomeMsg, currentChannel.name, currentChannel.id);
-      // Add tip after a brief moment
-      setTimeout(() => {
-        addModeratorMessage(tipMsg, currentChannel.name, currentChannel.id);
-      }, 1500);
+    const handleWelcome = async () => {
+      // Check if user has visited this channel before
+      const { data: existingVisit } = await supabaseUntyped
+        .from('user_channel_visits')
+        .select('visit_count, last_visit_at')
+        .eq('user_id', user.id)
+        .eq('channel_name', currentChannel.name)
+        .maybeSingle();
       
-      // If this is the art room, fetch and display featured art
-      if (currentChannel.name === 'art') {
-        setTimeout(async () => {
-          const featured = await artCurator.fetchFeaturedArt();
-          if (featured) {
-            // Add art message with special formatting
-            const moderator = getModerator('art');
-            const artMsg: Message = {
-              id: `art-${Date.now()}`,
-              content: `ART_DISPLAY:${JSON.stringify({
-                imageUrl: featured.image_url,
-                title: featured.piece.title,
-                artist: featured.piece.artist,
-                year: featured.piece.year,
-                period: featured.piece.period,
-                medium: featured.piece.medium,
-                commentary: featured.commentary
-              })}`,
-              user_id: 'moderator',
-              channel_id: currentChannel.id,
-              created_at: new Date().toISOString(),
-              isModerator: true,
-              profile: { username: `🎨 ${moderator.name}` }
-            };
-            setMessages(prev => [...prev, artMsg]);
-          }
-        }, 3000);
+      const moderator = getModerator(currentChannel.name);
+      let welcomeMsg: string;
+      
+      if (existingVisit) {
+        // Returning user - personalized greeting
+        const visitCount = existingVisit.visit_count;
+        const lastVisit = new Date(existingVisit.last_visit_at);
+        const now = new Date();
+        const hoursSince = Math.floor((now.getTime() - lastVisit.getTime()) / (1000 * 60 * 60));
+        
+        // Generate personalized welcome back message
+        const greetings = [
+          `welcome back ${username}! how u been?`,
+          `yo ${username}! good to see u again`,
+          `hey ${username}! missed u, how r u?`,
+          `${username}! ur back, whats good?`,
+          `ayy ${username} welcome back! hows it going?`,
+        ];
+        
+        const frequentGreetings = [
+          `${username} my fav regular! whats up?`,
+          `yo ${username}! u basically live here now lol`,
+          `${username}! back for more i see 😏`,
+        ];
+        
+        const longTimeGreetings = [
+          `${username}!! where u been? missed u fr`,
+          `omg ${username} its been forever! how u doing?`,
+          `yo ${username} long time no see! everything good?`,
+        ];
+        
+        if (hoursSince > 48) {
+          welcomeMsg = longTimeGreetings[Math.floor(Math.random() * longTimeGreetings.length)];
+        } else if (visitCount > 10) {
+          welcomeMsg = frequentGreetings[Math.floor(Math.random() * frequentGreetings.length)];
+        } else {
+          welcomeMsg = greetings[Math.floor(Math.random() * greetings.length)];
+        }
+        
+        // Update visit count
+        await supabaseUntyped
+          .from('user_channel_visits')
+          .update({ 
+            visit_count: visitCount + 1, 
+            last_visit_at: new Date().toISOString(),
+            username: username
+          })
+          .eq('user_id', user.id)
+          .eq('channel_name', currentChannel.name);
+      } else {
+        // First time visitor
+        welcomeMsg = getWelcomeMessage(currentChannel.name);
+        
+        // Record first visit
+        await supabaseUntyped
+          .from('user_channel_visits')
+          .insert({
+            user_id: user.id,
+            channel_name: currentChannel.name,
+            username: username
+          });
       }
-    }, 500);
+      
+      const tipMsg = getRandomTip(currentChannel.name);
+      
+      // Small delay to let messages load first
+      setTimeout(() => {
+        addModeratorMessage(welcomeMsg, currentChannel.name, currentChannel.id);
+        // Add tip after a brief moment
+        setTimeout(() => {
+          addModeratorMessage(tipMsg, currentChannel.name, currentChannel.id);
+        }, 1500);
+        
+        // If this is the art room, fetch and display featured art
+        if (currentChannel.name === 'art') {
+          setTimeout(async () => {
+            const featured = await artCurator.fetchFeaturedArt();
+            if (featured) {
+              // Add art message with special formatting
+              const moderator = getModerator('art');
+              const artMsg: Message = {
+                id: `art-${Date.now()}`,
+                content: `ART_DISPLAY:${JSON.stringify({
+                  imageUrl: featured.image_url,
+                  title: featured.piece.title,
+                  artist: featured.piece.artist,
+                  year: featured.piece.year,
+                  period: featured.piece.period,
+                  medium: featured.piece.medium,
+                  commentary: featured.commentary
+                })}`,
+                user_id: 'moderator',
+                channel_id: currentChannel.id,
+                created_at: new Date().toISOString(),
+                isModerator: true,
+                profile: { username: `🎨 ${moderator.name}` }
+              };
+              setMessages(prev => [...prev, artMsg]);
+            }
+          }, 3000);
+        }
+      }, 500);
+    };
 
-    return () => clearTimeout(timer);
-  }, [currentChannel?.id, loading]);
+    handleWelcome();
+  }, [currentChannel?.id, loading, user?.id, username]);
 
   // Auto-translate messages from other users
   useEffect(() => {
