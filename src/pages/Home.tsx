@@ -43,6 +43,10 @@ interface Channel {
   description: string | null;
 }
 
+interface RoomUserCounts {
+  [channelId: string]: number;
+}
+
 const roomIcons: Record<string, React.ReactNode> = {
   "general": <Hash className="w-8 h-8" />,
   "adults-21-plus": <Shield className="w-8 h-8" />,
@@ -101,6 +105,7 @@ const Home = () => {
   const navigate = useNavigate();
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loadingChannels, setLoadingChannels] = useState(true);
+  const [roomUserCounts, setRoomUserCounts] = useState<RoomUserCounts>({});
 
   // Scroll to top on page load - use requestAnimationFrame to ensure it runs after render
   useEffect(() => {
@@ -135,6 +140,31 @@ const Home = () => {
       fetchChannels();
     }
   }, [user]);
+
+  // Subscribe to presence for all rooms to get user counts
+  useEffect(() => {
+    if (!channels.length) return;
+
+    const presenceChannels: ReturnType<typeof supabase.channel>[] = [];
+
+    channels.forEach((channel) => {
+      const presenceChannel = supabase.channel(`room:${channel.id}:presence`);
+      
+      presenceChannel
+        .on('presence', { event: 'sync' }, () => {
+          const state = presenceChannel.presenceState();
+          const userCount = Object.keys(state).length;
+          setRoomUserCounts(prev => ({ ...prev, [channel.id]: userCount }));
+        })
+        .subscribe();
+
+      presenceChannels.push(presenceChannel);
+    });
+
+    return () => {
+      presenceChannels.forEach(ch => supabase.removeChannel(ch));
+    };
+  }, [channels]);
 
   const handleJoinRoom = (channel: Channel) => {
     navigate(`/chat/${channel.id}`);
@@ -342,6 +372,11 @@ const Home = () => {
                           <h3 className="font-semibold text-[10px] sm:text-xs text-white drop-shadow-md text-center leading-tight">
                             #{formatRoomName(channel.name)}
                           </h3>
+                          {/* User count badge */}
+                          <div className="flex items-center gap-0.5 text-white/80">
+                            <Users className="w-2.5 h-2.5" />
+                            <span className="text-[9px] font-medium">{roomUserCounts[channel.id] || 0}</span>
+                          </div>
                         </div>
 
                         {/* Hover effect overlay */}
