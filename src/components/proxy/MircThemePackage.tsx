@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Archive, Download, Loader2, Eye, EyeOff, Sparkles, Radio, Smile, Zap, Palette, Command, RefreshCw } from "lucide-react";
+import { Archive, Loader2, Eye, EyeOff, Sparkles, Radio, Smile, Zap, Palette, Command, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import JSZip from "jszip";
-import { generateThemeScript, generateMircReadme, generateServersIni, generateUpdaterBat, THEME_VERSION, type MircPackageConfig } from "@/lib/mircThemeGenerator";
+import { generateThemeScript, generateMircReadme, generateServersIni, generateUpdaterBat, generateJacConfigIni, THEME_VERSION, type MircPackageConfig } from "@/lib/mircThemeGenerator";
 import { Badge } from "@/components/ui/badge";
 
 interface MircThemePackageProps {
@@ -46,6 +46,9 @@ const MircThemePackage = ({ isDownloadingZip, setIsDownloadingZip }: MircThemePa
       
       // Main theme script with credentials
       zip.file("jac-2026-theme.mrc", generateThemeScript(config));
+
+      // Persisted credentials file (NOT overwritten by updater)
+      zip.file("jac-config.ini", generateJacConfigIni(config));
       
       // 1-click updater
       zip.file("jac-updater.bat", generateUpdaterBat());

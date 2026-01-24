@@ -1,6 +1,6 @@
 ; ========================================
 ; JAC Chat 2026 - Ultimate mIRC Theme
-; Version: 2026.1.1
+; Version: 2026.1.2
 ; ========================================
 ;
 ; FEATURES:
@@ -29,11 +29,13 @@
 
 alias -l jac.server { return 157.245.174.197 }
 alias -l jac.port { return 6667 }
-alias -l jac.email { return your-email@example.com }
-alias -l jac.pass { return your-password }
-alias -l jac.nick { return YourNick }
+; User-specific credentials live in jac-config.ini so updates don't wipe them.
+alias -l jac.cfg { return $scriptdir $+ jac-config.ini }
+alias -l jac.email { return $readini($jac.cfg, auth, email) }
+alias -l jac.pass_raw { return $readini($jac.cfg, auth, pass) }
+alias -l jac.nick { return $readini($jac.cfg, auth, nick) }
 alias -l jac.radio { return https://justachat.lovable.app }
-alias -l jac.version { return 2026.1.1 }
+alias -l jac.version { return 2026.1.2 }
 
 ; =====================
 ; THEME COLORS
@@ -52,9 +54,44 @@ on *:START:{
 
 alias -l jac.isJac { return $iif($serverip == $jac.server,1,0) }
 
+; Safely escape $ in passwords for mIRC scripting contexts.
+; (If your password contains $, this ensures it is treated as literal text.)
+alias -l jac.pass {
+  if (!$jac.pass_raw) return
+  return $replace($jac.pass_raw,$chr(36),$chr(36) $+ $chr(36))
+}
+
+alias -l jac.hasConfig {
+  if (!$exists($jac.cfg)) return 0
+  if ($jac.email == $null) return 0
+  if ($jac.pass_raw == $null) return 0
+  if ($jac.nick == $null) return 0
+  return 1
+}
+
+alias jac.setup {
+  echo -a 11[JAC] Creating/Updating $jac.cfg ...
+  var %email = $$?="Email:"
+  if (!%email) { echo -a 4[JAC] Cancelled. | return }
+  var %pass = $$?="Password:"
+  if (!%pass) { echo -a 4[JAC] Cancelled. | return }
+  var %nick = $$?="Nickname:"
+  if (!%nick) { echo -a 4[JAC] Cancelled. | return }
+
+  writeini -n $jac.cfg auth email %email
+  writeini -n $jac.cfg auth pass %pass
+  writeini -n $jac.cfg auth nick %nick
+
+  echo -a 3[JAC] Saved! Now type /jac to connect.
+}
+
 alias jac {
   ; IMPORTANT: PASS must be sent BEFORE mIRC registers (NICK/USER).
   ; Using /server ... <password> makes mIRC send PASS first.
+  if (!$jac.hasConfig) {
+    echo -a 4[JAC] Missing config. Type /jac.setup first.
+    return
+  }
   echo -a 11[JAC 2026] Connecting to JAC Chat...
   var %auth = $jac.email $+ : $+ $jac.pass
   nick $jac.nick

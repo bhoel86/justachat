@@ -13,10 +13,17 @@ export interface MircPackageConfig {
 export const escapeForMirc = (str: string) => str.replace(/\$/g, '$$$$');
 
 // Theme version - increment when updating
-export const THEME_VERSION = "2026.1.1";
+export const THEME_VERSION = "2026.1.2";
 
 // The hosted script URL (served from public folder)
 export const SCRIPT_URL = "https://justachat.lovable.app/jac-2026-theme.mrc";
+
+export const generateJacConfigIni = (config: MircPackageConfig) => {
+  const email = config.email || "your-email@example.com";
+  const pass = config.password || "your-password";
+  const nick = config.nickname || "YourNick";
+  return `[auth]\nemail=${email}\npass=${pass}\nnick=${nick}\n`;
+};
 
 // Generate the 1-click updater batch file
 export const generateUpdaterBat = () => {
@@ -63,9 +70,23 @@ if defined MIRC_PATH (
     copy /Y "%TEMP%\\jac-2026-theme.mrc" "%MIRC_PATH%\\scripts\\jac-2026-theme.mrc" 2>nul
     if %errorlevel% equ 0 (
         echo [+] Installed to mIRC scripts folder!
+        set "TARGET_DIR=%MIRC_PATH%\\scripts"
     ) else (
         copy /Y "%TEMP%\\jac-2026-theme.mrc" "%MIRC_PATH%\\jac-2026-theme.mrc" 2>nul
         echo [+] Installed to mIRC folder!
+        set "TARGET_DIR=%MIRC_PATH%"
+    )
+
+    :: Create config file if missing (do NOT overwrite)
+    if not exist "%TARGET_DIR%\\jac-config.ini" (
+        echo [*] Creating jac-config.ini (credentials) ...
+        (
+          echo [auth]
+          echo email=your-email@example.com
+          echo pass=your-password
+          echo nick=YourNick
+        ) > "%TARGET_DIR%\\jac-config.ini"
+        echo [!] IMPORTANT: Edit jac-config.ini with your real email/password/nick.
     )
 ) else (
     echo [*] mIRC folder not found automatically.
@@ -90,9 +111,7 @@ pause
 // Generate the main theme script (to be hosted at /public/jac-2026-theme.mrc)
 export const generateThemeScript = (config: MircPackageConfig) => {
   const server = config.serverAddress || "157.245.174.197";
-  const escapedEmail = escapeForMirc(config.email || "your-email@example.com");
-  const escapedPassword = escapeForMirc(config.password || "your-password");
-  const nick = config.nickname || "YourNick";
+  // credentials now live in jac-config.ini so updater doesn't overwrite them
   const radioUrl = config.radioStreamUrl || "https://justachat.lovable.app";
 
   return `; ========================================
@@ -126,13 +145,41 @@ export const generateThemeScript = (config: MircPackageConfig) => {
 
 alias -l jac.server { return ${server} }
 alias -l jac.port { return 6667 }
-alias -l jac.email { return ${escapedEmail} }
-alias -l jac.pass { return ${escapedPassword} }
-alias -l jac.nick { return ${nick} }
+alias -l jac.cfg { return $scriptdir $+ jac-config.ini }
+alias -l jac.email { return $readini($jac.cfg, auth, email) }
+alias -l jac.pass_raw { return $readini($jac.cfg, auth, pass) }
+alias -l jac.nick { return $readini($jac.cfg, auth, nick) }
 alias -l jac.radio { return ${radioUrl} }
 alias -l jac.version { return ${THEME_VERSION} }
 alias -l jac.channel { return #general }
 alias -l jac.isJac { return $iif($serverip == $jac.server,1,0) }
+
+alias -l jac.pass {
+  if (!$jac.pass_raw) return
+  return $replace($jac.pass_raw,$chr(36),$chr(36) $+ $chr(36))
+}
+
+alias -l jac.hasConfig {
+  if (!$exists($jac.cfg)) return 0
+  if ($jac.email == $null) return 0
+  if ($jac.pass_raw == $null) return 0
+  if ($jac.nick == $null) return 0
+  return 1
+}
+
+alias jac.setup {
+  echo -a 11[JAC] Creating/Updating $jac.cfg ...
+  var %email = $$?="Email:"
+  if (!%email) { echo -a 4[JAC] Cancelled. | return }
+  var %pass = $$?="Password:"
+  if (!%pass) { echo -a 4[JAC] Cancelled. | return }
+  var %nick = $$?="Nickname:"
+  if (!%nick) { echo -a 4[JAC] Cancelled. | return }
+  writeini -n $jac.cfg auth email %email
+  writeini -n $jac.cfg auth pass %pass
+  writeini -n $jac.cfg auth nick %nick
+  echo -a 3[JAC] Saved! Now type /jac to connect.
+}
 
 ; =====================
 ; STARTUP
@@ -149,6 +196,10 @@ on *:START:{
 alias jac {
   ; IMPORTANT: PASS must be sent BEFORE mIRC registers (NICK/USER).
   ; Using /server ... <password> makes mIRC send PASS first.
+  if (!$jac.hasConfig) {
+    echo -a 4[JAC] Missing config. Type /jac.setup first.
+    return
+  }
   echo -a 11[JAC 2026] Connecting to JAC Chat...
   var %auth = $jac.email $+ : $+ $jac.pass
   nick $jac.nick
