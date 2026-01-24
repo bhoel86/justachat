@@ -2084,6 +2084,220 @@ async function handleKICK(session: IRCSession, params: string[]) {
   }
 }
 
+// ============================================
+// EMOJI PICKER - Send a formatted grid of emojis
+// ============================================
+const EMOJI_CATEGORIES: Record<string, string[]> = {
+  'Smileys': ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😋', '😛', '😜'],
+  'Gestures': ['👍', '👎', '👌', '✌️', '🤞', '🤟', '🤘', '🤙', '👋', '🤚', '✋', '🖖', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '💪', '🦾'],
+  'Hearts': ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '♥️'],
+  'Animals': ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🦆', '🦅'],
+  'Food': ['🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦'],
+  'Activities': ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳', '🎯'],
+  'Objects': ['💻', '🖥️', '🖨️', '⌨️', '🖱️', '💾', '💿', '📀', '📱', '☎️', '📞', '📟', '📠', '🔌', '🔋', '💡', '🔦', '🕯️', '🧯', '🛢️'],
+  'Symbols': ['💯', '🔥', '⭐', '🌟', '✨', '⚡', '💥', '💫', '🎉', '🎊', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '📢', '💬', '💭', '🗯️'],
+};
+
+function handleEMOJI(session: IRCSession) {
+  if (!session.registered) {
+    sendNumeric(session, ERR.NOTREGISTERED, ":You have not registered");
+    return;
+  }
+
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}═══════════════════════════════════════${IRC_COLORS.RESET}`);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.BOLD}${IRC_COLORS.YELLOW}  📋 EMOJI PICKER - Copy & Paste!${IRC_COLORS.RESET}`);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}═══════════════════════════════════════${IRC_COLORS.RESET}`);
+  
+  for (const [category, emojis] of Object.entries(EMOJI_CATEGORIES)) {
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.GREEN}▸ ${category}${IRC_COLORS.RESET}`);
+    // Split into rows of 10
+    const row1 = emojis.slice(0, 10).join(' ');
+    const row2 = emojis.slice(10, 20).join(' ');
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :  ${row1}`);
+    if (row2) {
+      sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :  ${row2}`);
+    }
+  }
+  
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :`);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.GREY}Tip: Copy any emoji and paste it in your message!${IRC_COLORS.RESET}`);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}═══════════════════════════════════════${IRC_COLORS.RESET}`);
+}
+
+// ============================================
+// ACTIONS - Fun IRC-style user interactions
+// ============================================
+const IRC_ACTIONS: Record<string, { template: string; color: string }> = {
+  'slap': { template: '{actor} slaps {target} around a bit with a large trout 🐟', color: IRC_COLORS.ORANGE },
+  'hug': { template: '{actor} gives {target} a warm hug 🤗', color: IRC_COLORS.PINK },
+  'highfive': { template: '{actor} high-fives {target}! ✋', color: IRC_COLORS.LIME },
+  'poke': { template: '{actor} pokes {target} 👉', color: IRC_COLORS.CYAN },
+  'wave': { template: '{actor} waves at {target} 👋', color: IRC_COLORS.YELLOW },
+  'dance': { template: '{actor} dances with {target} 💃🕺', color: IRC_COLORS.PURPLE },
+  'fistbump': { template: '{actor} fist bumps {target} 🤜🤛', color: IRC_COLORS.RED },
+  'cheer': { template: '{actor} cheers for {target}! 🎉', color: IRC_COLORS.GREEN },
+  'wink': { template: '{actor} winks at {target} 😉', color: IRC_COLORS.PINK },
+  'applaud': { template: '{actor} applauds {target} 👏', color: IRC_COLORS.YELLOW },
+  'bow': { template: '{actor} bows to {target} 🙇', color: IRC_COLORS.GREY },
+  'salute': { template: '{actor} salutes {target} 🫡', color: IRC_COLORS.GREEN },
+};
+
+function handleACTIONS(session: IRCSession) {
+  if (!session.registered) {
+    sendNumeric(session, ERR.NOTREGISTERED, ":You have not registered");
+    return;
+  }
+
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}═══════════════════════════════════════${IRC_COLORS.RESET}`);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.BOLD}${IRC_COLORS.YELLOW}  ⚡ AVAILABLE ACTIONS${IRC_COLORS.RESET}`);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}═══════════════════════════════════════${IRC_COLORS.RESET}`);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :`);
+  
+  for (const [action, info] of Object.entries(IRC_ACTIONS)) {
+    const example = info.template.replace('{actor}', 'You').replace('{target}', 'someone');
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${info.color}/${action} <nick>${IRC_COLORS.RESET} - ${IRC_COLORS.GREY}${example}${IRC_COLORS.RESET}`);
+  }
+  
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :`);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.GREY}Example: /slap JohnDoe${IRC_COLORS.RESET}`);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}═══════════════════════════════════════${IRC_COLORS.RESET}`);
+}
+
+async function handleACTION(session: IRCSession, actionName: string, targetNick: string, currentChannel: string | null) {
+  if (!session.registered) {
+    sendNumeric(session, ERR.NOTREGISTERED, ":You have not registered");
+    return;
+  }
+
+  if (!targetNick) {
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.RED}Usage: /${actionName} <nickname>${IRC_COLORS.RESET}`);
+    return;
+  }
+
+  const actionInfo = IRC_ACTIONS[actionName.toLowerCase()];
+  if (!actionInfo) {
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.RED}Unknown action. Use /actions to see available actions.${IRC_COLORS.RESET}`);
+    return;
+  }
+
+  // Format the action message
+  const actionMessage = actionInfo.template
+    .replace('{actor}', session.nick!)
+    .replace('{target}', targetNick);
+
+  // Send as a /me (ACTION) to the current channel or all channels the user is in
+  const CTCP_ACTION = "\x01ACTION";
+  
+  if (currentChannel) {
+    // Broadcast to a specific channel
+    const channelName = currentChannel.startsWith('#') ? currentChannel : `#${currentChannel}`;
+    sendIRC(session, `:${session.nick}!${session.user}@irc.${SERVER_NAME} PRIVMSG ${channelName} :${CTCP_ACTION} ${actionInfo.color}${actionMessage}${IRC_COLORS.RESET}\x01`);
+    
+    // Also send to other users in the channel via subscriptions
+    for (const [channelId, subscribers] of channelSubscriptions) {
+      for (const subscriberId of subscribers) {
+        const subscriberSession = sessions.get(subscriberId);
+        if (subscriberSession && subscriberSession.sessionId !== session.sessionId) {
+          sendIRC(subscriberSession, `:${session.nick}!${session.user}@irc.${SERVER_NAME} PRIVMSG ${channelName} :${CTCP_ACTION} ${actionInfo.color}${actionMessage}${IRC_COLORS.RESET}\x01`);
+        }
+      }
+    }
+  } else {
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.GREY}(Join a channel first to use actions, or action sent to all your channels)${IRC_COLORS.RESET}`);
+  }
+}
+
+// ============================================
+// RADIO / NOW PLAYING - Show current song with YouTube link
+// ============================================
+const MUSIC_LIBRARY_IRC: Array<{ genre: string; icon: string; songs: Array<{ title: string; artist: string; videoId: string }> }> = [
+  {
+    genre: 'Lofi',
+    icon: '🎧',
+    songs: [
+      { title: 'Lofi Hip Hop Radio', artist: 'Lofi Girl', videoId: 'jfKfPfyJRdk' },
+      { title: 'Chillhop Radio', artist: 'Chillhop Music', videoId: '5yx6BWlEVcY' },
+    ]
+  },
+  {
+    genre: 'Hip Hop',
+    icon: '🎤',
+    songs: [
+      { title: 'HUMBLE.', artist: 'Kendrick Lamar', videoId: 'tvTRZJ-4EyI' },
+      { title: 'God\'s Plan', artist: 'Drake', videoId: 'xpVfcZ0ZcFM' },
+    ]
+  },
+  {
+    genre: 'Drill',
+    icon: '🔫',
+    songs: [
+      { title: 'Dior', artist: 'Pop Smoke', videoId: 'oorVWW9ywG0' },
+      { title: 'AHHH HA', artist: 'Lil Durk', videoId: '_kIUq2x0V5k' },
+    ]
+  },
+  {
+    genre: 'Rock',
+    icon: '🎸',
+    songs: [
+      { title: 'Bohemian Rhapsody', artist: 'Queen', videoId: 'fJ9rUzIMcZQ' },
+      { title: 'Smells Like Teen Spirit', artist: 'Nirvana', videoId: 'hTWKbfoikeg' },
+    ]
+  },
+  {
+    genre: 'EDM',
+    icon: '🎛️',
+    songs: [
+      { title: 'Levels', artist: 'Avicii', videoId: '_ovdm2yX4MA' },
+      { title: 'Animals', artist: 'Martin Garrix', videoId: 'gCYcHz2k5x0' },
+    ]
+  },
+  {
+    genre: 'Jazz',
+    icon: '🎷',
+    songs: [
+      { title: 'Take Five', artist: 'Dave Brubeck', videoId: 'vmDDOFXSgAs' },
+      { title: 'So What', artist: 'Miles Davis', videoId: 'ylXk1LBvIqU' },
+    ]
+  },
+];
+
+// Global radio state for IRC (simulated - picks random song)
+let currentIrcRadioGenre = 'Lofi';
+let currentIrcRadioSongIndex = 0;
+
+function handleRADIO(session: IRCSession) {
+  if (!session.registered) {
+    sendNumeric(session, ERR.NOTREGISTERED, ":You have not registered");
+    return;
+  }
+
+  // Find current genre
+  const genreData = MUSIC_LIBRARY_IRC.find(g => g.genre === currentIrcRadioGenre) || MUSIC_LIBRARY_IRC[0];
+  const song = genreData.songs[currentIrcRadioSongIndex % genreData.songs.length];
+  const ytLink = `https://youtu.be/${song.videoId}`;
+
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}═══════════════════════════════════════${IRC_COLORS.RESET}`);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.BOLD}${IRC_COLORS.PINK}  🎵 JAC RADIO - Now Playing${IRC_COLORS.RESET}`);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}═══════════════════════════════════════${IRC_COLORS.RESET}`);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :`);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${genreData.icon} ${IRC_COLORS.GREEN}Genre:${IRC_COLORS.RESET} ${genreData.genre}`);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :🎶 ${IRC_COLORS.YELLOW}${song.title}${IRC_COLORS.RESET}`);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :👤 ${IRC_COLORS.GREY}by ${song.artist}${IRC_COLORS.RESET}`);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :`);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.CYAN}▸ Listen:${IRC_COLORS.RESET} ${ytLink}`);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :`);
+  
+  // Show available genres
+  const genreList = MUSIC_LIBRARY_IRC.map(g => `${g.icon}${g.genre}`).join(' | ');
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.GREY}Available stations: ${genreList}${IRC_COLORS.RESET}`);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.GREY}Tip: Open the YouTube link in your browser to listen!${IRC_COLORS.RESET}`);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${session.nick} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}═══════════════════════════════════════${IRC_COLORS.RESET}`);
+  
+  // Rotate to next song for variety
+  currentIrcRadioSongIndex = (currentIrcRadioSongIndex + 1) % genreData.songs.length;
+}
+
 function handlePING(session: IRCSession, params: string[]) {
   const token = params[0] || SERVER_NAME;
   sendIRC(session, `:${SERVER_NAME} PONG ${SERVER_NAME} :${token}`);
@@ -2185,6 +2399,54 @@ async function handleIRCCommand(session: IRCSession, line: string) {
     case "USERHOST":
     case "ISON":
       // Stub commands
+      break;
+    // ========== EMOJI, ACTIONS, RADIO ==========
+    case "EMOJI":
+      handleEMOJI(session);
+      break;
+    case "ACTIONS":
+      handleACTIONS(session);
+      break;
+    case "RADIO":
+    case "NP":
+    case "NOWPLAYING":
+      handleRADIO(session);
+      break;
+    case "SLAP":
+      await handleACTION(session, 'slap', params[0], Array.from(session.channels)[0] || null);
+      break;
+    case "HUG":
+      await handleACTION(session, 'hug', params[0], Array.from(session.channels)[0] || null);
+      break;
+    case "HIGHFIVE":
+      await handleACTION(session, 'highfive', params[0], Array.from(session.channels)[0] || null);
+      break;
+    case "POKE":
+      await handleACTION(session, 'poke', params[0], Array.from(session.channels)[0] || null);
+      break;
+    case "WAVE":
+      await handleACTION(session, 'wave', params[0], Array.from(session.channels)[0] || null);
+      break;
+    case "DANCE":
+      await handleACTION(session, 'dance', params[0], Array.from(session.channels)[0] || null);
+      break;
+    case "FISTBUMP":
+      await handleACTION(session, 'fistbump', params[0], Array.from(session.channels)[0] || null);
+      break;
+    case "CHEER":
+      await handleACTION(session, 'cheer', params[0], Array.from(session.channels)[0] || null);
+      break;
+    case "WINK":
+      await handleACTION(session, 'wink', params[0], Array.from(session.channels)[0] || null);
+      break;
+    case "APPLAUD":
+      await handleACTION(session, 'applaud', params[0], Array.from(session.channels)[0] || null);
+      break;
+    case "BOW":
+      await handleACTION(session, 'bow', params[0], Array.from(session.channels)[0] || null);
+      break;
+    case "SALUTE":
+      await handleACTION(session, 'salute', params[0], Array.from(session.channels)[0] || null);
       break;
     default:
       if (session.registered) {
