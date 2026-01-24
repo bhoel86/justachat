@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Crown, Shield, ShieldCheck, User, Users, MoreVertical, MessageSquareLock, Bot, Info, Ban, Flag, Camera, AtSign, Settings, FileText, VolumeX, LogOut, Music, Globe, Eye, EyeOff } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { CHAT_BOTS } from "@/lib/chatBots";
+import { getBotsForChannel } from "@/lib/chatBots";
 import { supabaseUntyped, useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import {
@@ -361,11 +361,11 @@ const MemberList = ({ onlineUserIds, channelName = 'general', onOpenPm }: Member
     avatar: moderator.avatar
   };
 
-  // Add simulated users to online members for general channel
+  // Add simulated users to online members for allowed channels
   const simulatedUsers: Member[] = useMemo(() => {
-    if (channelName !== 'general') return [];
-    return CHAT_BOTS.map(bot => ({
-      user_id: `sim-${bot.username}`,
+    const botsForChannel = getBotsForChannel(channelName);
+    return botsForChannel.map(bot => ({
+      user_id: `sim-${bot.id}`,
       username: bot.username,
       role: 'user' as const,
       isOnline: true,
