@@ -1,4 +1,5 @@
-import { MessageSquare, X } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { MessageSquare, X, GripHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -15,10 +16,72 @@ interface PMTrayProps {
 }
 
 const PMTray = ({ minimizedChats, onRestore, onClose }: PMTrayProps) => {
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragRef = useRef<{ startX: number; startY: number; initialX: number; initialY: number } | null>(null);
+  const trayRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging || !dragRef.current) return;
+      
+      const deltaX = e.clientX - dragRef.current.startX;
+      const deltaY = e.clientY - dragRef.current.startY;
+      
+      setPosition({
+        x: dragRef.current.initialX + deltaX,
+        y: dragRef.current.initialY + deltaY,
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      dragRef.current = null;
+    };
+
+    if (isDragging) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      initialX: position.x,
+      initialY: position.y,
+    };
+  };
+
   if (minimizedChats.length === 0) return null;
 
   return (
-    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[999] flex items-end gap-1 pb-2">
+    <div 
+      ref={trayRef}
+      className="fixed bottom-0 left-1/2 z-[999] flex items-end gap-1 pb-2"
+      style={{ 
+        transform: `translate(calc(-50% + ${position.x}px), ${position.y}px)`,
+      }}
+    >
+      {/* Drag handle */}
+      <div
+        onMouseDown={handleMouseDown}
+        className={cn(
+          "flex items-center justify-center px-2 py-2 rounded-t-lg border border-b-0 border-border bg-muted/80 cursor-grab shadow-lg",
+          isDragging && "cursor-grabbing"
+        )}
+      >
+        <GripHorizontal className="h-4 w-4 text-muted-foreground" />
+      </div>
+
       {minimizedChats.map((chat) => (
         <div
           key={chat.id}
