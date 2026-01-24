@@ -131,40 +131,14 @@ alias -l jac.pass { return ${escapedPassword} }
 alias -l jac.nick { return ${nick} }
 alias -l jac.radio { return ${radioUrl} }
 alias -l jac.version { return ${THEME_VERSION} }
+alias -l jac.channel { return #general }
 
 ; =====================
-; THEME COLORS
+; STARTUP
 ; =====================
 
 on *:START:{
-  jac.applyTheme
   echo -a 12[JAC] Theme v $+ $jac.version loaded! Type /jac to connect.
-}
-
-alias jac.applyTheme {
-  ; mIRC /color command: /color <event-index> <fg>,<bg>
-  ; Event indices: 0=Normal,1=Join,2=Part,3=Quit,4=Mode,5=Kick,6=Topic
-  ; 7=Invite,8=Nick,9=Action,10=Notice,11=CTCP,12=Highlight,13=Other
-  ; 14=Wallops,15=Whois,16=Own,17=Notify
-  
-  color 0 0,1
-  color 1 3,1
-  color 2 14,1
-  color 3 14,1
-  color 4 6,1
-  color 5 4,1
-  color 6 7,1
-  color 7 3,1
-  color 8 11,1
-  color 9 11,1
-  color 10 7,1
-  color 11 10,1
-  color 12 12,1
-  color 13 14,1
-  color 14 13,1
-  color 15 11,1
-  color 16 11,1
-  color 17 3,1
 }
 
 ; =====================
@@ -183,14 +157,23 @@ on *:CONNECT:{
     raw -q NICK $jac.nick
     raw -q USER $jac.nick 0 * :JAC 2026 User
     .timerjac.keepalive 0 90 raw -q PING :keepalive
+  }
+}
+
+; RPL_WELCOME (001) - Successfully registered, now auto-join
+raw 001:*:{
+  if ($server == $jac.server) {
     echo -a 3[JAC] Logged in as $jac.nick
     jac.toolbar.create
+    ; Auto-join default channel after 2 second delay
+    .timerjac.autojoin 1 2 join $jac.channel
   }
 }
 
 on *:DISCONNECT:{
   if ($server == $jac.server) {
     .timerjac.keepalive off
+    .timerjac.autojoin off
     echo -a 7[JAC] Disconnected. Reconnecting in 10s...
     .timerjac.reconnect 1 10 jac
   }
