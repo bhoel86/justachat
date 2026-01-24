@@ -3,7 +3,12 @@
 # JAC IRC Proxy - One-Command VPS Installer
 # ============================================
 # 
-# Usage: curl -fsSL https://justachat.net/irc-proxy/install.sh | bash
+#+#+#+#+########################################################
+# Usage:
+#   curl -fsSL https://justachat.net/irc-proxy/install.sh | bash
+#
+# If your domain isn't live yet, use the fallback host:
+#   curl -fsSL https://justachat.lovable.app/irc-proxy/install.sh | bash
 #
 # This script will:
 #   1. Install Docker & Docker Compose if missing
@@ -25,8 +30,27 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
+PRIMARY_BASE_URL="https://justachat.net/irc-proxy"
+FALLBACK_BASE_URL="https://justachat.lovable.app/irc-proxy"
+
+pick_base_url() {
+  # Allow manual override: BASE_URL=https://.../irc-proxy curl ... | bash
+  if [ -n "${BASE_URL:-}" ]; then
+    echo "$BASE_URL"
+    return 0
+  fi
+
+  # Prefer justachat.net when it is live
+  if curl -fsSIL --max-time 5 "${PRIMARY_BASE_URL}/proxy.js" >/dev/null 2>&1; then
+    echo "$PRIMARY_BASE_URL"
+    return 0
+  fi
+
+  echo "$FALLBACK_BASE_URL"
+}
+
 # Base URL for downloading files
-BASE_URL="https://justachat.net/irc-proxy"
+BASE_URL="$(pick_base_url)"
 
 # Installation directory
 INSTALL_DIR="/opt/justachat-irc"
