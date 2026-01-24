@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Crown, Shield, ShieldCheck, User, Users, MoreVertical, MessageSquareLock, Bot, Info, Ban, Flag, Camera, AtSign, Settings, FileText, VolumeX, LogOut, Music, Globe, Eye, EyeOff, Zap } from "lucide-react";
+import { Crown, Shield, ShieldCheck, User, Users, MoreVertical, MessageSquareLock, Bot, Info, Ban, Flag, Camera, AtSign, Settings, FileText, VolumeX, LogOut, Music, Globe, Eye, EyeOff, Zap, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { getBotsForChannel } from "@/lib/chatBots";
@@ -22,6 +22,7 @@ import UserAvatar from "@/components/avatar/UserAvatar";
 import AvatarUploadModal from "@/components/avatar/AvatarUploadModal";
 import UsernameChangeModal from "@/components/profile/UsernameChangeModal";
 import { BioEditModal } from "@/components/profile/BioEditModal";
+import ChangePasswordModal from "@/components/profile/ChangePasswordModal";
 import { useRadioOptional } from "@/contexts/RadioContext";
 
 interface Member {
@@ -101,6 +102,7 @@ const MemberList = ({ onlineUserIds, channelName = 'general', onOpenPm, onAction
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
   const [usernameModalOpen, setUsernameModalOpen] = useState(false);
   const [bioModalOpen, setBioModalOpen] = useState(false);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [showOffline, setShowOffline] = useState(false);
   const { user, role: currentUserRole, isOwner, isAdmin } = useAuth();
   const { toast } = useToast();
@@ -480,6 +482,7 @@ const MemberList = ({ onlineUserIds, channelName = 'general', onOpenPm, onAction
                     onAvatarClick={member.user_id === user?.id ? () => setAvatarModalOpen(true) : undefined}
                     onUsernameClick={member.user_id === user?.id ? () => setUsernameModalOpen(true) : undefined}
                     onBioClick={member.user_id === user?.id ? () => setBioModalOpen(true) : undefined}
+                    onPasswordClick={member.user_id === user?.id ? () => setPasswordModalOpen(true) : undefined}
                     currentlyPlaying={member.user_id === user?.id && radio?.isPlaying ? radio.currentSong : null}
                   />
                 ))}
@@ -516,6 +519,7 @@ const MemberList = ({ onlineUserIds, channelName = 'general', onOpenPm, onAction
                       onAvatarClick={member.user_id === user?.id ? () => setAvatarModalOpen(true) : undefined}
                       onUsernameClick={member.user_id === user?.id ? () => setUsernameModalOpen(true) : undefined}
                       onBioClick={member.user_id === user?.id ? () => setBioModalOpen(true) : undefined}
+                      onPasswordClick={member.user_id === user?.id ? () => setPasswordModalOpen(true) : undefined}
                       currentlyPlaying={member.user_id === user?.id && radio?.isPlaying ? radio.currentSong : null}
                     />
                   ))}
@@ -572,6 +576,12 @@ const MemberList = ({ onlineUserIds, channelName = 'general', onOpenPm, onAction
           }}
         />
       )}
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        open={passwordModalOpen}
+        onOpenChange={setPasswordModalOpen}
+      />
     </>
   );
 };
@@ -700,10 +710,11 @@ interface MemberItemProps {
   onAvatarClick?: () => void;
   onUsernameClick?: () => void;
   onBioClick?: () => void;
+  onPasswordClick?: () => void;
   currentlyPlaying?: { title: string; artist: string } | null;
 }
 
-const MemberItem = ({ member, canManage, canModerate, availableRoles, onRoleChange, onBan, onKick, onMute, onPmClick, onAction, isCurrentUser, onAvatarClick, onUsernameClick, onBioClick, currentlyPlaying }: MemberItemProps) => {
+const MemberItem = ({ member, canManage, canModerate, availableRoles, onRoleChange, onBan, onKick, onMute, onPmClick, onAction, isCurrentUser, onAvatarClick, onUsernameClick, onBioClick, onPasswordClick, currentlyPlaying }: MemberItemProps) => {
   const config = roleConfig[member.role] || roleConfig.user;
   const Icon = config.icon;
 
@@ -792,6 +803,16 @@ const MemberItem = ({ member, canManage, canModerate, availableRoles, onRoleChan
               >
                 <FileText className="h-4 w-4 text-primary" />
                 <span>Edit Bio</span>
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator />
+              
+              <DropdownMenuItem 
+                onClick={onPasswordClick}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <Lock className="h-4 w-4 text-amber-500" />
+                <span>Change Password</span>
               </DropdownMenuItem>
               
               <DropdownMenuSeparator />
