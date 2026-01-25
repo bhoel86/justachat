@@ -26,6 +26,27 @@ import ProfileViewModal from '@/components/profile/ProfileViewModal';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { compressImage } from '@/lib/imageCompression';
 
+// Small video preview component for member list
+const MemberVideoPreview = ({ stream, muted }: { stream: MediaStream; muted: boolean }) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream]);
+  
+  return (
+    <video
+      ref={videoRef}
+      autoPlay
+      playsInline
+      muted={muted}
+      className="w-full h-full object-cover"
+    />
+  );
+};
+
 interface VoiceMessage {
   id: string;
   content: string;
@@ -522,6 +543,8 @@ export default function VoiceChat() {
       isLocal: boolean;
       isModerator: boolean;
       isInVoice: boolean;
+      hasVideo: boolean;
+      stream?: MediaStream;
     }> = [];
 
     // 1) Room moderator
@@ -535,6 +558,8 @@ export default function VoiceChat() {
         isLocal: false,
         isModerator: true,
         isInVoice: false,
+        hasVideo: false,
+        stream: undefined,
       });
     }
 
@@ -567,6 +592,8 @@ export default function VoiceChat() {
         isInVoice: inVoice,
         isMuted: isLocal ? (isConnected ? isMuted : true) : peer ? peer.isMuted : true,
         isSpeaking: isLocal ? (isConnected ? isTalking : false) : peer ? peer.isSpeaking : false,
+        hasVideo: isLocal ? (isConnected && isVideoEnabled) : peer ? peer.isVideoEnabled : false,
+        stream: isLocal ? (localStream ?? undefined) : peer?.stream,
       });
     }
 
@@ -671,7 +698,7 @@ export default function VoiceChat() {
                   )}
                 </button>
                 
-                {/* Clickable Name */}
+                {/* Clickable Name + Video Preview */}
                 <div className="flex-1 min-w-0">
                   <button
                     onClick={() => !member.isModerator && handleMemberClick(member.id, member.username, member.isLocal, member.avatarUrl)}
@@ -688,6 +715,16 @@ export default function VoiceChat() {
                   <p className="text-[10px] text-muted-foreground">
                     {member.isModerator ? 'Room Mod' : !member.isInVoice && member.isLocal ? 'In Room' : member.isSpeaking ? 'Speaking' : member.isMuted ? 'Muted' : 'Listening'}
                   </p>
+                  
+                  {/* Video preview thumbnail when user has camera on */}
+                  {member.hasVideo && member.stream && (
+                    <div className={cn(
+                      "mt-1 w-full aspect-video rounded overflow-hidden border",
+                      member.isSpeaking ? "border-accent ring-1 ring-accent" : "border-border/50"
+                    )}>
+                      <MemberVideoPreview stream={member.stream} muted={member.isLocal} />
+                    </div>
+                  )}
                 </div>
                 
                 {/* Action buttons for non-mods, non-local */}
