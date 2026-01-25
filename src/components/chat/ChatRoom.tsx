@@ -75,7 +75,7 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
   const [showChannelSidebar, setShowChannelSidebar] = useState(false);
   const [showMemberSidebar, setShowMemberSidebar] = useState(false);
   const [showRoomSheet, setShowRoomSheet] = useState(false);
-  const [privateCall, setPrivateCall] = useState<{ targetId: string; targetUsername: string; callType: 'voice' | 'video'; isBot?: boolean } | null>(null);
+  const [privateCall, setPrivateCall] = useState<{ targetId: string; targetUsername: string; callType: 'voice' | 'video' } | null>(null);
   const isMobile = useIsMobile();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -98,12 +98,11 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
     }
     
     // Listen for private call events from PM windows
-    const handlePrivateCall = (e: CustomEvent<{ targetUserId: string; targetUsername: string; callType: 'voice' | 'video'; isBot?: boolean }>) => {
+    const handlePrivateCall = (e: CustomEvent<{ targetUserId: string; targetUsername: string; callType: 'voice' | 'video' }>) => {
       setPrivateCall({
         targetId: e.detail.targetUserId,
         targetUsername: e.detail.targetUsername,
         callType: e.detail.callType,
-        isBot: e.detail.isBot || false,
       });
     };
     
@@ -1273,7 +1272,6 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
           recipientId={privateCall.targetId}
           recipientUsername={privateCall.targetUsername}
           callType={privateCall.callType}
-          isBot={privateCall.isBot}
         />
       )}
     </div>
