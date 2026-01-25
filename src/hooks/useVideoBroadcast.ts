@@ -141,7 +141,18 @@ export const useVideoBroadcast = ({ roomId, odious, username, avatarUrl }: UseVi
       // Add tracks to existing peer connections
       peerConnectionsRef.current.forEach((pc) => {
         stream.getTracks().forEach(track => {
-          pc.addTrack(track, stream);
+          const sender = pc.addTrack(track, stream);
+          
+          // Set high bitrate for video to maintain 1080p quality
+          if (track.kind === 'video') {
+            const params = sender.getParameters();
+            if (!params.encodings) {
+              params.encodings = [{}];
+            }
+            params.encodings[0].maxBitrate = 4000000; // 4 Mbps for 1080p
+            params.encodings[0].maxFramerate = 30;
+            sender.setParameters(params).catch(e => console.error('Failed to set video params:', e));
+          }
         });
       });
 
@@ -252,7 +263,18 @@ export const useVideoBroadcast = ({ roomId, odious, username, avatarUrl }: UseVi
       // Add local stream if broadcasting
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach(track => {
-          pc.addTrack(track, localStreamRef.current!);
+          const sender = pc.addTrack(track, localStreamRef.current!);
+          
+          // Set high bitrate for video to maintain 1080p quality
+          if (track.kind === 'video') {
+            const params = sender.getParameters();
+            if (!params.encodings) {
+              params.encodings = [{}];
+            }
+            params.encodings[0].maxBitrate = 4000000; // 4 Mbps for 1080p
+            params.encodings[0].maxFramerate = 30;
+            sender.setParameters(params).catch(e => console.error('Failed to set video params:', e));
+          }
         });
       }
 
