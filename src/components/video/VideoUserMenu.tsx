@@ -30,6 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 import { logModerationAction } from '@/lib/moderationAudit';
 import ProfileViewModal from '@/components/profile/ProfileViewModal';
 import ProfileEditModal from '@/components/profile/ProfileEditModal';
+import { VideoUserMenuAdminTools } from '@/components/video/menu/VideoUserMenuAdminTools';
 
 type AppRole = 'owner' | 'admin' | 'moderator' | 'user';
 
@@ -402,6 +403,11 @@ const VideoUserMenu = ({
               <MessageSquareLock className="w-4 h-4 mr-2 text-primary" />
               Private Message
             </DropdownMenuItem>
+          )}
+
+          {/* Admin Tools (self) */}
+          {isCurrentUser && (
+            <VideoUserMenuAdminTools currentUserRole={currentUserRole ?? null} />
           )}
 
           {/* Moderation Actions */}
