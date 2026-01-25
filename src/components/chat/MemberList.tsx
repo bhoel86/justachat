@@ -19,10 +19,7 @@ import { logModerationAction } from "@/lib/moderationAudit";
 import BotChatModal from "./BotChatModal";
 import { getModerator, MODERATORS, type ModeratorInfo } from "@/lib/roomConfig";
 import UserAvatar from "@/components/avatar/UserAvatar";
-import AvatarUploadModal from "@/components/avatar/AvatarUploadModal";
-import UsernameChangeModal from "@/components/profile/UsernameChangeModal";
-import { BioEditModal } from "@/components/profile/BioEditModal";
-import ChangePasswordModal from "@/components/profile/ChangePasswordModal";
+import ProfileEditModal from "@/components/profile/ProfileEditModal";
 import { useRadioOptional } from "@/contexts/RadioContext";
 
 interface Member {
@@ -99,10 +96,7 @@ const MemberList = ({ onlineUserIds, channelName = 'general', onOpenPm, onAction
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [botChatTarget, setBotChatTarget] = useState<{ moderator: ModeratorInfo; channelName: string } | null>(null);
-  const [avatarModalOpen, setAvatarModalOpen] = useState(false);
-  const [usernameModalOpen, setUsernameModalOpen] = useState(false);
-  const [bioModalOpen, setBioModalOpen] = useState(false);
-  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [showOffline, setShowOffline] = useState(false);
   const { user, role: currentUserRole, isOwner, isAdmin } = useAuth();
   const { toast } = useToast();
@@ -512,10 +506,7 @@ const MemberList = ({ onlineUserIds, channelName = 'general', onOpenPm, onAction
                     onPmClick={member.user_id !== user?.id && onOpenPm ? () => onOpenPm(member.user_id, member.username) : undefined}
                     onAction={member.user_id !== user?.id && onAction ? (msg) => onAction(member.username, msg) : undefined}
                     isCurrentUser={member.user_id === user?.id}
-                    onAvatarClick={member.user_id === user?.id ? () => setAvatarModalOpen(true) : undefined}
-                    onUsernameClick={member.user_id === user?.id ? () => setUsernameModalOpen(true) : undefined}
-                    onBioClick={member.user_id === user?.id ? () => setBioModalOpen(true) : undefined}
-                    onPasswordClick={member.user_id === user?.id ? () => setPasswordModalOpen(true) : undefined}
+                    onProfileClick={member.user_id === user?.id ? () => setProfileModalOpen(true) : undefined}
                     currentlyPlaying={member.user_id === user?.id && radio?.isPlaying ? radio.currentSong : null}
                   />
                 ))}
@@ -551,10 +542,7 @@ const MemberList = ({ onlineUserIds, channelName = 'general', onOpenPm, onAction
                       onPmClick={member.user_id !== user?.id && onOpenPm ? () => onOpenPm(member.user_id, member.username) : undefined}
                       onAction={member.user_id !== user?.id && onAction ? (msg) => onAction(member.username, msg) : undefined}
                       isCurrentUser={member.user_id === user?.id}
-                      onAvatarClick={member.user_id === user?.id ? () => setAvatarModalOpen(true) : undefined}
-                      onUsernameClick={member.user_id === user?.id ? () => setUsernameModalOpen(true) : undefined}
-                      onBioClick={member.user_id === user?.id ? () => setBioModalOpen(true) : undefined}
-                      onPasswordClick={member.user_id === user?.id ? () => setPasswordModalOpen(true) : undefined}
+                      onProfileClick={member.user_id === user?.id ? () => setProfileModalOpen(true) : undefined}
                       currentlyPlaying={member.user_id === user?.id && radio?.isPlaying ? radio.currentSong : null}
                     />
                   ))}
@@ -576,47 +564,32 @@ const MemberList = ({ onlineUserIds, channelName = 'general', onOpenPm, onAction
         />
       )}
 
-      {/* Avatar Upload Modal */}
-      <AvatarUploadModal
-        open={avatarModalOpen}
-        onOpenChange={setAvatarModalOpen}
-        currentAvatarUrl={currentAvatarUrl}
-        onAvatarChange={(url) => {
-          setCurrentAvatarUrl(url);
-          fetchMembers();
-        }}
-      />
-
-      {/* Username Change Modal */}
-      <UsernameChangeModal
-        open={usernameModalOpen}
-        onOpenChange={setUsernameModalOpen}
-        currentUsername={currentUsername}
-        onUsernameChange={(newUsername) => {
-          setCurrentUsername(newUsername);
-          fetchMembers();
-        }}
-      />
-
-      {/* Bio Edit Modal */}
+      {/* Profile Edit Modal */}
       {user && (
-        <BioEditModal
-          open={bioModalOpen}
-          onOpenChange={setBioModalOpen}
-          userId={user.id}
-          currentBio={currentBio}
-          onBioUpdated={(newBio) => {
-            setCurrentBio(newBio);
+        <ProfileEditModal
+          open={profileModalOpen}
+          onOpenChange={setProfileModalOpen}
+          username={currentUsername}
+          avatarUrl={currentAvatarUrl}
+          bio={currentBio}
+          onProfileUpdated={() => {
+            // Refresh current user data
+            supabaseUntyped
+              .from('profiles')
+              .select('username, avatar_url, bio')
+              .eq('user_id', user.id)
+              .single()
+              .then(({ data }: { data: { username: string; avatar_url: string | null; bio: string | null } | null }) => {
+                if (data) {
+                  setCurrentUsername(data.username);
+                  setCurrentAvatarUrl(data.avatar_url);
+                  setCurrentBio(data.bio);
+                }
+              });
             fetchMembers();
           }}
         />
       )}
-
-      {/* Change Password Modal */}
-      <ChangePasswordModal
-        open={passwordModalOpen}
-        onOpenChange={setPasswordModalOpen}
-      />
     </>
   );
 };
@@ -744,14 +717,11 @@ interface MemberItemProps {
   onPmClick?: () => void;
   onAction?: (actionMessage: string) => void;
   isCurrentUser: boolean;
-  onAvatarClick?: () => void;
-  onUsernameClick?: () => void;
-  onBioClick?: () => void;
-  onPasswordClick?: () => void;
+  onProfileClick?: () => void;
   currentlyPlaying?: { title: string; artist: string } | null;
 }
 
-const MemberItem = ({ member, canManage, canModerate, canKline, availableRoles, onRoleChange, onBan, onKick, onMute, onKline, onPmClick, onAction, isCurrentUser, onAvatarClick, onUsernameClick, onBioClick, onPasswordClick, currentlyPlaying }: MemberItemProps) => {
+const MemberItem = ({ member, canManage, canModerate, canKline, availableRoles, onRoleChange, onBan, onKick, onMute, onKline, onPmClick, onAction, isCurrentUser, onProfileClick, currentlyPlaying }: MemberItemProps) => {
   const config = roleConfig[member.role] || roleConfig.user;
   const Icon = config.icon;
 
@@ -765,11 +735,11 @@ const MemberItem = ({ member, canManage, canModerate, canKline, availableRoles, 
       {/* Avatar with online indicator */}
       <div className="relative">
         <button
-          onClick={onAvatarClick}
-          disabled={!onAvatarClick}
+          onClick={onProfileClick}
+          disabled={!onProfileClick}
           className={cn(
             "relative",
-            onAvatarClick && "cursor-pointer group/avatar"
+            onProfileClick && "cursor-pointer group/avatar"
           )}
         >
           <UserAvatar
@@ -779,7 +749,7 @@ const MemberItem = ({ member, canManage, canModerate, canKline, availableRoles, 
             showOnlineIndicator={true}
             isOnline={member.isOnline}
           />
-          {onAvatarClick && (
+          {onProfileClick && (
             <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center">
               <Camera className="h-3 w-3 text-white" />
             </div>
@@ -790,79 +760,16 @@ const MemberItem = ({ member, canManage, canModerate, canKline, availableRoles, 
       {/* Name and role */}
       <div className="flex-1 min-w-0">
         {isCurrentUser ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className={cn(
-                "text-sm font-medium truncate text-left hover:text-primary transition-colors cursor-pointer",
-                member.isOnline ? "text-foreground" : "text-muted-foreground"
-              )}>
-                {member.username}
-                <span className="text-xs text-muted-foreground ml-1">(you)</span>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent 
-              align="start" 
-              side="right"
-              sideOffset={4}
-              className="w-48 bg-popover border border-border shadow-lg z-[100] max-h-80 overflow-y-auto">
-              <DropdownMenuLabel className="flex items-center gap-2">
-                <UserAvatar
-                  avatarUrl={member.avatar_url}
-                  username={member.username}
-                  size="sm"
-                />
-                <div>
-                  <p className="font-medium text-sm">{member.username}</p>
-                  <p className="text-xs text-muted-foreground">Your Profile</p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              
-              <DropdownMenuItem 
-                onClick={onAvatarClick}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <Camera className="h-4 w-4 text-primary" />
-                <span>Change Avatar</span>
-              </DropdownMenuItem>
-              
-              <DropdownMenuItem 
-                onClick={onUsernameClick}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <AtSign className="h-4 w-4 text-primary" />
-                <span>Change Username</span>
-              </DropdownMenuItem>
-              
-              <DropdownMenuItem 
-                onClick={onBioClick}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <FileText className="h-4 w-4 text-primary" />
-                <span>Edit Bio</span>
-              </DropdownMenuItem>
-              
-              <DropdownMenuSeparator />
-              
-              <DropdownMenuItem 
-                onClick={onPasswordClick}
-                className="flex items-center gap-2 cursor-pointer"
-              >
-                <Lock className="h-4 w-4 text-amber-500" />
-                <span>Change Password</span>
-              </DropdownMenuItem>
-              
-              <DropdownMenuSeparator />
-              
-              <DropdownMenuItem 
-                className="flex items-center gap-2 cursor-pointer"
-                disabled
-              >
-                <Icon className={cn("h-4 w-4", config.color)} />
-                <span>Role: {config.label}</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <button 
+            onClick={onProfileClick}
+            className={cn(
+              "text-sm font-medium truncate text-left hover:text-primary transition-colors cursor-pointer block",
+              member.isOnline ? "text-foreground" : "text-muted-foreground"
+            )}
+          >
+            {member.username}
+            <span className="text-xs text-muted-foreground ml-1">(you)</span>
+          </button>
         ) : (
           <p className={cn(
             "text-sm font-medium truncate",
