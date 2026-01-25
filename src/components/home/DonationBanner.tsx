@@ -46,10 +46,26 @@ const DonationBanner = () => {
   const progress = Math.min((currentAmount / goalAmount) * 100, 100);
   const remaining = Math.max(goalAmount - currentAmount, 0);
 
-  const handleDonateClick = () => {
+  const handleDonateClick = async () => {
     setIsAnimating(true);
     setTimeout(() => setIsAnimating(false), 600);
     setShowQrModal(true);
+    
+    // Send SMS notification to owner (fire and forget)
+    try {
+      const { data: profile } = user ? await supabase
+        .from('profiles')
+        .select('username')
+        .eq('user_id', user.id)
+        .maybeSingle() : { data: null };
+      
+      await supabase.functions.invoke('donation-notify', {
+        body: { username: profile?.username || 'A visitor' }
+      });
+    } catch (error) {
+      // Silent fail - don't disrupt user experience
+      console.error('Failed to send donation notification:', error);
+    }
   };
 
   const handleEditClick = () => {
