@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Hash, Plus, Lock, Home, MoreVertical, Trash2, EyeOff, Eye, Palette, Sparkles, Settings } from "lucide-react";
+import { Hash, Plus, Lock, Home, MoreVertical, Trash2, EyeOff, Eye, Palette, Sparkles, Settings, Volume2, ChevronDown, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseUntyped, useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import VoiceChannelList from "@/components/voice/VoiceChannelList";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -85,6 +86,8 @@ const ChannelList = ({ currentChannelId, onChannelSelect, autoSelectFirst = true
   const [roomTextColor, setRoomTextColor] = useState<string | null>(null);
   const [roomBgColor, setRoomBgColor] = useState<string | null>(null);
   const [roomGradient, setRoomGradient] = useState<{ name: string; from: string; to: string } | null>(null);
+  const [voiceExpanded, setVoiceExpanded] = useState(true);
+  const [activeVoiceChannel, setActiveVoiceChannel] = useState<{ id: string; name: string } | null>(null);
   const { user, isAdmin, isOwner } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -612,6 +615,32 @@ const ChannelList = ({ currentChannelId, onChannelSelect, autoSelectFirst = true
             </div>
           );
         })}
+      </div>
+
+      {/* Voice Channels Section */}
+      <div className="border-t border-border px-2 py-2">
+        <button
+          onClick={() => setVoiceExpanded(!voiceExpanded)}
+          className="w-full flex items-center justify-between px-2 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <div className="flex items-center gap-1.5">
+            <Volume2 className="h-3.5 w-3.5" />
+            Voice Rooms
+          </div>
+          {voiceExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        </button>
+        {voiceExpanded && (
+          <div className="mt-1">
+            <VoiceChannelList
+              compact
+              onJoinChannel={(id, name) => {
+                setActiveVoiceChannel({ id, name });
+                navigate('/voice');
+              }}
+              currentChannelId={activeVoiceChannel?.id}
+            />
+          </div>
+        )}
       </div>
 
       {/* Delete confirmation dialog */}

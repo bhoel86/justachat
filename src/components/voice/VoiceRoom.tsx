@@ -1,17 +1,16 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, forwardRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useWebRTC } from '@/hooks/useWebRTC';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { 
-  Mic, MicOff, Video, VideoOff, PhoneOff, Phone,
-  Volume2, VolumeX, Settings, Users
+  Mic, MicOff, Video, VideoOff, PhoneOff,
+  Volume2, Settings, Users
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import VideoTile from './VideoTile';
 import VoiceSettings from './VoiceSettings';
+import { useToast } from '@/hooks/use-toast';
 
 interface VoiceRoomProps {
   roomId: string;
@@ -19,8 +18,10 @@ interface VoiceRoomProps {
   onLeave?: () => void;
 }
 
-export default function VoiceRoom({ roomId, roomName, onLeave }: VoiceRoomProps) {
+const VoiceRoom = forwardRef<HTMLDivElement, VoiceRoomProps>(
+  ({ roomId, roomName, onLeave }, ref) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [showSettings, setShowSettings] = useState(false);
   const [backgroundEffect, setBackgroundEffect] = useState<'none' | 'blur' | 'green'>('none');
   
@@ -238,4 +239,8 @@ export default function VoiceRoom({ roomId, roomName, onLeave }: VoiceRoomProps)
       </div>
     </div>
   );
-}
+});
+
+VoiceRoom.displayName = 'VoiceRoom';
+
+export default VoiceRoom;
