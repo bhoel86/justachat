@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 
 const VideoChat = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, role: currentUserRole } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<{ username: string; avatar_url: string | null } | null>(null);
   const [rolesByUserId, setRolesByUserId] = useState<Record<string, string>>({});
@@ -385,6 +385,7 @@ const VideoChat = () => {
                   odious={user.id}
                   username={profile.username}
                   avatarUrl={profile.avatar_url}
+                  currentUserRole={currentUserRole}
                   onPmClick={openChat}
                 />
               </div>
@@ -414,6 +415,7 @@ const VideoChat = () => {
                       avatarUrl={viewer.avatarUrl}
                       role={rolesByUserId[viewer.odious]}
                       currentUserId={user.id}
+                      currentUserRole={currentUserRole}
                       onPmClick={viewer.odious !== user.id ? () => openChat(viewer.odious, viewer.username) : undefined}
                     >
                       <button 

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -21,12 +20,15 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { logModerationAction } from '@/lib/moderationAudit';
 
+type AppRole = 'owner' | 'admin' | 'moderator' | 'user';
+
 interface VideoUserMenuProps {
   odious: string;
   username: string;
   avatarUrl?: string | null;
   role?: string;
   currentUserId: string;
+  currentUserRole?: AppRole | null;
   onPmClick?: () => void;
   children: React.ReactNode;
 }
@@ -37,10 +39,10 @@ const VideoUserMenu = ({
   avatarUrl, 
   role,
   currentUserId,
+  currentUserRole,
   onPmClick,
   children 
 }: VideoUserMenuProps) => {
-  const { user, isOwner, isAdmin, role: currentUserRole, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -49,33 +51,37 @@ const VideoUserMenu = ({
   const targetIsAdmin = role === 'admin';
   const targetIsMod = role === 'moderator';
 
-  // Permission checks - only evaluate when auth is loaded
+  const viewerIsOwner = currentUserRole === 'owner';
+  const viewerIsAdmin = currentUserRole === 'admin' || viewerIsOwner;
+  const viewerIsModerator = currentUserRole === 'moderator' || viewerIsAdmin;
+
+  // Permission checks
   const canModerate = (): boolean => {
-    if (authLoading || !user || isCurrentUser) return false;
+    if (!currentUserId || isCurrentUser) return false;
+    if (!viewerIsModerator) return false;
     if (targetIsOwner) return false;
-    if (!isOwner && !isAdmin && currentUserRole !== 'moderator') return false;
     if (currentUserRole === 'moderator' && (targetIsAdmin || targetIsMod)) return false;
-    if (!isOwner && targetIsAdmin) return false;
+    if (!viewerIsOwner && targetIsAdmin) return false;
     return true;
   };
 
   const canManageRole = (): boolean => {
-    if (authLoading || !user) return false;
-    if (!isAdmin && !isOwner) return false;
+    if (!currentUserId) return false;
+    if (!viewerIsAdmin) return false;
     if (isCurrentUser) return false;
     if (targetIsOwner) return false;
-    if (!isOwner && targetIsAdmin) return false;
+    if (!viewerIsOwner && targetIsAdmin) return false;
     return true;
   };
 
   const handleBan = async () => {
-    if (!user) return;
+    if (!currentUserId) return;
     try {
       const { error } = await supabase
         .from('bans')
         .insert({
           user_id: odious,
-          banned_by: user.id,
+          banned_by: currentUserId,
           reason: 'Banned from video chat'
         });
 
@@ -83,7 +89,7 @@ const VideoUserMenu = ({
 
       await logModerationAction({
         action: 'ban_user',
-        moderatorId: user.id,
+        moderatorId: currentUserId,
         targetUserId: odious,
         targetUsername: username,
         details: { reason: 'Banned from video chat', context: 'video-chat' }
@@ -103,11 +109,11 @@ const VideoUserMenu = ({
   };
 
   const handleKick = async () => {
-    if (!user) return;
+    if (!currentUserId) return;
     try {
       await logModerationAction({
         action: 'kick_user',
-        moderatorId: user.id,
+        moderatorId: currentUserId,
         targetUserId: odious,
         targetUsername: username,
         details: { context: 'video-chat' }
@@ -127,7 +133,7 @@ const VideoUserMenu = ({
   };
 
   const handleMute = async (duration?: number) => {
-    if (!user) return;
+    if (!currentUserId) return;
     try {
       const expiresAt = duration ? new Date(Date.now() + duration * 60 * 1000).toISOString() : null;
       
@@ -135,7 +141,7 @@ const VideoUserMenu = ({
         .from('mutes')
         .insert({
           user_id: odious,
-          muted_by: user.id,
+          muted_by: currentUserId,
           expires_at: expiresAt,
           reason: `Muted for ${duration || 'indefinite'} minutes`
         });
@@ -144,7 +150,7 @@ const VideoUserMenu = ({
 
       await logModerationAction({
         action: 'mute_user',
-        moderatorId: user.id,
+        moderatorId: currentUserId,
         targetUserId: odious,
         targetUsername: username,
         details: { duration: duration || 'indefinite', expires_at: expiresAt, context: 'video-chat' }
@@ -164,7 +170,7 @@ const VideoUserMenu = ({
   };
 
   const handleRoleChange = async (newRole: string) => {
-    if (!user) return;
+    if (!currentUserId) return;
     try {
       // First try to update existing role
       const { data: existingRole } = await supabase
@@ -217,10 +223,10 @@ const VideoUserMenu = ({
   };
 
   const getAvailableRoles = (): string[] => {
-    if (isOwner) {
+    if (viewerIsOwner) {
       return ['admin', 'moderator', 'user'].filter(r => r !== role);
     }
-    if (isAdmin) {
+    if (viewerIsAdmin) {
       return ['moderator', 'user'].filter(r => r !== role);
     }
     return [];
