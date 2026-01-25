@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import chatSilhouettes1 from "@/assets/ethos/chat-silhouettes-1.jpg";
 import chatSilhouettes2 from "@/assets/ethos/chat-silhouettes-2.jpg";
 import chatMonitors from "@/assets/ethos/chat-monitors.jpg";
+import aimBuddylist from "@/assets/ethos/aim-buddylist.jpg";
+import msnMessenger from "@/assets/ethos/msn-messenger.jpg";
+import ircText from "@/assets/ethos/irc-text.jpg";
 
 const Ethos = () => {
   useEffect(() => {
@@ -59,12 +62,31 @@ const Ethos = () => {
       <main className="relative">
         {/* Background silhouettes - people at computers */}
         <div 
-          className="fixed top-1/4 left-0 w-1/2 h-96 bg-contain bg-no-repeat bg-left opacity-[0.04] pointer-events-none"
+          className="fixed top-20 left-0 w-1/2 h-80 bg-contain bg-no-repeat bg-left opacity-[0.06] pointer-events-none"
           style={{ backgroundImage: `url(${chatSilhouettes1})` }}
         />
+        
+        {/* AIM buddy list - faded top right */}
+        <div 
+          className="fixed top-32 right-0 w-96 h-80 bg-contain bg-no-repeat bg-right opacity-[0.04] pointer-events-none"
+          style={{ backgroundImage: `url(${aimBuddylist})` }}
+        />
+        
+        {/* IRC text - middle left */}
+        <div 
+          className="fixed top-[40%] left-0 w-1/2 h-96 bg-cover bg-no-repeat bg-left opacity-[0.03] pointer-events-none"
+          style={{ backgroundImage: `url(${ircText})` }}
+        />
+        
+        {/* MSN Messenger - middle right */}
+        <div 
+          className="fixed top-[50%] right-0 w-96 h-80 bg-contain bg-no-repeat bg-right opacity-[0.05] pointer-events-none"
+          style={{ backgroundImage: `url(${msnMessenger})` }}
+        />
+        
         {/* Background silhouettes - friends talking */}
         <div 
-          className="fixed top-1/2 right-0 w-1/2 h-96 bg-contain bg-no-repeat bg-right opacity-[0.05] pointer-events-none"
+          className="fixed top-[70%] left-0 w-1/2 h-80 bg-contain bg-no-repeat bg-left opacity-[0.05] pointer-events-none"
           style={{ backgroundImage: `url(${chatSilhouettes2})` }}
         />
         
