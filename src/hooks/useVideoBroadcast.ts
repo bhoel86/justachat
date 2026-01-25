@@ -197,9 +197,9 @@ export const useVideoBroadcast = ({ roomId, odious, username, avatarUrl }: UseVi
     return remoteStreamsRef.current.get(odPeerId);
   }, []);
 
-  // Connect to the video room - ONLY depends on roomId and odious
+  // Connect to the video room - ONLY when roomId, odious, AND username are ready
   useEffect(() => {
-    if (!roomId || !odious) return;
+    if (!roomId || !odious || !username || username === 'Anonymous') return;
 
     // Clean up peer connection helper
     const cleanupPeer = (odPeerId: string) => {
@@ -355,7 +355,7 @@ export const useVideoBroadcast = ({ roomId, odious, username, avatarUrl }: UseVi
       channelRef.current = null;
       supabase.removeChannel(channel);
     };
-  }, [roomId, odious]); // Only roomId and odious - no callback dependencies
+  }, [roomId, odious, username]); // Wait for username to be set
 
   return {
     isBroadcasting,

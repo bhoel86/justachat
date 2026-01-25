@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, forwardRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -15,10 +15,11 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { 
   Crown, Shield, Star, MessageSquareLock, Ban, VolumeX, 
-  LogOut, User, ShieldCheck, MoreVertical
+  LogOut, User, ShieldCheck, Eye
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { logModerationAction } from '@/lib/moderationAudit';
+import ProfileViewModal from '@/components/profile/ProfileViewModal';
 
 type AppRole = 'owner' | 'admin' | 'moderator' | 'user';
 
@@ -45,6 +46,8 @@ const VideoUserMenu = ({
 }: VideoUserMenuProps) => {
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [bio, setBio] = useState<string | null>(null);
 
   const isCurrentUser = odious === currentUserId;
   const targetIsOwner = role === 'owner';
@@ -72,6 +75,20 @@ const VideoUserMenu = ({
     if (targetIsOwner) return false;
     if (!viewerIsOwner && targetIsAdmin) return false;
     return true;
+  };
+
+  const handleViewProfile = async () => {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('bio')
+        .eq('user_id', odious)
+        .maybeSingle();
+      setBio(data?.bio || null);
+      setProfileModalOpen(true);
+    } catch {
+      setProfileModalOpen(true);
+    }
   };
 
   const handleBan = async () => {
@@ -233,99 +250,119 @@ const VideoUserMenu = ({
   };
 
   return (
-    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-      <DropdownMenuTrigger asChild>
-        {children}
-      </DropdownMenuTrigger>
-      <DropdownMenuContent 
-        align="end" 
-        className="w-52 bg-popover border border-border shadow-lg z-[100]"
-      >
-        {/* User Header */}
-        <DropdownMenuLabel className="flex items-center gap-2 py-2">
-          <Avatar className="w-8 h-8">
-            <AvatarImage src={avatarUrl || undefined} />
-            <AvatarFallback className="text-xs bg-primary/20">
-              {username.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{username}</p>
-            <div className="flex items-center gap-1">
-              {getRoleBadge()}
-              {role && <span className="text-[10px] text-muted-foreground capitalize">{role}</span>}
+    <>
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+        <DropdownMenuTrigger asChild>
+          <span className="cursor-pointer">
+            {children}
+          </span>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent 
+          align="end" 
+          className="w-52 bg-popover border border-border shadow-lg z-[100]"
+        >
+          {/* User Header */}
+          <DropdownMenuLabel className="flex items-center gap-2 py-2">
+            <Avatar className="w-8 h-8">
+              <AvatarImage src={avatarUrl || undefined} />
+              <AvatarFallback className="text-xs bg-primary/20">
+                {username.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{username}</p>
+              <div className="flex items-center gap-1">
+                {getRoleBadge()}
+                {role && <span className="text-[10px] text-muted-foreground capitalize">{role}</span>}
+              </div>
             </div>
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
 
-        {/* Private Message */}
-        {!isCurrentUser && onPmClick && (
-          <DropdownMenuItem onClick={onPmClick} className="cursor-pointer">
-            <MessageSquareLock className="w-4 h-4 mr-2 text-primary" />
-            Private Message
+          {/* View Profile */}
+          <DropdownMenuItem onClick={handleViewProfile} className="cursor-pointer">
+            <Eye className="w-4 h-4 mr-2 text-muted-foreground" />
+            View Profile
           </DropdownMenuItem>
-        )}
 
-        {/* Moderation Actions */}
-        {canModerate() && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs text-muted-foreground">Moderation</DropdownMenuLabel>
-            
-            <DropdownMenuItem onClick={handleKick} className="cursor-pointer text-yellow-500">
-              <LogOut className="w-4 h-4 mr-2" />
-              Kick
+          {/* Private Message */}
+          {!isCurrentUser && onPmClick && (
+            <DropdownMenuItem onClick={onPmClick} className="cursor-pointer">
+              <MessageSquareLock className="w-4 h-4 mr-2 text-primary" />
+              Private Message
             </DropdownMenuItem>
+          )}
 
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="cursor-pointer">
-                <VolumeX className="w-4 h-4 mr-2 text-orange-500" />
-                Mute
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="bg-popover border border-border">
-                <DropdownMenuItem onClick={() => handleMute(5)} className="cursor-pointer">5 minutes</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleMute(15)} className="cursor-pointer">15 minutes</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleMute(60)} className="cursor-pointer">1 hour</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleMute()} className="cursor-pointer">Indefinite</DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
+          {/* Moderation Actions */}
+          {canModerate() && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-xs text-muted-foreground">Moderation</DropdownMenuLabel>
+              
+              <DropdownMenuItem onClick={handleKick} className="cursor-pointer text-yellow-500">
+                <LogOut className="w-4 h-4 mr-2" />
+                Kick
+              </DropdownMenuItem>
 
-            <DropdownMenuItem onClick={handleBan} className="cursor-pointer text-destructive">
-              <Ban className="w-4 h-4 mr-2" />
-              Ban
-            </DropdownMenuItem>
-          </>
-        )}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="cursor-pointer">
+                  <VolumeX className="w-4 h-4 mr-2 text-orange-500" />
+                  Mute
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="bg-popover border border-border">
+                  <DropdownMenuItem onClick={() => handleMute(5)} className="cursor-pointer">5 minutes</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleMute(15)} className="cursor-pointer">15 minutes</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleMute(60)} className="cursor-pointer">1 hour</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleMute()} className="cursor-pointer">Indefinite</DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
 
-        {/* Role Management */}
-        {canManageRole() && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="cursor-pointer">
-                <User className="w-4 h-4 mr-2" />
-                Change Role
-              </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="bg-popover border border-border">
-                {getAvailableRoles().map((r) => (
-                  <DropdownMenuItem 
-                    key={r} 
-                    onClick={() => handleRoleChange(r)}
-                    className="cursor-pointer capitalize"
-                  >
-                    {r === 'admin' && <ShieldCheck className="w-4 h-4 mr-2 text-red-400" />}
-                    {r === 'moderator' && <Shield className="w-4 h-4 mr-2 text-primary" />}
-                    {r === 'user' && <User className="w-4 h-4 mr-2" />}
-                    {r}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuSubContent>
-            </DropdownMenuSub>
-          </>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+              <DropdownMenuItem onClick={handleBan} className="cursor-pointer text-destructive">
+                <Ban className="w-4 h-4 mr-2" />
+                Ban
+              </DropdownMenuItem>
+            </>
+          )}
+
+          {/* Role Management */}
+          {canManageRole() && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="cursor-pointer">
+                  <User className="w-4 h-4 mr-2" />
+                  Change Role
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="bg-popover border border-border">
+                  {getAvailableRoles().map((r) => (
+                    <DropdownMenuItem 
+                      key={r} 
+                      onClick={() => handleRoleChange(r)}
+                      className="cursor-pointer capitalize"
+                    >
+                      {r === 'admin' && <ShieldCheck className="w-4 h-4 mr-2 text-red-400" />}
+                      {r === 'moderator' && <Shield className="w-4 h-4 mr-2 text-primary" />}
+                      {r === 'user' && <User className="w-4 h-4 mr-2" />}
+                      {r}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <ProfileViewModal
+        open={profileModalOpen}
+        onOpenChange={setProfileModalOpen}
+        username={username}
+        avatarUrl={avatarUrl || null}
+        bio={bio}
+        role={role}
+        onPmClick={!isCurrentUser && onPmClick ? () => { setProfileModalOpen(false); onPmClick(); } : undefined}
+      />
+    </>
   );
 };
 

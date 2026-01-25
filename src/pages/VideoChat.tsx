@@ -23,6 +23,7 @@ const VideoChat = () => {
   const [profile, setProfile] = useState<{ username: string; avatar_url: string | null } | null>(null);
   const [rolesByUserId, setRolesByUserId] = useState<Record<string, string>>({});
   const [isLocked, setIsLocked] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
 
   // Private messaging system
   const {
@@ -50,19 +51,20 @@ const VideoChat = () => {
       
       if (data) {
         setProfile(data);
+        setProfileLoaded(true);
       }
     };
     
     fetchProfile();
   }, [user?.id]);
 
-  // Memoize options to prevent hook re-initialization
+  // Don't initialize broadcast until profile is ready (to avoid Anonymous)
   const broadcastOptions = useMemo(() => ({
     roomId: 'video-chat-main',
     odious: user?.id || '',
-    username: profile?.username || 'Anonymous',
+    username: profileLoaded ? (profile?.username || '') : '',
     avatarUrl: profile?.avatar_url
-  }), [user?.id, profile?.username, profile?.avatar_url]);
+  }), [user?.id, profileLoaded, profile?.username, profile?.avatar_url]);
 
   const {
     isBroadcasting,
