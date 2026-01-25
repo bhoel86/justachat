@@ -624,6 +624,13 @@ async function handleConnection(socket, isSecure = false) {
   let ws = null;
   let buffer = '';
   let throttleWarnings = 0;
+  let reconnectAttempts = 0;
+  let isReconnecting = false;
+  let intentionalClose = false;
+  let lastCredentials = null; // Store PASS/NICK/USER for reconnect
+  const MAX_RECONNECT_ATTEMPTS = 10;
+  const RECONNECT_DELAY_BASE = 1000; // 1 second base delay
+  
   // mIRC (and many clients) sends PASS/NICK/USER immediately after TCP connect.
   // If the WebSocket to the gateway isn't OPEN yet, those lines were previously dropped,
   // leaving the client stuck at "Please authenticate". Buffer until WS is ready.
@@ -633,6 +640,11 @@ async function handleConnection(socket, isSecure = false) {
   function queueToGateway(line) {
     if (pendingToGateway.length >= MAX_PENDING_LINES) pendingToGateway.shift();
     pendingToGateway.push(line);
+    
+    // Store credentials for potential reconnect
+    if (line.startsWith('PASS ')) lastCredentials = { ...lastCredentials, pass: line };
+    if (line.startsWith('NICK ')) lastCredentials = { ...lastCredentials, nick: line };
+    if (line.startsWith('USER ')) lastCredentials = { ...lastCredentials, user: line };
   }
 
   function flushToGateway() {
@@ -649,22 +661,95 @@ async function handleConnection(socket, isSecure = false) {
     }
   }
   
-  try {
-    ws = new WebSocket(config.wsUrl);
-    ws.on('open', () => {
-      log('info', `[${connId}] Gateway connected`);
-      fileLogger.connection('GATEWAY_OPEN', connId, clientIP);
-      flushToGateway();
-    });
-    ws.on('message', (data) => { log('debug', `[${connId}] [GW->IRC]`, data.toString().trim()); socket.write(data.toString()); });
-    ws.on('close', () => { log('info', `[${connId}] Gateway closed`); socket.end(); });
-    ws.on('error', (err) => { log('error', `[${connId}] WS error:`, err.message); fileLogger.error('WEBSOCKET', err.message, { connId }); socket.end(); });
-  } catch (err) {
-    log('error', `[${connId}] Connect failed:`, err.message);
-    fileLogger.error('CONNECT', err.message, { connId, ip: clientIP });
-    socket.end();
-    return;
+  function connectToGateway() {
+    if (intentionalClose) return;
+    
+    try {
+      ws = new WebSocket(config.wsUrl);
+      
+      ws.on('open', () => {
+        log('info', `[${connId}] Gateway connected${reconnectAttempts > 0 ? ` (reconnect #${reconnectAttempts})` : ''}`);
+        fileLogger.connection('GATEWAY_OPEN', connId, clientIP, { reconnect: reconnectAttempts });
+        reconnectAttempts = 0;
+        isReconnecting = false;
+        
+        // On reconnect, re-send credentials to re-authenticate
+        if (lastCredentials) {
+          if (lastCredentials.pass) ws.send(lastCredentials.pass);
+          if (lastCredentials.nick) ws.send(lastCredentials.nick);
+          if (lastCredentials.user) ws.send(lastCredentials.user);
+          // Rejoin channels the user was in
+          if (conn.channels && conn.channels.size > 0) {
+            for (const channel of conn.channels) {
+              ws.send(`JOIN ${channel}`);
+            }
+          }
+        }
+        
+        flushToGateway();
+      });
+      
+      ws.on('message', (data) => { 
+        log('debug', `[${connId}] [GW->IRC]`, data.toString().trim()); 
+        socket.write(data.toString()); 
+      });
+      
+      ws.on('close', () => {
+        if (intentionalClose) {
+          log('info', `[${connId}] Gateway closed (intentional)`);
+          return;
+        }
+        
+        log('warn', `[${connId}] Gateway closed unexpectedly`);
+        
+        // Attempt reconnection
+        if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS && !intentionalClose) {
+          reconnectAttempts++;
+          isReconnecting = true;
+          const delay = Math.min(RECONNECT_DELAY_BASE * Math.pow(1.5, reconnectAttempts - 1), 30000);
+          log('info', `[${connId}] Reconnecting in ${delay}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+          fileLogger.connection('RECONNECT_ATTEMPT', connId, clientIP, { attempt: reconnectAttempts, delay });
+          
+          // Notify client of reconnection
+          socket.write(`:server NOTICE * :*** Gateway connection lost, reconnecting...\r\n`);
+          
+          setTimeout(() => {
+            if (!intentionalClose) connectToGateway();
+          }, delay);
+        } else {
+          log('error', `[${connId}] Max reconnect attempts reached, closing connection`);
+          fileLogger.connection('RECONNECT_FAILED', connId, clientIP, { attempts: reconnectAttempts });
+          socket.write(`:server NOTICE * :*** Unable to reconnect to gateway after ${MAX_RECONNECT_ATTEMPTS} attempts\r\n`);
+          socket.end();
+        }
+      });
+      
+      ws.on('error', (err) => { 
+        log('error', `[${connId}] WS error:`, err.message); 
+        fileLogger.error('WEBSOCKET', err.message, { connId }); 
+        // Don't end socket here - let close handler manage reconnection
+      });
+    } catch (err) {
+      log('error', `[${connId}] Connect failed:`, err.message);
+      fileLogger.error('CONNECT', err.message, { connId, ip: clientIP });
+      
+      if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS && !intentionalClose) {
+        reconnectAttempts++;
+        const delay = Math.min(RECONNECT_DELAY_BASE * Math.pow(1.5, reconnectAttempts - 1), 30000);
+        setTimeout(() => {
+          if (!intentionalClose) connectToGateway();
+        }, delay);
+      } else {
+        socket.end();
+      }
+    }
   }
+  
+  // Track channels for reconnect
+  conn.channels = new Set();
+  
+  // Initial connection
+  connectToGateway();
   
   socket.on('data', (data) => {
     buffer += data.toString();
@@ -689,26 +774,32 @@ async function handleConnection(socket, isSecure = false) {
       log('debug', `[${connId}] [IRC->GW]`, line);
       conn.messageCount++;
       
-      // Track user info
+      // Track user info and store for reconnect
       if (line.startsWith('NICK ')) {
         const oldNick = conn.nickname;
         conn.nickname = line.substring(5).trim();
+        lastCredentials = { ...lastCredentials, nick: line };
         if (oldNick !== conn.nickname) {
           fileLogger.connection('NICK', connId, clientIP, { nick: conn.nickname, old: oldNick || 'none' });
         }
       } else if (line.startsWith('USER ')) {
         conn.username = line.split(' ')[1];
+        lastCredentials = { ...lastCredentials, user: line };
         fileLogger.connection('USER', connId, clientIP, { user: conn.username });
       } else if (line.startsWith('PASS ')) {
         conn.authenticated = true;
+        lastCredentials = { ...lastCredentials, pass: line };
         fileLogger.connection('AUTH', connId, clientIP, { nick: conn.nickname || 'unknown' });
       } else if (line.startsWith('JOIN ')) {
         const channel = line.substring(5).split(' ')[0];
+        conn.channels.add(channel); // Track for reconnect
         fileLogger.connection('JOIN', connId, clientIP, { nick: conn.nickname, channel });
       } else if (line.startsWith('PART ')) {
         const channel = line.substring(5).split(' ')[0];
+        conn.channels.delete(channel); // Remove from reconnect list
         fileLogger.connection('PART', connId, clientIP, { nick: conn.nickname, channel });
       } else if (line.startsWith('QUIT')) {
+        intentionalClose = true; // User is quitting, don't reconnect
         fileLogger.connection('QUIT', connId, clientIP, { nick: conn.nickname });
       }
       
@@ -724,6 +815,7 @@ async function handleConnection(socket, isSecure = false) {
   });
   
   socket.on('close', () => {
+    intentionalClose = true; // Stop reconnection attempts
     const duration = Math.floor((Date.now() - conn.connected.getTime()) / 1000);
     log('info', `[${connId}] Disconnected`);
     fileLogger.connection('DISCONNECT', connId, clientIP, { nick: conn.nickname, duration, messages: conn.messageCount, throttled: conn.throttledCount });
@@ -733,6 +825,7 @@ async function handleConnection(socket, isSecure = false) {
   });
   
   socket.on('error', (err) => {
+    intentionalClose = true; // Stop reconnection attempts
     log('error', `[${connId}] Error:`, err.message);
     fileLogger.error('SOCKET', err.message, { connId, ip: clientIP });
     activeConnections.delete(connId);
