@@ -241,110 +241,80 @@ const VideoChat = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
+      {/* Compact Header */}
+      <header className="border-b border-border bg-card/50 backdrop-blur-sm shrink-0 z-10">
+        <div className="container mx-auto px-3 py-1.5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <Button 
               variant="ghost" 
-              size="icon" 
+              size="sm" 
               onClick={() => navigate('/')}
-              className="hover:bg-primary/10"
+              className="hover:bg-primary/10 h-8 w-8 p-0"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-4 h-4" />
             </Button>
             <div className="flex items-center gap-2">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
-                <Camera className="w-5 h-5 text-white" />
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+                <Camera className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-foreground">Video Chat</h1>
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Users className="w-3 h-3" />
-                  {participants.length} {participants.length === 1 ? 'viewer' : 'viewers'}
-                  {isConnected && <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse ml-1" />}
+                <h1 className="text-base font-bold text-foreground leading-tight">Video Chat</h1>
+                <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                  <Users className="w-2.5 h-2.5" />
+                  {participants.length} online
+                  {isConnected && <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />}
                 </p>
               </div>
             </div>
           </div>
           
-          {/* Broadcast Button + Audio Mute + Audio Meter */}
-          <div className="flex items-center gap-2">
-            {/* Audio Mute Button - Only show when broadcasting */}
+          {/* Broadcast Controls - Compact */}
+          <div className="flex items-center gap-1.5">
             {isBroadcasting && (
               <Button
                 variant={isAudioMuted ? "destructive" : "secondary"}
-                size="icon"
+                size="sm"
                 onClick={toggleAudioMute}
-                className="shrink-0"
-                title={isAudioMuted ? "Unmute microphone" : "Mute microphone"}
+                className="h-8 w-8 p-0"
+                title={isAudioMuted ? "Unmute" : "Mute"}
               >
-                {isAudioMuted ? (
-                  <MicOff className="w-4 h-4" />
-                ) : (
-                  <Mic className="w-4 h-4" />
-                )}
+                {isAudioMuted ? <MicOff className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
               </Button>
             )}
             
-            {/* Audio Level Meter - Only show when broadcasting and not muted */}
+            {/* Compact Audio Meter */}
             {isBroadcasting && !isAudioMuted && (
-              <div className="hidden sm:flex items-center gap-2 bg-card/80 rounded-lg px-3 py-2 border border-border">
-                <Mic className="w-4 h-4 text-green-500 animate-pulse" />
-                <div className="flex items-end gap-0.5 h-6">
-                  {[...Array(10)].map((_, i) => {
-                    const threshold = (i + 1) * 10;
+              <div className="hidden md:flex items-center gap-1 bg-card/80 rounded px-2 py-1 border border-border">
+                <div className="flex items-end gap-px h-4">
+                  {[...Array(8)].map((_, i) => {
+                    const threshold = (i + 1) * 12.5;
                     const isActive = audioLevel >= threshold;
-                    const barColor = i < 6 
-                      ? 'bg-green-500' 
-                      : i < 8 
-                        ? 'bg-yellow-500' 
-                        : 'bg-destructive';
+                    const barColor = i < 5 ? 'bg-green-500' : i < 7 ? 'bg-yellow-500' : 'bg-destructive';
                     return (
                       <div
                         key={i}
-                        className={`w-1.5 rounded-sm transition-all duration-75 ${
-                          isActive ? barColor : 'bg-muted'
-                        }`}
-                        style={{ 
-                          height: `${(i + 1) * 2.4}px`,
-                          opacity: isActive ? 1 : 0.3
-                        }}
+                        className={`w-1 rounded-sm ${isActive ? barColor : 'bg-muted'}`}
+                        style={{ height: `${(i + 1) * 2}px`, opacity: isActive ? 1 : 0.3 }}
                       />
                     );
                   })}
                 </div>
-                <span className="text-xs text-muted-foreground w-8 text-right">
-                  {Math.round(audioLevel)}%
-                </span>
               </div>
             )}
             
-            {/* Muted indicator */}
-            {isBroadcasting && isAudioMuted && (
-              <Badge variant="destructive" className="hidden sm:flex gap-1">
-                <MicOff className="w-3 h-3" />
-                Muted
-              </Badge>
-            )}
-            
             <Button
+              size="sm"
               onMouseDown={() => { if (!isLocked) startBroadcast(); }}
               onMouseUp={() => { if (!isLocked) stopBroadcast(); }}
               onMouseLeave={() => { if (!isLocked) stopBroadcast(); }}
               onTouchStart={() => { if (!isLocked) startBroadcast(); }}
               onTouchEnd={() => { if (!isLocked) stopBroadcast(); }}
               onDoubleClick={() => {
-                if (isLocked) {
-                  setIsLocked(false);
-                  stopBroadcast();
-                } else {
-                  setIsLocked(true);
-                  startBroadcast();
-                }
+                if (isLocked) { setIsLocked(false); stopBroadcast(); }
+                else { setIsLocked(true); startBroadcast(); }
               }}
-              className={`gap-2 select-none ${
+              className={`gap-1.5 select-none h-8 text-xs ${
                 isLocked
                   ? 'bg-orange-500 hover:bg-orange-600 text-white ring-2 ring-orange-300'
                   : isBroadcasting 
@@ -352,15 +322,10 @@ const VideoChat = () => {
                     : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white'
               }`}
             >
-              {isBroadcasting ? (
-                <Video className="w-4 h-4 animate-pulse" />
-              ) : (
-                <VideoOff className="w-4 h-4" />
-              )}
-              {isLocked ? '🔒 Locked On' : isBroadcasting ? 'Broadcasting...' : 'Hold to Stream'}
+              {isBroadcasting ? <Video className="w-3.5 h-3.5 animate-pulse" /> : <VideoOff className="w-3.5 h-3.5" />}
+              <span className="hidden sm:inline">{isLocked ? '🔒 Locked' : isBroadcasting ? 'Live' : 'Stream'}</span>
             </Button>
             
-            {/* Test Users Toggle - Owner only */}
             <TestViewersToggle
               isOwner={isOwner}
               enabled={testUsersEnabled}
@@ -372,63 +337,64 @@ const VideoChat = () => {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Main Content - Fills remaining viewport */}
+      <main className="flex-1 container mx-auto px-3 py-2 overflow-hidden flex flex-col">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 flex-1 min-h-0">
           {/* Broadcasters Section - Video Grid */}
-          <div className="lg:col-span-2">
-            <div className="bg-card rounded-xl border border-border p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <Video className="w-5 h-5 text-green-500" />
-                <h2 className="text-lg font-semibold">Live Streams</h2>
+          <div className="lg:col-span-3 flex flex-col min-h-0">
+            <div className="bg-card rounded-lg border border-border p-2 flex-1 flex flex-col min-h-0">
+              <div className="flex items-center gap-2 mb-2 shrink-0">
+                <Video className="w-4 h-4 text-green-500" />
+                <h2 className="text-sm font-semibold">Live Streams</h2>
                 {broadcasters.length > 0 && (
-                  <Badge className="bg-green-500 text-white animate-pulse">
+                  <Badge className="bg-green-500 text-white animate-pulse text-[10px] px-1.5 py-0">
                     {broadcasters.length} LIVE
                   </Badge>
                 )}
               </div>
               
-              {/* Local video preview when broadcasting */}
-              {isBroadcasting && localStream && (
-                <div className="mb-4">
-                  <VideoTile
-                    stream={localStream}
-                    username={profile?.username || 'You'}
-                    avatarUrl={profile?.avatar_url}
-                    isLocal={true}
-                    isBroadcasting={true}
-                    roleBadge={getRoleBadge(user.id)}
-                  />
-                </div>
-              )}
-              
-              {broadcasters.length === 0 && !isBroadcasting ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Camera className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No one is streaming yet</p>
-                  <p className="text-sm mt-1">Click the camera button to start!</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {broadcasters
-                    .filter(b => b.odious !== user.id) // Don't show self twice
-                    .map((broadcaster) => (
-                    <VideoTile
-                      key={broadcaster.odious}
-                      stream={getRemoteStream(broadcaster.odious)}
-                      username={broadcaster.username}
-                      avatarUrl={broadcaster.avatarUrl}
-                      isBroadcasting={true}
-                      roleBadge={getRoleBadge(broadcaster.odious)}
-                    />
-                  ))}
-                </div>
-              )}
+              {/* Video grid area */}
+              <div className="flex-1 min-h-0 overflow-auto">
+                {broadcasters.length === 0 && !isBroadcasting ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Camera className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No streams yet</p>
+                    <p className="text-xs">Hold the Stream button to go live</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 h-full">
+                    {/* Local video */}
+                    {isBroadcasting && localStream && (
+                      <VideoTile
+                        stream={localStream}
+                        username={profile?.username || 'You'}
+                        avatarUrl={profile?.avatar_url}
+                        isLocal={true}
+                        isBroadcasting={true}
+                        roleBadge={getRoleBadge(user.id)}
+                      />
+                    )}
+                    {/* Remote videos */}
+                    {broadcasters
+                      .filter(b => b.odious !== user.id)
+                      .map((broadcaster) => (
+                      <VideoTile
+                        key={broadcaster.odious}
+                        stream={getRemoteStream(broadcaster.odious)}
+                        username={broadcaster.username}
+                        avatarUrl={broadcaster.avatarUrl}
+                        isBroadcasting={true}
+                        roleBadge={getRoleBadge(broadcaster.odious)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Chat Bar under video - only render when profile is loaded */}
+            {/* Chat Bar - Compact */}
             {profile && (
-              <div className="mt-4">
+              <div className="mt-2 shrink-0">
                 <VideoChatBar 
                   roomId="video-chat-main"
                   odious={user.id}
@@ -441,26 +407,25 @@ const VideoChat = () => {
             )}
           </div>
 
-          {/* Members Section - Includes both broadcasters and viewers for moderation */}
-          <div className="lg:col-span-1">
-            <div className="bg-card rounded-xl border border-border p-4 h-full">
-              <div className="flex items-center gap-2 mb-4">
-                <Users className="w-5 h-5 text-primary" />
-                <h2 className="text-lg font-semibold">Members</h2>
-                <Badge variant="secondary">{viewers.length + broadcasters.length + (isBroadcasting ? 1 : 0)}</Badge>
+          {/* Members Section */}
+          <div className="lg:col-span-1 flex flex-col min-h-0">
+            <div className="bg-card rounded-lg border border-border p-2 flex-1 flex flex-col min-h-0">
+              <div className="flex items-center gap-2 mb-2 shrink-0">
+                <Users className="w-4 h-4 text-primary" />
+                <h2 className="text-sm font-semibold">Members</h2>
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{viewers.length + broadcasters.length + (isBroadcasting ? 1 : 0)}</Badge>
               </div>
               
-              {/* Active Broadcasters in member list */}
-              {(broadcasters.length > 0 || isBroadcasting) && (
-                <div className="mb-3">
-                  <p className="text-xs text-green-500 font-medium mb-2 flex items-center gap-1">
-                    <Video className="w-3 h-3" /> Broadcasting
-                  </p>
-                  <div className="space-y-1">
-                    {/* Self if broadcasting */}
+              {/* Scrollable member list */}
+              <div className="flex-1 overflow-y-auto min-h-0 space-y-1">
+                {/* Active Broadcasters */}
+                {(broadcasters.length > 0 || isBroadcasting) && (
+                  <>
+                    <p className="text-[10px] text-green-500 font-medium flex items-center gap-1 sticky top-0 bg-card py-0.5">
+                      <Video className="w-2.5 h-2.5" /> Live
+                    </p>
                     {isBroadcasting && (
                       <VideoUserMenu
-                        key={user.id}
                         odious={user.id}
                         username={profile?.username || 'You'}
                         avatarUrl={profile?.avatar_url}
@@ -469,29 +434,20 @@ const VideoChat = () => {
                         currentUserRole={currentUserRole}
                         onSelfProfileUpdated={refreshProfile}
                       >
-                        <button className="w-full flex items-center gap-3 p-2 rounded-lg bg-green-500/10 border border-green-500/30 hover:bg-green-500/20 transition-colors text-left group">
-                          <Avatar className="w-8 h-8 ring-2 ring-green-500">
+                        <button className="w-full flex items-center gap-2 p-1.5 rounded bg-green-500/10 border border-green-500/30 hover:bg-green-500/20 text-left group">
+                          <Avatar className="w-6 h-6 ring-1 ring-green-500">
                             <AvatarImage src={profile?.avatar_url || undefined} />
-                            <AvatarFallback className="text-xs bg-green-500/20">
+                            <AvatarFallback className="text-[10px] bg-green-500/20">
                               {(profile?.username || 'Y').charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-sm font-medium truncate">{profile?.username || 'You'}</span>
-                              {getRoleBadge(user.id)}
-                              <Badge variant="secondary" className="text-[9px] px-1 py-0">You</Badge>
-                            </div>
-                          </div>
-                          <Video className="w-4 h-4 text-green-500 animate-pulse" />
-                          <MoreVertical className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <span className="text-xs font-medium truncate flex-1">{profile?.username || 'You'}</span>
+                          {getRoleBadge(user.id)}
+                          <Video className="w-3 h-3 text-green-500" />
                         </button>
                       </VideoUserMenu>
                     )}
-                    {/* Other broadcasters */}
-                    {broadcasters
-                      .filter(b => b.odious !== user.id)
-                      .map((broadcaster) => (
+                    {broadcasters.filter(b => b.odious !== user.id).map((broadcaster) => (
                       <VideoUserMenu
                         key={broadcaster.odious}
                         odious={broadcaster.odious}
@@ -502,96 +458,63 @@ const VideoChat = () => {
                         currentUserRole={currentUserRole}
                         onPmClick={() => openChat(broadcaster.odious, broadcaster.username)}
                       >
-                        <button className="w-full flex items-center gap-3 p-2 rounded-lg bg-green-500/10 border border-green-500/30 hover:bg-green-500/20 transition-colors text-left group">
-                          <Avatar className="w-8 h-8 ring-2 ring-green-500">
+                        <button className="w-full flex items-center gap-2 p-1.5 rounded bg-green-500/10 border border-green-500/30 hover:bg-green-500/20 text-left group">
+                          <Avatar className="w-6 h-6 ring-1 ring-green-500">
                             <AvatarImage src={broadcaster.avatarUrl || undefined} />
-                            <AvatarFallback className="text-xs bg-green-500/20">
+                            <AvatarFallback className="text-[10px] bg-green-500/20">
                               {broadcaster.username.charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-sm font-medium truncate">{broadcaster.username}</span>
-                              {getRoleBadge(broadcaster.odious)}
-                            </div>
-                          </div>
-                          <Video className="w-4 h-4 text-green-500 animate-pulse" />
-                          <MoreVertical className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <span className="text-xs font-medium truncate flex-1">{broadcaster.username}</span>
+                          {getRoleBadge(broadcaster.odious)}
+                          <Video className="w-3 h-3 text-green-500" />
                         </button>
                       </VideoUserMenu>
                     ))}
-                  </div>
-                </div>
-              )}
-              
-              {/* Viewers section header */}
-              {viewers.length > 0 && (broadcasters.length > 0 || isBroadcasting) && (
-                <p className="text-xs text-muted-foreground font-medium mb-2 flex items-center gap-1">
-                  <Users className="w-3 h-3" /> Viewing
-                </p>
-              )}
-              
-              {/* Viewers list */}
-              <div className="space-y-2 max-h-[50vh] overflow-y-auto">
-                {viewers.length === 0 && !isBroadcasting && broadcasters.length === 0 ? (
-                  <p className="text-center text-muted-foreground text-sm py-4">
-                    No members yet
+                  </>
+                )}
+                
+                {/* Viewers */}
+                {viewers.length > 0 && (broadcasters.length > 0 || isBroadcasting) && (
+                  <p className="text-[10px] text-muted-foreground font-medium flex items-center gap-1 sticky top-0 bg-card py-0.5 mt-1">
+                    <Users className="w-2.5 h-2.5" /> Viewing
                   </p>
-                ) : (
-                  viewers.map((viewer) => (
-                    <VideoUserMenu
-                      key={viewer.odious}
-                      odious={viewer.odious}
-                      username={viewer.username}
-                      avatarUrl={viewer.avatarUrl}
-                      role={combinedRoles[viewer.odious]}
-                      currentUserId={user.id}
-                      currentUserRole={currentUserRole}
-                      onPmClick={viewer.odious !== user.id ? () => openChat(viewer.odious, viewer.username) : undefined}
-                      onSelfProfileUpdated={viewer.odious === user.id ? refreshProfile : undefined}
-                    >
-                      <button 
-                        className="w-full flex items-center gap-3 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-left group"
-                      >
-                        <Avatar className="w-8 h-8">
-                          <AvatarImage src={viewer.avatarUrl || undefined} />
-                          <AvatarFallback className="text-xs bg-primary/20">
-                            {viewer.username.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-medium truncate">{viewer.username}</span>
-                            {getRoleBadge(viewer.odious)}
-                            {viewer.odious === user.id && (
-                              <Badge variant="secondary" className="text-[9px] px-1 py-0">You</Badge>
-                            )}
-                          </div>
-                        </div>
-                        <MoreVertical className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </button>
-                    </VideoUserMenu>
-                  ))
+                )}
+                
+                {viewers.map((viewer) => (
+                  <VideoUserMenu
+                    key={viewer.odious}
+                    odious={viewer.odious}
+                    username={viewer.username}
+                    avatarUrl={viewer.avatarUrl}
+                    role={combinedRoles[viewer.odious]}
+                    currentUserId={user.id}
+                    currentUserRole={currentUserRole}
+                    onPmClick={viewer.odious !== user.id ? () => openChat(viewer.odious, viewer.username) : undefined}
+                    onSelfProfileUpdated={viewer.odious === user.id ? refreshProfile : undefined}
+                  >
+                    <button className="w-full flex items-center gap-2 p-1.5 rounded bg-muted/50 hover:bg-muted text-left group">
+                      <Avatar className="w-6 h-6">
+                        <AvatarImage src={viewer.avatarUrl || undefined} />
+                        <AvatarFallback className="text-[10px] bg-primary/20">
+                          {viewer.username.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs font-medium truncate flex-1">{viewer.username}</span>
+                      {getRoleBadge(viewer.odious)}
+                      {viewer.odious === user.id && (
+                        <Badge variant="secondary" className="text-[8px] px-1 py-0">You</Badge>
+                      )}
+                    </button>
+                  </VideoUserMenu>
+                ))}
+                
+                {viewers.length === 0 && !isBroadcasting && broadcasters.length === 0 && (
+                  <p className="text-center text-muted-foreground text-xs py-3">No members</p>
                 )}
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Instructions */}
-        <div className="mt-6 bg-muted/50 rounded-xl p-4 border border-border">
-          <h3 className="font-semibold mb-2 flex items-center gap-2">
-            <Camera className="w-4 h-4 text-green-500" />
-            How Video Chat Works
-          </h3>
-          <ul className="text-sm text-muted-foreground space-y-1">
-            <li>• <strong>Hold</strong> the <strong>Hold to Stream</strong> button to broadcast your webcam</li>
-            <li>• <strong>Double-click</strong> to lock broadcast on (click again to unlock)</li>
-            <li>• Or press <kbd className="px-1.5 py-0.5 bg-muted rounded border border-border text-xs font-mono">Alt</kbd> + <kbd className="px-1.5 py-0.5 bg-muted rounded border border-border text-xs font-mono">V</kbd> as a keyboard shortcut</li>
-            <li>• <strong>Release</strong> to stop streaming</li>
-            <li>• Everyone in the room will see your video while you hold</li>
-            <li>• <strong>Click</strong> any member to send a private message or moderate</li>
-          </ul>
         </div>
       </main>
 
