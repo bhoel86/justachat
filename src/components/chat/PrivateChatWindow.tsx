@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, forwardRef } from "react";
+import { createPortal } from "react-dom";
 import { X, Lock, Send, Minus, Shield, Check, CheckCheck, Phone, Video, Camera, Image, Palette, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -557,7 +558,18 @@ const PrivateChatWindow = forwardRef<HTMLDivElement, PrivateChatWindowProps>(({
 
   const messageAreaHeight = size.height - 140; // Header + input + notices
 
-  return (
+  // Bring window to front without breaking button clicks (mousedown triggers re-render;
+  // if we do that on buttons it can cancel the click).
+  const handleWindowMouseDownCapture = (e: React.MouseEvent) => {
+    const el = e.target as HTMLElement | null;
+    if (!el) return;
+
+    // Don't steal events from interactive elements.
+    if (el.closest('button,[role="button"],a,input,textarea,select,label')) return;
+    onFocus();
+  };
+
+  const windowNode = (
     <div
       ref={(node) => {
         // Forward ref to parent and keep local ref
@@ -568,7 +580,7 @@ const PrivateChatWindow = forwardRef<HTMLDivElement, PrivateChatWindowProps>(({
           ref.current = node;
         }
       }}
-      onMouseDown={onFocus}
+      onMouseDownCapture={handleWindowMouseDownCapture}
       className="fixed shadow-2xl rounded-xl overflow-hidden border-2 border-primary/30 bg-card animate-scale-in"
       style={{
         left: position.x,
@@ -578,6 +590,7 @@ const PrivateChatWindow = forwardRef<HTMLDivElement, PrivateChatWindowProps>(({
         height: size.height,
       }}
     >
+
       {/* Header - Draggable */}
       <div 
         className="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-primary/30 to-accent/30 cursor-move select-none border-b border-border"
@@ -879,6 +892,11 @@ const PrivateChatWindow = forwardRef<HTMLDivElement, PrivateChatWindowProps>(({
       </div>
     </div>
   );
+
+  // Render into <body> so the PM window can't be clipped by any transformed/scroll containers
+  // in the chat layout.
+  if (typeof document === 'undefined') return null;
+  return createPortal(windowNode, document.body);
 });
 
 PrivateChatWindow.displayName = 'PrivateChatWindow';
