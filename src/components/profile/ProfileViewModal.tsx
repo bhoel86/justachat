@@ -15,6 +15,7 @@ interface ProfileViewModalProps {
   username: string;
   avatarUrl: string | null;
   bio: string | null;
+  age?: number | null;
   role?: string;
   onPmClick?: () => void;
 }
@@ -25,6 +26,7 @@ export const ProfileViewModal = ({
   username,
   avatarUrl,
   bio,
+  age,
   role,
   onPmClick,
 }: ProfileViewModalProps) => {
@@ -72,6 +74,9 @@ export const ProfileViewModal = ({
           
           <div className="text-center space-y-2">
             <h2 className="text-xl font-bold">{username}</h2>
+            {age && (
+              <p className="text-sm text-muted-foreground">{age} years old</p>
+            )}
             {getRoleBadge()}
           </div>
 
