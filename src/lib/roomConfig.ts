@@ -125,6 +125,8 @@ export const MODERATORS: Record<string, ModeratorInfo> = {
   'lounge': { name: 'Solo', displayName: 'Solo', avatar: '☕' },
   'trivia': { name: 'Poulsen', displayName: 'Kevin Poulsen', avatar: '🧠' },
   'art': { name: 'Cicada', displayName: 'Cicada 3301', avatar: '🎨' },
+  'voice-chat': { name: 'Echo', displayName: 'Echo (Voice Host)', avatar: '🎙️' },
+  'video-chat': { name: 'Pixel', displayName: 'Pixel (Video Host)', avatar: '📹' },
 };
 
 // Room welcome messages (kept concise to avoid chat clutter)
@@ -142,6 +144,8 @@ export const WELCOME_MESSAGES: Record<string, string> = {
   'lounge': "I'm Solo. Chill zone. ☕",
   'trivia': "I'm Poulsen. Test your knowledge! 🎯",
   'art': "I'm Cicada, your art curator. Let's explore masterpieces together! 🖼️",
+  'voice-chat': "Hey, I'm Echo! Ready to vibe. 🎙️",
+  'video-chat': "I'm Pixel. Camera on, let's go! 📹",
 };
 
 // Tips of the day per room
