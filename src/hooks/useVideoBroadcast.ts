@@ -118,19 +118,36 @@ export const useVideoBroadcast = ({ roomId, odious, username, avatarUrl }: UseVi
     if (localStreamRef.current) return;
     
     try {
+      // Request highest quality video - use 'exact' for strict constraints
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
           width: { ideal: 1920, min: 1280 },
           height: { ideal: 1080, min: 720 },
           frameRate: { ideal: 30, min: 24 },
-          facingMode: 'user'
+          facingMode: 'user',
+          // Request high quality encoding
+          aspectRatio: { ideal: 16/9 },
         },
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true
+          autoGainControl: true,
+          sampleRate: 48000,
+          channelCount: 2,
         }
       });
+      
+      // Log actual video track settings for debugging
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) {
+        const settings = videoTrack.getSettings();
+        console.log('📹 Video capture settings:', {
+          width: settings.width,
+          height: settings.height,
+          frameRate: settings.frameRate,
+          deviceId: settings.deviceId,
+        });
+      }
       localStreamRef.current = stream;
       setLocalStream(stream);
       setIsAudioMuted(false);

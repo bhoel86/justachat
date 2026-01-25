@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import VideoTile from '@/components/video/VideoTile';
+import VideoGrid from '@/components/video/VideoGrid';
 import VideoChatBar from '@/components/video/VideoChatBar';
 import VideoUserMenu from '@/components/video/VideoUserMenu';
 import PrivateChatWindow from '@/components/chat/PrivateChatWindow';
@@ -359,51 +360,31 @@ const VideoChat = () => {
               <div className="flex items-center gap-2 mb-2 shrink-0">
                 <Video className="w-4 h-4 text-green-500" />
                 <h2 className="text-sm font-semibold">Live Streams</h2>
-                {broadcasters.length > 0 && (
+                {(broadcasters.length > 0 || isBroadcasting) && (
                   <Badge className="bg-green-500 text-white animate-pulse text-[10px] px-1.5 py-0">
-                    {broadcasters.length} LIVE
+                    {broadcasters.filter(b => b.odious !== user.id).length + (isBroadcasting ? 1 : 0)} LIVE
                   </Badge>
                 )}
+                <span className="text-[10px] text-muted-foreground ml-auto">Max 6 • Equal sizing</span>
               </div>
               
-              {/* Video grid area */}
-              <div className="flex-1 min-h-0 overflow-auto">
-                {broadcasters.length === 0 && !isBroadcasting ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Camera className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No streams yet</p>
-                    <p className="text-xs">Hold the Stream button to go live</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 h-full">
-                    {/* Local video */}
-                    {isBroadcasting && localStream && (
-                      <VideoTile
-                        stream={localStream}
-                        username={profile?.username || 'You'}
-                        avatarUrl={profile?.avatar_url}
-                        isLocal={true}
-                        isBroadcasting={true}
-                        roleBadge={getRoleBadge(user.id)}
-                        aiEnhanced={aiEnhanceEnabled}
-                        enhanceStrength={aiEnhanceStrength}
-                      />
-                    )}
-                    {/* Remote videos */}
-                    {broadcasters
-                      .filter(b => b.odious !== user.id)
-                      .map((broadcaster) => (
-                      <VideoTile
-                        key={broadcaster.odious}
-                        stream={getRemoteStream(broadcaster.odious)}
-                        username={broadcaster.username}
-                        avatarUrl={broadcaster.avatarUrl}
-                        isBroadcasting={true}
-                        roleBadge={getRoleBadge(broadcaster.odious)}
-                      />
-                    ))}
-                  </div>
-                )}
+              {/* Video grid area - using new VideoGrid component */}
+              <div className="flex-1 min-h-0">
+                <VideoGrid
+                  broadcasters={broadcasters}
+                  localBroadcaster={isBroadcasting && localStream ? {
+                    odious: user.id,
+                    username: profile?.username || 'You',
+                    avatarUrl: profile?.avatar_url,
+                    stream: localStream,
+                  } : null}
+                  currentUserId={user.id}
+                  getRoleBadge={getRoleBadge}
+                  getRemoteStream={getRemoteStream}
+                  aiEnhanced={aiEnhanceEnabled}
+                  enhanceStrength={aiEnhanceStrength}
+                  maxSlots={6}
+                />
               </div>
             </div>
 
