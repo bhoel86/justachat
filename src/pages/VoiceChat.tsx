@@ -102,17 +102,17 @@ const VoiceChat = () => {
     });
   }, []);
 
-  // Alt+T keyboard shortcut for push-to-talk
+  // Alt+M keyboard shortcut for push-to-talk
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey && e.key.toLowerCase() === 't' && !e.repeat) {
+      if (e.altKey && e.key.toLowerCase() === 'm' && !e.repeat) {
         e.preventDefault();
         startBroadcast();
       }
     };
     
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === 't') {
+      if (e.key.toLowerCase() === 'm') {
         stopBroadcast();
       }
     };
@@ -361,7 +361,7 @@ const VoiceChat = () => {
           </h3>
           <ul className="text-sm text-muted-foreground space-y-1">
             <li>• <strong>Hold</strong> the <strong>Hold to Talk</strong> button to broadcast your voice</li>
-            <li>• Or press <kbd className="px-1.5 py-0.5 bg-muted rounded border border-border text-xs font-mono">Alt</kbd> + <kbd className="px-1.5 py-0.5 bg-muted rounded border border-border text-xs font-mono">T</kbd> as a keyboard shortcut</li>
+            <li>• Or press <kbd className="px-1.5 py-0.5 bg-muted rounded border border-border text-xs font-mono">Alt</kbd> + <kbd className="px-1.5 py-0.5 bg-muted rounded border border-border text-xs font-mono">M</kbd> as a keyboard shortcut</li>
             <li>• <strong>Release</strong> to stop broadcasting</li>
             <li>• Everyone in the room will hear you while you hold</li>
           </ul>
