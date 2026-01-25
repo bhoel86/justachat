@@ -25,6 +25,9 @@ import { ProfileEditModal } from '@/components/profile/ProfileEditModal';
 import ProfileViewModal from '@/components/profile/ProfileViewModal';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { compressImage } from '@/lib/imageCompression';
+import { usePrivateChats } from '@/hooks/usePrivateChats';
+import PrivateChatWindow from '@/components/chat/PrivateChatWindow';
+import PMTray from '@/components/chat/PMTray';
 
 // Small video preview component for member list
 const MemberVideoPreview = ({ stream, muted }: { stream: MediaStream; muted: boolean }) => {
@@ -133,6 +136,19 @@ export default function VoiceChat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Private messaging support
+  const {
+    activeChats,
+    minimizedChats,
+    openChat,
+    closeChat,
+    bringToFront,
+    minimizeChat,
+    restoreChat,
+    setUnread,
+    reorderChats,
+  } = usePrivateChats(user?.id || '', username);
   
   // WebRTC hook
   const {
@@ -799,7 +815,7 @@ export default function VoiceChat() {
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={() => {
-                            toast({ title: "Coming soon", description: "PM in voice chat coming soon!" });
+                            openChat(member.id, member.username);
                           }}
                           className="flex items-center gap-2 cursor-pointer"
                         >
@@ -1168,6 +1184,31 @@ export default function VoiceChat() {
           role={viewingProfile.role}
         />
       )}
+
+      {/* Private Chat Windows */}
+      {activeChats.map(chat => (
+        <PrivateChatWindow
+          key={chat.id}
+          currentUserId={user?.id || ''}
+          currentUsername={username}
+          targetUserId={chat.targetUserId}
+          targetUsername={chat.targetUsername}
+          initialPosition={chat.position}
+          zIndex={chat.zIndex}
+          onClose={() => closeChat(chat.id)}
+          onMinimize={() => minimizeChat(chat.id)}
+          onFocus={() => bringToFront(chat.id)}
+          onNewMessage={() => setUnread(chat.id)}
+        />
+      ))}
+
+      {/* PM Tray for minimized chats */}
+      <PMTray
+        minimizedChats={minimizedChats}
+        onRestore={restoreChat}
+        onClose={closeChat}
+        onReorder={reorderChats}
+      />
     </div>
   );
 }
