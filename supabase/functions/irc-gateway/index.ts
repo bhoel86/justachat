@@ -2637,6 +2637,163 @@ function handleQUIT(session: IRCSession, params: string[]) {
   session.ws.close();
 }
 
+// ========== NAMES COMMAND ==========
+async function handleNAMES(session: IRCSession, params: string[]) {
+  if (!session.registered || !session.supabase) {
+    return;
+  }
+
+  const channelName = params[0];
+  if (!channelName || !channelName.startsWith('#')) {
+    return;
+  }
+
+  const dbChannelName = channelName.substring(1).toLowerCase();
+
+  // Find the channel
+  const { data: channelData } = await session.supabase
+    .from("channels")
+    .select("id, name, description, created_by")
+    .eq("name", dbChannelName)
+    .maybeSingle();
+
+  const channel = channelData as { id: string; name: string; description: string | null; created_by: string | null } | null;
+
+  if (!channel) {
+    sendNumeric(session, ERR.NOSUCHCHANNEL, `${channelName} :No such channel`);
+    return;
+  }
+
+  const roomTheme = getRoomTheme(dbChannelName);
+  const welcomeInfo = getWelcomeInfo(dbChannelName);
+
+  // Get channel members for NAMES
+  const { data: members } = await session.supabase
+    .from("channel_members")
+    .select("user_id")
+    .eq("channel_id", channel.id);
+
+  const { data: profiles } = await session.supabase
+    .from("profiles")
+    .select("user_id, username");
+
+  // Check for room admins and owners
+  const { data: roomAdmins } = await session.supabase
+    .from("room_admins")
+    .select("user_id")
+    .eq("channel_id", channel.id);
+
+  // Check global roles for all users
+  const { data: userRoles } = await session.supabase
+    .from("user_roles")
+    .select("user_id, role");
+
+  const channelOwnerId = (channel as { created_by: string | null })?.created_by;
+
+  const memberList = members as { user_id: string }[] | null;
+  const profileList = profiles as { user_id: string; username: string }[] | null;
+  const roomAdminList = roomAdmins as { user_id: string }[] | null;
+  const rolesList = userRoles as { user_id: string; role: string }[] | null;
+  
+  const profileMap = new Map(profileList?.map((p) => [p.user_id, p.username]) || []);
+  const roomAdminSet = new Set(roomAdminList?.map((a) => a.user_id) || []);
+  
+  // Build role maps
+  const globalOwners = new Set(rolesList?.filter(r => r.role === 'owner').map(r => r.user_id) || []);
+  const globalAdmins = new Set(rolesList?.filter(r => r.role === 'admin').map(r => r.user_id) || []);
+  const globalMods = new Set(rolesList?.filter(r => r.role === 'moderator').map(r => r.user_id) || []);
+  
+  // Categorize members
+  const owners: string[] = [];
+  const admins: string[] = [];
+  const ops: string[] = [];
+  const users: string[] = [];
+  
+  for (const m of memberList || []) {
+    const username = profileMap.get(m.user_id) || "unknown";
+    
+    if (globalOwners.has(m.user_id) || m.user_id === channelOwnerId) {
+      owners.push(username);
+    } else if (globalAdmins.has(m.user_id)) {
+      admins.push(username);
+    } else if (roomAdminSet.has(m.user_id) || globalMods.has(m.user_id)) {
+      ops.push(username);
+    } else {
+      users.push(username);
+    }
+  }
+
+  // Add simulated bots to the channel
+  const botNames = getBotsForChannel(dbChannelName);
+  
+  // Build colored member names
+  const coloredOwners = owners.map(u => `${IRC_COLORS.BOLD}${IRC_COLORS.YELLOW}~${u}${IRC_COLORS.RESET}`);
+  const coloredAdmins = admins.map(u => `${IRC_COLORS.BOLD}${IRC_COLORS.RED}&${u}${IRC_COLORS.RESET}`);
+  const coloredOps = ops.map(u => `${IRC_COLORS.GREEN}@${u}${IRC_COLORS.RESET}`);
+  const coloredModerator = `${IRC_COLORS.GREEN}@${welcomeInfo.moderator}${IRC_COLORS.RESET}`;
+  const coloredBots = botNames.map(b => `${IRC_COLORS.CYAN}+${b}${IRC_COLORS.RESET}`);
+  const coloredUsers = users.map(u => `${IRC_COLORS.CYAN}${u}${IRC_COLORS.RESET}`);
+  
+  // Total user count
+  const totalUsers = owners.length + admins.length + ops.length + users.length + botNames.length + 1;
+  
+  // Send themed header
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} : `);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${formatThemedHeader(`══════ ${channelName.toUpperCase()} MEMBERS ══════`, dbChannelName)}`);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${roomTheme.accent}${IRC_COLORS.BOLD}Total:${IRC_COLORS.RESET} ${IRC_COLORS.GREEN}${totalUsers} users${IRC_COLORS.RESET}`);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} : `);
+  
+  // Send grouped member sections with separators
+  if (coloredOwners.length > 0) {
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${IRC_COLORS.YELLOW}╔═══ OWNERS (${owners.length}) ═══╗${IRC_COLORS.RESET}`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :  ${coloredOwners.join(' ')}`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.YELLOW}╚${'═'.repeat(20)}╝${IRC_COLORS.RESET}`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} : `);
+  }
+  
+  if (coloredAdmins.length > 0) {
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${IRC_COLORS.RED}╔═══ ADMINS (${admins.length}) ═══╗${IRC_COLORS.RESET}`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :  ${coloredAdmins.join(' ')}`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.RED}╚${'═'.repeat(20)}╝${IRC_COLORS.RESET}`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} : `);
+  }
+  
+  // Ops section (including room moderator bot)
+  const allOps = [...coloredOps, coloredModerator];
+  if (allOps.length > 0) {
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${IRC_COLORS.GREEN}╔═══ OPERATORS (${ops.length + 1}) ═══╗${IRC_COLORS.RESET}`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :  ${allOps.join(' ')}`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.GREEN}╚${'═'.repeat(24)}╝${IRC_COLORS.RESET}`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} : `);
+  }
+  
+  if (coloredBots.length > 0) {
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}╔═══ BOTS (${botNames.length}) ═══╗${IRC_COLORS.RESET}`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :  ${coloredBots.join(' ')}`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.CYAN}╚${'═'.repeat(18)}╝${IRC_COLORS.RESET}`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} : `);
+  }
+  
+  if (coloredUsers.length > 0) {
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${IRC_COLORS.GREY}╔═══ USERS (${users.length}) ═══╗${IRC_COLORS.RESET}`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :  ${coloredUsers.join(' ')}`);
+    sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.GREY}╚${'═'.repeat(19)}╝${IRC_COLORS.RESET}`);
+  }
+  
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} : `);
+  sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${formatThemedHeader('════════════════════════════════════════════════════════════', dbChannelName)}`);
+  
+  // Also send standard IRC NAMES reply for protocol compliance
+  const standardOwners = owners.map(u => `~${u}`);
+  const standardAdmins = admins.map(u => `&${u}`);
+  const standardOps = ops.map(u => `@${u}`);
+  const moderatorNick = `@${welcomeInfo.moderator}`;
+  
+  const allNames = [...standardOwners, ...standardAdmins, ...standardOps, moderatorNick, ...botNames, ...users].join(' ');
+  sendNumeric(session, RPL.NAMREPLY, `= ${channelName} :${allNames}`);
+  sendNumeric(session, RPL.ENDOFNAMES, `${channelName} :End of /NAMES list`);
+}
+
 async function handleIRCCommand(session: IRCSession, line: string) {
   console.log(`[IRC IN] ${line}`);
   
@@ -2706,6 +2863,9 @@ async function handleIRCCommand(session: IRCSession, line: string) {
       if (params.length > 0) {
         sendNumeric(session, RPL.ENDOFWHO, `${params[0]} :End of WHO list`);
       }
+      break;
+    case "NAMES":
+      await handleNAMES(session, params);
       break;
     case "USERHOST":
     case "ISON":
