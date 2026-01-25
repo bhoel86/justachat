@@ -649,8 +649,8 @@ export default function VoiceChat() {
               )}
 
               {/* Messages Area */}
-              <ScrollArea className="flex-1">
-                <div className="p-3 space-y-2">
+              <ScrollArea className="flex-1 voice-bg-pattern">
+                <div className="p-3 space-y-2 relative z-10">
                   {messages.map(msg => (
                     <div 
                       key={msg.id}

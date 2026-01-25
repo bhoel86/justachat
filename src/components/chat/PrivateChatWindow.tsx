@@ -662,7 +662,7 @@ const PrivateChatWindow = forwardRef<HTMLDivElement, PrivateChatWindowProps>(({
 
       {/* Messages */}
       <div 
-        className="overflow-y-auto p-2 space-y-2 bg-background/50"
+        className="overflow-y-auto p-2 space-y-2 chat-bg-pattern"
         style={{ height: messageAreaHeight }}
       >
         {messages.length === 0 ? (
