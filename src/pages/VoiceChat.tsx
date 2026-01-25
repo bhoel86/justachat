@@ -219,7 +219,7 @@ const VoiceChat = () => {
               onClick={toggleBroadcast}
               className={`gap-2 ${
                 isBroadcasting 
-                  ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground animate-pulse' 
+                  ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' 
                   : 'bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white'
               }`}
             >
