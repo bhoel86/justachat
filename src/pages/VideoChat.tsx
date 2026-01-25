@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useVideoBroadcast } from '@/hooks/useVideoBroadcast';
+import { usePrivateChats } from '@/hooks/usePrivateChats';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import VideoTile from '@/components/video/VideoTile';
 import VideoChatBar from '@/components/video/VideoChatBar';
+import PrivateChatWindow from '@/components/chat/PrivateChatWindow';
+import PMTray from '@/components/chat/PMTray';
 import { 
   Video, VideoOff, ArrowLeft, Users, Mic, MicOff,
   Crown, Shield, Star, Camera
@@ -19,6 +22,19 @@ const VideoChat = () => {
   const [profile, setProfile] = useState<{ username: string; avatar_url: string | null } | null>(null);
   const [rolesByUserId, setRolesByUserId] = useState<Record<string, string>>({});
   const [isLocked, setIsLocked] = useState(false);
+
+  // Private messaging system
+  const {
+    activeChats,
+    minimizedChats,
+    openChat,
+    closeChat,
+    bringToFront,
+    minimizeChat,
+    restoreChat,
+    setUnread,
+    reorderChats
+  } = usePrivateChats(user?.id || '', profile?.username || 'Anonymous');
 
   // Fetch user profile
   useEffect(() => {
@@ -367,6 +383,7 @@ const VideoChat = () => {
                 odious={user.id}
                 username={profile?.username || 'Anonymous'}
                 avatarUrl={profile?.avatar_url}
+                onPmClick={openChat}
               />
             </div>
           </div>
@@ -387,9 +404,10 @@ const VideoChat = () => {
                   </p>
                 ) : (
                   viewers.map((viewer) => (
-                    <div 
+                    <button 
                       key={viewer.odious}
-                      className="flex items-center gap-3 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                      onClick={() => viewer.odious !== user.id && openChat(viewer.odious, viewer.username)}
+                      className="w-full flex items-center gap-3 p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-left"
                     >
                       <Avatar className="w-8 h-8">
                         <AvatarImage src={viewer.avatarUrl || undefined} />
@@ -401,7 +419,7 @@ const VideoChat = () => {
                         <p className="text-sm font-medium truncate">{viewer.username}</p>
                         {getRoleBadge(viewer.odious)}
                       </div>
-                    </div>
+                    </button>
                   ))
                 )}
               </div>
@@ -421,9 +439,35 @@ const VideoChat = () => {
             <li>• Or press <kbd className="px-1.5 py-0.5 bg-muted rounded border border-border text-xs font-mono">Alt</kbd> + <kbd className="px-1.5 py-0.5 bg-muted rounded border border-border text-xs font-mono">V</kbd> as a keyboard shortcut</li>
             <li>• <strong>Release</strong> to stop streaming</li>
             <li>• Everyone in the room will see your video while you hold</li>
+            <li>• <strong>Click</strong> any username to send a private message</li>
           </ul>
         </div>
       </main>
+
+      {/* Private Message Windows */}
+      {activeChats.map((chat) => (
+        <PrivateChatWindow
+          key={chat.id}
+          targetUserId={chat.targetUserId}
+          targetUsername={chat.targetUsername}
+          currentUserId={user.id}
+          currentUsername={profile?.username || 'Anonymous'}
+          onClose={() => closeChat(chat.id)}
+          onMinimize={() => minimizeChat(chat.id)}
+          onNewMessage={() => setUnread(chat.id)}
+          initialPosition={chat.position}
+          zIndex={chat.zIndex}
+          onFocus={() => bringToFront(chat.id)}
+        />
+      ))}
+
+      {/* PM Tray */}
+      <PMTray
+        minimizedChats={minimizedChats}
+        onRestore={restoreChat}
+        onClose={closeChat}
+        onReorder={reorderChats}
+      />
     </div>
   );
 };
