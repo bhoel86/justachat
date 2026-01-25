@@ -13,6 +13,7 @@ import VideoUserMenu from '@/components/video/VideoUserMenu';
 import PrivateChatWindow from '@/components/chat/PrivateChatWindow';
 import PMTray from '@/components/chat/PMTray';
 import { TestViewersToggle, TEST_VIEWERS, TEST_BROADCASTERS, TestViewer } from '@/components/video/TestViewersToggle';
+import AIEnhanceToggle from '@/components/video/AIEnhanceToggle';
 import { 
   Video, VideoOff, ArrowLeft, Users, Mic, MicOff,
   Crown, Shield, Star, Camera, MoreVertical
@@ -26,6 +27,7 @@ const VideoChat = () => {
   const [isLocked, setIsLocked] = useState(false);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [testUsersEnabled, setTestUsersEnabled] = useState(false);
+  const [aiEnhanceEnabled, setAiEnhanceEnabled] = useState(false);
 
   // Private messaging system
   const {
@@ -333,6 +335,14 @@ const VideoChat = () => {
               testViewers={testViewers}
               testBroadcasters={testBroadcasters}
             />
+            
+            {/* AI Enhancement Toggle */}
+            {isBroadcasting && (
+              <AIEnhanceToggle
+                isEnabled={aiEnhanceEnabled}
+                onToggle={() => setAiEnhanceEnabled(!aiEnhanceEnabled)}
+              />
+            )}
           </div>
         </div>
       </header>
@@ -372,6 +382,7 @@ const VideoChat = () => {
                         isLocal={true}
                         isBroadcasting={true}
                         roleBadge={getRoleBadge(user.id)}
+                        aiEnhanced={aiEnhanceEnabled}
                       />
                     )}
                     {/* Remote videos */}
