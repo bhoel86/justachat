@@ -35,13 +35,23 @@ const PrivateCallUI = ({
 
   useEffect(() => {
     if (localVideoRef.current && localStream) {
+      console.log('[PrivateCallUI] Setting local video srcObject');
       localVideoRef.current.srcObject = localStream;
+      // Force play for mobile browsers
+      localVideoRef.current.play().catch(err => {
+        console.warn('[PrivateCallUI] Local video autoplay failed:', err);
+      });
     }
   }, [localStream]);
 
   useEffect(() => {
     if (remoteVideoRef.current && remoteStream) {
+      console.log('[PrivateCallUI] Setting remote video srcObject with', remoteStream.getTracks().length, 'tracks');
       remoteVideoRef.current.srcObject = remoteStream;
+      // Force play for mobile browsers
+      remoteVideoRef.current.play().catch(err => {
+        console.warn('[PrivateCallUI] Remote video autoplay failed:', err);
+      });
     }
   }, [remoteStream]);
 

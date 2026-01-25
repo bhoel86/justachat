@@ -78,10 +78,12 @@ export const usePrivateCall = ({
 
   // Create peer connection
   const createPeerConnection = useCallback(() => {
+    console.log('[usePrivateCall] Creating new peer connection');
     const pc = new RTCPeerConnection(iceServers);
 
     pc.onicecandidate = (event) => {
       if (event.candidate && channelRef.current) {
+        console.log('[usePrivateCall] Sending ICE candidate');
         channelRef.current.send({
           type: 'broadcast',
           event: 'ice-candidate',
@@ -95,13 +97,26 @@ export const usePrivateCall = ({
     };
 
     pc.ontrack = (event) => {
-      setRemoteStream(event.streams[0]);
+      console.log('[usePrivateCall] Received remote track:', event.track.kind, event.streams.length, 'streams');
+      if (event.streams && event.streams[0]) {
+        console.log('[usePrivateCall] Setting remote stream with', event.streams[0].getTracks().length, 'tracks');
+        setRemoteStream(event.streams[0]);
+      }
     };
 
     pc.onconnectionstatechange = () => {
+      console.log('[usePrivateCall] Connection state changed:', pc.connectionState);
       if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
         endCall();
       }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      console.log('[usePrivateCall] ICE connection state:', pc.iceConnectionState);
+    };
+
+    pc.onnegotiationneeded = () => {
+      console.log('[usePrivateCall] Negotiation needed');
     };
 
     peerConnectionRef.current = pc;
@@ -115,30 +130,54 @@ export const usePrivateCall = ({
     }, 1000);
   }, []);
 
-  // Get media stream
+  // Get media stream with mobile-friendly fallbacks
   const getMediaStream = useCallback(async (type: CallType) => {
     try {
-      const constraints: MediaStreamConstraints = {
+      // Try with ideal constraints first, then fall back to basic constraints
+      const idealConstraints: MediaStreamConstraints = {
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
         },
         video: type === 'video' ? {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 30 },
+          width: { ideal: 1280, min: 320 },
+          height: { ideal: 720, min: 240 },
+          frameRate: { ideal: 30, min: 15 },
           facingMode: 'user',
         } : false,
       };
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      let stream: MediaStream | null = null;
+      
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(idealConstraints);
+        console.log('[usePrivateCall] Got media stream with ideal constraints');
+      } catch (idealError) {
+        console.warn('[usePrivateCall] Ideal constraints failed, trying basic:', idealError);
+        // Fallback to basic constraints for mobile
+        const basicConstraints: MediaStreamConstraints = {
+          audio: true,
+          video: type === 'video' ? { facingMode: 'user' } : false,
+        };
+        stream = await navigator.mediaDevices.getUserMedia(basicConstraints);
+        console.log('[usePrivateCall] Got media stream with basic constraints');
+      }
+
+      if (stream) {
+        const videoTracks = stream.getVideoTracks();
+        const audioTracks = stream.getAudioTracks();
+        console.log('[usePrivateCall] Stream tracks - Video:', videoTracks.length, 'Audio:', audioTracks.length);
+        videoTracks.forEach(t => console.log('[usePrivateCall] Video track:', t.label, t.readyState));
+        audioTracks.forEach(t => console.log('[usePrivateCall] Audio track:', t.label, t.readyState));
+      }
+
       localStreamRef.current = stream;
       setLocalStream(stream);
       return stream;
     } catch (error) {
-      console.error('Failed to get media stream:', error);
-      toast.error('Could not access camera/microphone');
+      console.error('[usePrivateCall] Failed to get media stream:', error);
+      toast.error('Could not access camera/microphone. Please check permissions.');
       return null;
     }
   }, []);
@@ -147,6 +186,7 @@ export const usePrivateCall = ({
   const startCall = useCallback(async (type: CallType) => {
     if (callState !== 'idle') return;
 
+    console.log('[usePrivateCall] Starting call, type:', type);
     setCallType(type);
     setCallState('calling');
 
@@ -158,7 +198,9 @@ export const usePrivateCall = ({
     }
 
     const pc = createPeerConnection();
+    console.log('[usePrivateCall] Adding', stream.getTracks().length, 'tracks to peer connection');
     stream.getTracks().forEach(track => {
+      console.log('[usePrivateCall] Adding track:', track.kind, track.label);
       pc.addTrack(track, stream);
     });
 
@@ -174,7 +216,7 @@ export const usePrivateCall = ({
       }
     });
 
-    // Timeout after 30 seconds - use a ref check since state may be stale in timeout
+    // Timeout after 30 seconds
     ringTimeoutRef.current = setTimeout(() => {
       toast.error(`${targetUsername} didn't answer`);
       setCallState('idle');
@@ -189,6 +231,8 @@ export const usePrivateCall = ({
   const answerCall = useCallback(async () => {
     if (callState !== 'ringing' || !incomingCallType) return;
 
+    console.log('[usePrivateCall] Answering call, type:', incomingCallType);
+
     const stream = await getMediaStream(incomingCallType);
     if (!stream) {
       rejectCall();
@@ -196,7 +240,9 @@ export const usePrivateCall = ({
     }
 
     const pc = createPeerConnection();
+    console.log('[usePrivateCall] Adding', stream.getTracks().length, 'tracks to peer connection for answer');
     stream.getTracks().forEach(track => {
+      console.log('[usePrivateCall] Adding track:', track.kind, track.label);
       pc.addTrack(track, stream);
     });
 
@@ -357,10 +403,16 @@ export const usePrivateCall = ({
         
         const pc = peerConnectionRef.current;
         if (pc) {
+          console.log('[usePrivateCall] Setting remote description from offer');
           await pc.setRemoteDescription(new RTCSessionDescription(payload.offer));
+          
+          console.log('[usePrivateCall] Creating answer');
           const answer = await pc.createAnswer();
+          
+          console.log('[usePrivateCall] Setting local description');
           await pc.setLocalDescription(answer);
           
+          console.log('[usePrivateCall] Sending webrtc-answer');
           channel.send({
             type: 'broadcast',
             event: 'webrtc-answer',
