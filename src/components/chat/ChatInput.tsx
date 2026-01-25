@@ -156,50 +156,68 @@ const ChatInput = ({ onSend, isMuted = false, canControlRadio = false, onlineUse
     
     setIsUploading(true);
     setUploadProgress(0);
-    
-    // Simulate progress while uploading
-    const progressInterval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 90) return prev;
-        return prev + Math.random() * 15;
-      });
-    }, 200);
-    
+
     try {
-      // NOTE: Some browsers/environments are flaky with multipart FormData via invoke().
-      // Send the raw binary image instead, and pass metadata via headers.
       const safeName = attachedImage.name.replace(/[^a-zA-Z0-9._-]/g, "_");
       const suggestedPath = `chat-images/${Date.now()}-${safeName}`;
 
-      const { data, error } = await supabase.functions.invoke("upload-image", {
-        body: attachedImage,
-        headers: {
-          "Content-Type": attachedImage.type,
-          "x-file-name": safeName,
-          "x-file-type": attachedImage.type,
-          "x-bucket": "avatars",
-          "x-path": suggestedPath,
-        },
-      });
-      
-      clearInterval(progressInterval);
-      setUploadProgress(100);
-      
-      if (error) {
-        const anyErr: any = error;
-        const status = anyErr?.context?.status;
-        const body = anyErr?.context?.body;
-        const detail = body
-          ? (typeof body === "string" ? body : JSON.stringify(body))
-          : anyErr?.message;
+      // Use a direct request to the backend upload endpoint.
+      // This avoids inconsistent multipart handling in some environments AND gives real upload progress.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) throw new Error("You must be signed in to upload images.");
 
-        console.error("Upload function error:", { status, detail, error });
-        throw new Error(
-          status
-            ? `Upload failed (HTTP ${status}): ${detail || "Unknown error"}`
-            : (detail || "Upload failed")
-        );
-      }
+      const endpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-image`;
+      const apikey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      const formData = new FormData();
+      formData.append("file", attachedImage);
+      formData.append("bucket", "avatars");
+      formData.append("path", suggestedPath);
+
+      const data = await new Promise<any>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", endpoint);
+        xhr.responseType = "json";
+
+        xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
+        if (apikey) xhr.setRequestHeader("apikey", apikey);
+
+        xhr.upload.onprogress = (evt) => {
+          if (evt.lengthComputable && evt.total > 0) {
+            const pct = Math.round((evt.loaded / evt.total) * 100);
+            // keep 100% for server response / moderation time
+            setUploadProgress(Math.min(99, Math.max(0, pct)));
+          }
+        };
+
+        xhr.onload = () => {
+          const resp = xhr.response ?? (() => {
+            try {
+              return xhr.responseText ? JSON.parse(xhr.responseText) : null;
+            } catch {
+              return xhr.responseText;
+            }
+          })();
+
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(resp);
+            return;
+          }
+
+          const detail =
+            (resp && typeof resp === "object" && (resp.message || resp.error || resp.details))
+              ? (resp.message || resp.error || resp.details)
+              : (typeof resp === "string" ? resp : xhr.responseText);
+
+          reject(new Error(`Upload failed (HTTP ${xhr.status}): ${detail || "Unknown error"}`));
+        };
+
+        xhr.onerror = () => reject(new Error("Upload failed: network error"));
+        xhr.send(formData);
+      });
+
+      setUploadProgress(100);
       
       if (data?.error) {
         // Handle specific error types
@@ -227,7 +245,6 @@ const ChatInput = ({ onSend, isMuted = false, canControlRadio = false, onlineUse
       
       return data?.url || null;
     } catch (error) {
-      clearInterval(progressInterval);
       console.error("Upload error:", error);
       toast({
         variant: "destructive",
@@ -237,7 +254,8 @@ const ChatInput = ({ onSend, isMuted = false, canControlRadio = false, onlineUse
       return null;
     } finally {
       setIsUploading(false);
-      setUploadProgress(0);
+      // keep the bar visible briefly after completion/failure
+      setTimeout(() => setUploadProgress(0), 500);
     }
   };
 
