@@ -99,7 +99,7 @@ export default function VoiceChat() {
   const [showChannelSheet, setShowChannelSheet] = useState(false);
   const [showMemberSheet, setShowMemberSheet] = useState(false);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
-  const [viewingProfile, setViewingProfile] = useState<{ id: string; username: string; avatarUrl?: string; bio?: string | null; role?: string } | null>(null);
+  const [viewingProfile, setViewingProfile] = useState<{ id: string; username: string; avatarUrl?: string; bio?: string | null; age?: number | null; role?: string } | null>(null);
   const [selectedAction, setSelectedAction] = useState<{ emoji: string; action: string; suffix: string } | null>(null);
   const [attachedImage, setAttachedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -410,10 +410,10 @@ export default function VoiceChat() {
     if (isLocal) {
       setShowProfileEdit(true);
     } else {
-      // Fetch profile data for viewing
+      // Fetch profile data for viewing (including age)
       const { data: profileData } = await supabaseUntyped
         .from('profiles')
-        .select('bio, avatar_url')
+        .select('bio, avatar_url, age')
         .eq('user_id', memberId)
         .maybeSingle();
       
@@ -428,6 +428,7 @@ export default function VoiceChat() {
         username: memberUsername,
         avatarUrl: profileData?.avatar_url || memberAvatarUrl,
         bio: profileData?.bio,
+        age: profileData?.age,
         role: roleData?.role
       });
     }
@@ -936,6 +937,7 @@ export default function VoiceChat() {
           username={viewingProfile.username}
           avatarUrl={viewingProfile.avatarUrl || null}
           bio={viewingProfile.bio || null}
+          age={viewingProfile.age}
           role={viewingProfile.role}
         />
       )}
