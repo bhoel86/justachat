@@ -66,7 +66,12 @@ const PrivateChatWindow = forwardRef<HTMLDivElement, PrivateChatWindowProps>(({
   const [sessionId, setSessionId] = useState<string>('');
   const [isConnected, setIsConnected] = useState(false);
   const [targetOnline, setTargetOnline] = useState(false);
-  const [position, setPosition] = useState(initialPosition);
+  // Clamp initial position to ensure window is visible
+  const clampedInitialPosition = {
+    x: Math.max(10, Math.min(window.innerWidth - 380, initialPosition.x)),
+    y: Math.max(60, Math.min(window.innerHeight - 500, initialPosition.y))
+  };
+  const [position, setPosition] = useState(clampedInitialPosition);
   const [size, setSize] = useState({ width: 360, height: 480 });
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -138,8 +143,8 @@ const PrivateChatWindow = forwardRef<HTMLDivElement, PrivateChatWindowProps>(({
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (isDragging) {
-        const newX = Math.max(0, Math.min(window.innerWidth - size.width, e.clientX - dragOffset.x));
-        const newY = Math.max(0, Math.min(window.innerHeight - 50, e.clientY - dragOffset.y));
+        const newX = Math.max(10, Math.min(window.innerWidth - size.width - 10, e.clientX - dragOffset.x));
+        const newY = Math.max(60, Math.min(window.innerHeight - 100, e.clientY - dragOffset.y));
         setPosition({ x: newX, y: newY });
       }
       if (isResizing) {
@@ -628,16 +633,16 @@ const PrivateChatWindow = forwardRef<HTMLDivElement, PrivateChatWindowProps>(({
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={(e) => { e.stopPropagation(); onMinimize(); }} 
-            className="h-6 w-6 rounded hover:bg-background/50"
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); onMinimize(); }} 
+            className="h-6 w-6 rounded hover:bg-background/50 relative z-10"
           >
             <Minus className="h-3 w-3" />
           </Button>
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={(e) => { e.stopPropagation(); handleClose(); }} 
-            className="h-6 w-6 rounded hover:bg-destructive/20 hover:text-destructive"
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleClose(); }} 
+            className="h-6 w-6 rounded hover:bg-destructive/20 hover:text-destructive relative z-10"
           >
             <X className="h-3 w-3" />
           </Button>
