@@ -37,7 +37,7 @@
  */
 
 // Version - update this when making changes
-const PROXY_VERSION = '2.2.0';
+const PROXY_VERSION = '2.3.0';
 
 const net = require('net');
 const tls = require('tls');
@@ -629,7 +629,16 @@ async function handleConnection(socket, isSecure = false) {
   let intentionalClose = false;
   let lastCredentials = null; // Store PASS/NICK/USER for reconnect
   const MAX_RECONNECT_ATTEMPTS = 10;
-  const RECONNECT_DELAY_BASE = 1000; // 1 second base delay
+  const RECONNECT_DELAY_BASE = 500; // 500ms base delay for faster reconnects
+  
+  // Keep-alive configuration
+  const PING_INTERVAL = 30000; // Send PING to client every 30 seconds
+  const WS_PING_INTERVAL = 25000; // Send WebSocket ping every 25 seconds
+  const PONG_TIMEOUT = 60000; // Client must respond within 60 seconds
+  let clientPingInterval = null;
+  let wsPingInterval = null;
+  let lastPongReceived = Date.now();
+  let awaitingPong = false;
   
   // mIRC (and many clients) sends PASS/NICK/USER immediately after TCP connect.
   // If the WebSocket to the gateway isn't OPEN yet, those lines were previously dropped,
@@ -661,6 +670,66 @@ async function handleConnection(socket, isSecure = false) {
     }
   }
   
+  // Start client keep-alive (PING to IRC client)
+  function startClientPing() {
+    if (clientPingInterval) clearInterval(clientPingInterval);
+    
+    clientPingInterval = setInterval(() => {
+      if (intentionalClose) {
+        clearInterval(clientPingInterval);
+        return;
+      }
+      
+      // Check if client responded to previous PING
+      if (awaitingPong && Date.now() - lastPongReceived > PONG_TIMEOUT) {
+        log('warn', `[${connId}] Client ping timeout, closing connection`);
+        fileLogger.connection('PING_TIMEOUT', connId, clientIP, { nick: conn.nickname });
+        socket.end();
+        return;
+      }
+      
+      // Send PING to keep client connection alive
+      try {
+        socket.write(`PING :proxy.jac.chat\r\n`);
+        awaitingPong = true;
+        log('debug', `[${connId}] Sent PING to client`);
+      } catch (e) {
+        log('error', `[${connId}] Failed to send PING:`, e.message);
+      }
+    }, PING_INTERVAL);
+  }
+  
+  // Start WebSocket keep-alive
+  function startWsPing() {
+    if (wsPingInterval) clearInterval(wsPingInterval);
+    
+    wsPingInterval = setInterval(() => {
+      if (intentionalClose || !ws || ws.readyState !== WebSocket.OPEN) {
+        clearInterval(wsPingInterval);
+        return;
+      }
+      
+      try {
+        // WebSocket level ping
+        ws.ping();
+        log('debug', `[${connId}] Sent WebSocket ping`);
+      } catch (e) {
+        log('error', `[${connId}] Failed to send WS ping:`, e.message);
+      }
+    }, WS_PING_INTERVAL);
+  }
+  
+  function stopPingIntervals() {
+    if (clientPingInterval) {
+      clearInterval(clientPingInterval);
+      clientPingInterval = null;
+    }
+    if (wsPingInterval) {
+      clearInterval(wsPingInterval);
+      wsPingInterval = null;
+    }
+  }
+  
   function connectToGateway() {
     if (intentionalClose) return;
     
@@ -668,50 +737,85 @@ async function handleConnection(socket, isSecure = false) {
       ws = new WebSocket(config.wsUrl);
       
       ws.on('open', () => {
-        log('info', `[${connId}] Gateway connected${reconnectAttempts > 0 ? ` (reconnect #${reconnectAttempts})` : ''}`);
+        const wasReconnect = reconnectAttempts > 0;
+        log('info', `[${connId}] Gateway connected${wasReconnect ? ` (reconnect #${reconnectAttempts})` : ''}`);
         fileLogger.connection('GATEWAY_OPEN', connId, clientIP, { reconnect: reconnectAttempts });
         reconnectAttempts = 0;
         isReconnecting = false;
         
+        // Start WebSocket keep-alive
+        startWsPing();
+        
         // On reconnect, re-send credentials to re-authenticate
-        if (lastCredentials) {
+        if (wasReconnect && lastCredentials) {
+          log('info', `[${connId}] Re-authenticating after reconnect`);
           if (lastCredentials.pass) ws.send(lastCredentials.pass);
           if (lastCredentials.nick) ws.send(lastCredentials.nick);
           if (lastCredentials.user) ws.send(lastCredentials.user);
-          // Rejoin channels the user was in
-          if (conn.channels && conn.channels.size > 0) {
-            for (const channel of conn.channels) {
-              ws.send(`JOIN ${channel}`);
+          
+          // Small delay before rejoining channels
+          setTimeout(() => {
+            if (conn.channels && conn.channels.size > 0 && ws && ws.readyState === WebSocket.OPEN) {
+              for (const channel of conn.channels) {
+                log('info', `[${connId}] Rejoining ${channel}`);
+                ws.send(`JOIN ${channel}`);
+              }
             }
-          }
+          }, 500);
+        } else if (lastCredentials) {
+          // First connect but credentials already queued - flush them
         }
         
         flushToGateway();
       });
       
-      ws.on('message', (data) => { 
-        log('debug', `[${connId}] [GW->IRC]`, data.toString().trim()); 
-        socket.write(data.toString()); 
+      ws.on('message', (data) => {
+        const msg = data.toString();
+        log('debug', `[${connId}] [GW->IRC]`, msg.trim());
+        
+        // Don't forward gateway PINGs to client - we handle keep-alive ourselves
+        // But we need to respond to them to keep the gateway alive
+        if (msg.startsWith('PING ')) {
+          const pingArg = msg.substring(5).trim();
+          try {
+            ws.send(`PONG ${pingArg}`);
+            log('debug', `[${connId}] Responded to gateway PING`);
+          } catch (e) {
+            log('error', `[${connId}] Failed to send PONG:`, e.message);
+          }
+          return;
+        }
+        
+        socket.write(msg);
       });
       
-      ws.on('close', () => {
+      ws.on('pong', () => {
+        log('debug', `[${connId}] Received WebSocket pong`);
+      });
+      
+      ws.on('close', (code, reason) => {
         if (intentionalClose) {
           log('info', `[${connId}] Gateway closed (intentional)`);
           return;
         }
         
-        log('warn', `[${connId}] Gateway closed unexpectedly`);
+        log('warn', `[${connId}] Gateway closed unexpectedly (code: ${code})`);
+        stopPingIntervals();
         
-        // Attempt reconnection
+        // Attempt reconnection immediately for edge function timeouts
         if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS && !intentionalClose) {
           reconnectAttempts++;
           isReconnecting = true;
-          const delay = Math.min(RECONNECT_DELAY_BASE * Math.pow(1.5, reconnectAttempts - 1), 30000);
+          
+          // Use shorter delays for better UX
+          const delay = reconnectAttempts === 1 ? 100 : Math.min(RECONNECT_DELAY_BASE * Math.pow(1.3, reconnectAttempts - 1), 10000);
           log('info', `[${connId}] Reconnecting in ${delay}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
           fileLogger.connection('RECONNECT_ATTEMPT', connId, clientIP, { attempt: reconnectAttempts, delay });
           
-          // Notify client of reconnection
-          socket.write(`:server NOTICE * :*** Gateway connection lost, reconnecting...\r\n`);
+          // Only notify client on first reconnect attempt
+          if (reconnectAttempts === 1) {
+            socket.write(`:proxy.jac.chat NOTICE * :*** Reconnecting to gateway...\r\n`);
+          }
           
           setTimeout(() => {
             if (!intentionalClose) connectToGateway();
@@ -719,7 +823,7 @@ async function handleConnection(socket, isSecure = false) {
         } else {
           log('error', `[${connId}] Max reconnect attempts reached, closing connection`);
           fileLogger.connection('RECONNECT_FAILED', connId, clientIP, { attempts: reconnectAttempts });
-          socket.write(`:server NOTICE * :*** Unable to reconnect to gateway after ${MAX_RECONNECT_ATTEMPTS} attempts\r\n`);
+          socket.write(`:proxy.jac.chat NOTICE * :*** Unable to reconnect to gateway after ${MAX_RECONNECT_ATTEMPTS} attempts\r\n`);
           socket.end();
         }
       });
@@ -735,7 +839,7 @@ async function handleConnection(socket, isSecure = false) {
       
       if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS && !intentionalClose) {
         reconnectAttempts++;
-        const delay = Math.min(RECONNECT_DELAY_BASE * Math.pow(1.5, reconnectAttempts - 1), 30000);
+        const delay = Math.min(RECONNECT_DELAY_BASE * Math.pow(1.3, reconnectAttempts - 1), 10000);
         setTimeout(() => {
           if (!intentionalClose) connectToGateway();
         }, delay);
@@ -747,6 +851,9 @@ async function handleConnection(socket, isSecure = false) {
   
   // Track channels for reconnect
   conn.channels = new Set();
+  
+  // Start client keep-alive immediately
+  startClientPing();
   
   // Initial connection
   connectToGateway();
@@ -760,10 +867,18 @@ async function handleConnection(socket, isSecure = false) {
     for (const line of lines) {
       if (!line.trim()) continue;
       
+      // Handle PONG responses from client (for our keep-alive)
+      if (line.startsWith('PONG ')) {
+        lastPongReceived = Date.now();
+        awaitingPong = false;
+        log('debug', `[${connId}] Received PONG from client`);
+        continue; // Don't forward to gateway
+      }
+      
       const msgCheck = rateLimiter.canSendMessage(connId, clientIP);
       if (!msgCheck.allowed) {
         conn.throttledCount++;
-        if (++throttleWarnings % 5 === 1) socket.write(`:server NOTICE * :Slow down!\r\n`);
+        if (++throttleWarnings % 5 === 1) socket.write(`:proxy.jac.chat NOTICE * :Slow down!\r\n`);
         if (throttleWarnings >= 50) {
           const v = rateLimiter.recordViolation(clientIP, 'flooding');
           if (v.shouldBan) banIP(clientIP, 'Auto-ban: Flooding', config.rateBanDuration, true);
@@ -800,6 +915,7 @@ async function handleConnection(socket, isSecure = false) {
         fileLogger.connection('PART', connId, clientIP, { nick: conn.nickname, channel });
       } else if (line.startsWith('QUIT')) {
         intentionalClose = true; // User is quitting, don't reconnect
+        stopPingIntervals();
         fileLogger.connection('QUIT', connId, clientIP, { nick: conn.nickname });
       }
       
@@ -816,6 +932,7 @@ async function handleConnection(socket, isSecure = false) {
   
   socket.on('close', () => {
     intentionalClose = true; // Stop reconnection attempts
+    stopPingIntervals();
     const duration = Math.floor((Date.now() - conn.connected.getTime()) / 1000);
     log('info', `[${connId}] Disconnected`);
     fileLogger.connection('DISCONNECT', connId, clientIP, { nick: conn.nickname, duration, messages: conn.messageCount, throttled: conn.throttledCount });
@@ -826,6 +943,7 @@ async function handleConnection(socket, isSecure = false) {
   
   socket.on('error', (err) => {
     intentionalClose = true; // Stop reconnection attempts
+    stopPingIntervals();
     log('error', `[${connId}] Error:`, err.message);
     fileLogger.error('SOCKET', err.message, { connId, ip: clientIP });
     activeConnections.delete(connId);
