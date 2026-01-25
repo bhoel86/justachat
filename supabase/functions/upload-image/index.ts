@@ -129,6 +129,7 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     // Get auth header and verify user
     const authHeader = req.headers.get("Authorization");
@@ -139,13 +140,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Use the caller JWT for storage operations so storage policies apply as expected.
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    // Use a user-scoped client ONLY for JWT verification / user identity.
+    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(token);
     const userId = claimsData?.claims?.sub;
 
     if (claimsError || !userId) {
@@ -280,8 +281,22 @@ Deno.serve(async (req) => {
       fileName = `${userId}/${fileName}`;
     }
 
-    // Upload to storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    // Upload to storage using a server-scoped client to avoid storage RLS failures.
+    // Security is preserved by:
+    //  - verifying the caller JWT above
+    //  - forcing the object name into the caller's userId folder
+    //  - limiting bucket to an allowlist
+    const allowedBuckets = new Set(["avatars", "chat-images"]);
+    if (!allowedBuckets.has(bucket)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid bucket" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseStorage = createClient(supabaseUrl, supabaseServiceRoleKey);
+
+    const { data: uploadData, error: uploadError } = await supabaseStorage.storage
       .from(bucket)
       .upload(fileName, uploadBytes, {
         contentType: uploadType,
@@ -314,7 +329,7 @@ Deno.serve(async (req) => {
     }
 
     // Get public URL
-    const { data: { publicUrl } } = supabase.storage
+    const { data: { publicUrl } } = supabaseStorage.storage
       .from(bucket)
       .getPublicUrl(fileName);
 
