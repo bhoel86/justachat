@@ -146,35 +146,63 @@ export default function VoiceRoom({ roomId, roomName, onLeave }: VoiceRoomProps)
       )}
 
       {/* Video Grid */}
-      <div className="flex-1 p-4 overflow-auto">
-        <div className={cn(
-          "grid gap-4",
-          peers.length === 0 ? "grid-cols-1" :
-          peers.length <= 1 ? "grid-cols-1 md:grid-cols-2" :
-          peers.length <= 3 ? "grid-cols-2" :
-          "grid-cols-2 md:grid-cols-3"
-        )}>
-          {/* Local video */}
-          <VideoTile
-            stream={localStream}
-            username="You"
-            isMuted={isMuted}
-            isSpeaking={isTalking}
-            isLocal
-            backgroundEffect={backgroundEffect}
-          />
+      <div className="flex-1 p-4 overflow-auto flex flex-col">
+        {(() => {
+          const allParticipants = [
+            { id: 'local', stream: localStream, username: 'You', isMuted, isSpeaking: isTalking, isLocal: true },
+            ...peers.map(p => ({ id: p.id, stream: p.stream, username: p.username, isMuted: p.isMuted, isSpeaking: p.isSpeaking, isLocal: false }))
+          ];
+          const visible = allParticipants.slice(0, 6);
+          const waiting = allParticipants.slice(6);
+          const count = visible.length;
           
-          {/* Peer videos */}
-          {peers.map(peer => (
-            <VideoTile
-              key={peer.id}
-              stream={peer.stream}
-              username={peer.username}
-              isMuted={peer.isMuted}
-              isSpeaking={peer.isSpeaking}
-            />
-          ))}
-        </div>
+          return (
+            <>
+              {/* Centered grid - max 6 */}
+              <div className="flex-1 flex items-center justify-center">
+                <div className={cn(
+                  "grid gap-3 w-full max-w-4xl",
+                  count <= 1 ? "grid-cols-1 max-w-md" :
+                  count === 2 ? "grid-cols-2 max-w-2xl" :
+                  count <= 4 ? "grid-cols-2" :
+                  "grid-cols-3"
+                )}>
+                  {visible.map(participant => (
+                    <VideoTile
+                      key={participant.id}
+                      stream={participant.stream}
+                      username={participant.username}
+                      isMuted={participant.isMuted}
+                      isSpeaking={participant.isSpeaking}
+                      isLocal={participant.isLocal}
+                      backgroundEffect={participant.isLocal ? backgroundEffect : 'none'}
+                    />
+                  ))}
+                </div>
+              </div>
+              
+              {/* Waiting list */}
+              {waiting.length > 0 && (
+                <div className="mt-4 p-3 rounded-lg bg-muted/30 border border-border/50">
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Waiting ({waiting.length})
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {waiting.map(p => (
+                      <div key={p.id} className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-background/50 text-xs">
+                        <div className={cn(
+                          "w-2 h-2 rounded-full",
+                          p.isSpeaking ? "bg-green-500" : "bg-muted-foreground/50"
+                        )} />
+                        <span>{p.username}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
 
       {/* Controls */}
