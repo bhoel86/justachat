@@ -41,7 +41,8 @@ const VoiceChat = () => {
     isConnected,
     participants,
     audioLevel,
-    toggleBroadcast
+    startBroadcast,
+    stopBroadcast
   } = useVoiceBroadcast({
     roomId: 'voice-chat-main',
     odious: user?.id || '',
@@ -216,24 +217,19 @@ const VoiceChat = () => {
             )}
             
             <Button
-              onClick={toggleBroadcast}
-              className={`gap-2 ${
+              onMouseDown={startBroadcast}
+              onMouseUp={stopBroadcast}
+              onMouseLeave={stopBroadcast}
+              onTouchStart={startBroadcast}
+              onTouchEnd={stopBroadcast}
+              className={`gap-2 select-none ${
                 isBroadcasting 
                   ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' 
                   : 'bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white'
               }`}
             >
-              {isBroadcasting ? (
-                <>
-                  <MicOff className="w-4 h-4" />
-                  Stop Broadcasting
-                </>
-              ) : (
-                <>
-                  <Mic className="w-4 h-4" />
-                  Start Broadcasting
-                </>
-              )}
+              <Mic className={`w-4 h-4 ${isBroadcasting ? 'animate-pulse' : ''}`} />
+              {isBroadcasting ? 'Broadcasting...' : 'Hold to Talk'}
             </Button>
           </div>
         </div>
@@ -340,9 +336,9 @@ const VoiceChat = () => {
             How Voice Chat Works
           </h3>
           <ul className="text-sm text-muted-foreground space-y-1">
-            <li>• Click the <strong>Start Broadcasting</strong> button to share your voice live</li>
-            <li>• Everyone in the room will hear you instantly</li>
-            <li>• Click <strong>Stop Broadcasting</strong> when you're done speaking</li>
+            <li>• <strong>Hold</strong> the <strong>Hold to Talk</strong> button to broadcast your voice</li>
+            <li>• <strong>Release</strong> the button to stop broadcasting</li>
+            <li>• Everyone in the room will hear you while you hold the button</li>
             <li>• Listeners can hear all active broadcasters</li>
           </ul>
         </div>
