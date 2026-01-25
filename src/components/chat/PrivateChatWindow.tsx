@@ -586,41 +586,37 @@ const PrivateChatWindow = forwardRef<HTMLDivElement, PrivateChatWindowProps>(({
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          {/* Voice/Video Call buttons - only for real users, not bots */}
-          {!isTargetBot && (
-            <>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={(e) => { 
-                  e.stopPropagation(); 
-                  window.dispatchEvent(new CustomEvent('start-private-call', { 
-                    detail: { targetUserId, targetUsername, callType: 'voice' } 
-                  }));
-                }} 
-                className="h-7 px-2 rounded-md border-green-500/50 text-green-500 hover:bg-green-500/20 hover:text-green-400 gap-1"
-                title="Voice call"
-              >
-                <Phone className="h-3.5 w-3.5" />
-                <span className="text-[10px]">Call</span>
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={(e) => { 
-                  e.stopPropagation();
-                  window.dispatchEvent(new CustomEvent('start-private-call', { 
-                    detail: { targetUserId, targetUsername, callType: 'video' } 
-                  }));
-                }} 
-                className="h-7 px-2 rounded-md border-blue-500/50 text-blue-500 hover:bg-blue-500/20 hover:text-blue-400 gap-1"
-                title="Video call"
-              >
-                <Video className="h-3.5 w-3.5" />
-                <span className="text-[10px]">Video</span>
-              </Button>
-            </>
-          )}
+          {/* Voice/Video Call buttons */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={(e) => { 
+              e.stopPropagation(); 
+              window.dispatchEvent(new CustomEvent('start-private-call', { 
+                detail: { targetUserId, targetUsername, callType: 'voice', isBot: isTargetBot } 
+              }));
+            }} 
+            className="h-7 px-2 rounded-md border-green-500/50 text-green-500 hover:bg-green-500/20 hover:text-green-400 gap-1"
+            title="Voice call"
+          >
+            <Phone className="h-3.5 w-3.5" />
+            <span className="text-[10px]">Call</span>
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={(e) => { 
+              e.stopPropagation();
+              window.dispatchEvent(new CustomEvent('start-private-call', { 
+                detail: { targetUserId, targetUsername, callType: 'video', isBot: isTargetBot } 
+              }));
+            }} 
+            className="h-7 px-2 rounded-md border-blue-500/50 text-blue-500 hover:bg-blue-500/20 hover:text-blue-400 gap-1"
+            title="Video call"
+          >
+            <Video className="h-3.5 w-3.5" />
+            <span className="text-[10px]">Video</span>
+          </Button>
           <Button 
             variant="ghost" 
             size="icon" 

@@ -16,6 +16,7 @@ interface PrivateCallModalProps {
   recipientUsername: string;
   isIncoming?: boolean;
   callType?: 'voice' | 'video';
+  isBot?: boolean;
 }
 
 export default function PrivateCallModal({
@@ -25,6 +26,7 @@ export default function PrivateCallModal({
   recipientUsername,
   isIncoming = false,
   callType = 'voice',
+  isBot = false,
 }: PrivateCallModalProps) {
   const { user } = useAuth();
   const [callStatus, setCallStatus] = useState<'ringing' | 'connected' | 'ended'>('ringing');
@@ -92,6 +94,22 @@ export default function PrivateCallModal({
       supabase.removeChannel(channel);
     };
   }, [isOpen, user, roomId, isIncoming, callType, recipientUsername, joinRoom, leaveRoom, onClose]);
+
+  // Bot auto-answer: When calling a bot, auto-accept the call after a short delay
+  useEffect(() => {
+    if (!isOpen || !isBot || isIncoming) return;
+    
+    // Simulate bot "answering" the call after 2-4 seconds
+    const answerDelay = 2000 + Math.random() * 2000;
+    
+    const timer = setTimeout(async () => {
+      setCallStatus('connected');
+      await joinRoom(callType === 'video');
+      toast.success(`${recipientUsername} answered the call`);
+    }, answerDelay);
+
+    return () => clearTimeout(timer);
+  }, [isOpen, isBot, isIncoming, callType, recipientUsername, joinRoom]);
 
   const handleAccept = async () => {
     setCallStatus('connected');

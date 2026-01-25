@@ -155,6 +155,22 @@ export const useWebRTC = ({
   // Initialize media
   const initializeMedia = useCallback(async (video: boolean = false) => {
     try {
+      // First check if media devices are available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.warn('Media devices not available, creating silent stream');
+        // Create a silent audio stream for environments without media access
+        const audioContext = new AudioContext();
+        const oscillator = audioContext.createOscillator();
+        const destination = audioContext.createMediaStreamDestination();
+        oscillator.connect(destination);
+        oscillator.frequency.value = 0; // Silent
+        oscillator.start();
+        
+        setLocalStream(destination.stream);
+        setIsVideoEnabled(false);
+        return destination.stream;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
@@ -181,8 +197,27 @@ export const useWebRTC = ({
       }
       
       return stream;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to get media:', error);
+      
+      // Handle common errors gracefully
+      if (error.name === 'NotFoundError' || error.name === 'NotAllowedError') {
+        // Create a silent audio stream so the call can still proceed
+        try {
+          const audioContext = new AudioContext();
+          const oscillator = audioContext.createOscillator();
+          const destination = audioContext.createMediaStreamDestination();
+          oscillator.connect(destination);
+          oscillator.frequency.value = 0;
+          oscillator.start();
+          
+          setLocalStream(destination.stream);
+          setIsVideoEnabled(false);
+          return destination.stream;
+        } catch (fallbackError) {
+          console.error('Fallback stream creation failed:', fallbackError);
+        }
+      }
       throw error;
     }
   }, [isPushToTalk, startVAD]);
