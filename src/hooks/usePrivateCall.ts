@@ -11,6 +11,8 @@ interface UsePrivateCallOptions {
   targetUserId: string;
   targetUsername: string;
   onIncomingCall?: (callType: CallType) => void;
+  pendingIncomingCall?: { callType: CallType } | null;
+  onClearPendingCall?: () => void;
 }
 
 export const usePrivateCall = ({
@@ -18,7 +20,9 @@ export const usePrivateCall = ({
   currentUsername,
   targetUserId,
   targetUsername,
-  onIncomingCall
+  onIncomingCall,
+  pendingIncomingCall,
+  onClearPendingCall
 }: UsePrivateCallOptions) => {
   const [callState, setCallState] = useState<CallState>('idle');
   const [callType, setCallType] = useState<CallType | null>(null);
@@ -34,6 +38,7 @@ export const usePrivateCall = ({
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const callTimerRef = useRef<NodeJS.Timeout | null>(null);
   const ringTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const channelSubscribedRef = useRef(false);
 
   // ICE servers for NAT traversal
   const iceServers = {
@@ -278,11 +283,13 @@ export const usePrivateCall = ({
   useEffect(() => {
     if (!currentUserId || !targetUserId) return;
 
+    console.log('[usePrivateCall] Setting up call channel:', `call-${channelName}`);
     const channel = supabase.channel(`call-${channelName}`);
     channelRef.current = channel;
 
     channel
       .on('broadcast', { event: 'call-request' }, async ({ payload }) => {
+        console.log('[usePrivateCall] Received call-request:', payload);
         if (payload.to !== currentUserId) return;
         
         // Incoming call
@@ -291,6 +298,7 @@ export const usePrivateCall = ({
         onIncomingCall?.(payload.callType);
       })
       .on('broadcast', { event: 'call-answer' }, async ({ payload }) => {
+        console.log('[usePrivateCall] Received call-answer:', payload);
         if (payload.to !== currentUserId) return;
         
         if (ringTimeoutRef.current) {
@@ -302,6 +310,7 @@ export const usePrivateCall = ({
           // Call was accepted, create offer
           const pc = peerConnectionRef.current;
           if (pc) {
+            console.log('[usePrivateCall] Creating WebRTC offer');
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
             
@@ -314,6 +323,8 @@ export const usePrivateCall = ({
                 offer,
               }
             });
+          } else {
+            console.error('[usePrivateCall] No peer connection when call answered');
           }
           setCallState('connected');
           startCallTimer();
@@ -327,6 +338,7 @@ export const usePrivateCall = ({
         }
       })
       .on('broadcast', { event: 'call-end' }, ({ payload }) => {
+        console.log('[usePrivateCall] Received call-end:', payload);
         if (payload.to !== currentUserId && payload.from !== targetUserId) return;
         
         toast.info('Call ended');
@@ -340,6 +352,7 @@ export const usePrivateCall = ({
         }, 1000);
       })
       .on('broadcast', { event: 'webrtc-offer' }, async ({ payload }) => {
+        console.log('[usePrivateCall] Received webrtc-offer:', payload);
         if (payload.to !== currentUserId) return;
         
         const pc = peerConnectionRef.current;
@@ -357,9 +370,12 @@ export const usePrivateCall = ({
               answer,
             }
           });
+        } else {
+          console.error('[usePrivateCall] No peer connection when offer received');
         }
       })
       .on('broadcast', { event: 'webrtc-answer' }, async ({ payload }) => {
+        console.log('[usePrivateCall] Received webrtc-answer:', payload);
         if (payload.to !== currentUserId) return;
         
         const pc = peerConnectionRef.current;
@@ -375,13 +391,26 @@ export const usePrivateCall = ({
           await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[usePrivateCall] Channel subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          channelSubscribedRef.current = true;
+          // If we have a pending call, now process it
+          if (pendingIncomingCall && callState === 'idle') {
+            console.log('[usePrivateCall] Processing pending call after subscribe:', pendingIncomingCall.callType);
+            setIncomingCallType(pendingIncomingCall.callType);
+            setCallState('ringing');
+            onClearPendingCall?.();
+          }
+        }
+      });
 
     return () => {
+      channelSubscribedRef.current = false;
       supabase.removeChannel(channel);
       cleanup();
     };
-  }, [currentUserId, targetUserId, channelName, onIncomingCall, targetUsername, cleanup, startCallTimer]);
+  }, [currentUserId, targetUserId, channelName, onIncomingCall, targetUsername, cleanup, startCallTimer, pendingIncomingCall, callState, onClearPendingCall]);
 
   // Format call duration
   const formatDuration = (seconds: number) => {
