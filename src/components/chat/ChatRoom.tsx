@@ -1022,7 +1022,7 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
   }
 
   return (
-    <div className="flex h-screen bg-background relative">
+    <div className="flex h-screen bg-background relative overflow-hidden">
       {/* Mobile overlay when sidebar is open */}
       {(showChannelSidebar || showMemberSidebar) && (
         <div 
@@ -1055,7 +1055,7 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex flex-col flex-1 min-w-0">
+      <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden">
         {/* Mobile Header Bar */}
         <div className="flex items-center gap-2 px-2 py-2 border-b border-border bg-card lg:hidden">
           <Button
