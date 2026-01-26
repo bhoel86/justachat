@@ -148,7 +148,7 @@ const PrivateChatWindow = ({
   // Scroll to bottom when new messages are added (own messages or incoming)
   useEffect(() => {
     if (messages.length > 0) {
-      // Use double RAF for more reliable mobile scrolling
+      // Force scroll to bottom with multiple strategies for mobile reliability
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           if (messagesContainerRef.current) {
@@ -156,9 +156,26 @@ const PrivateChatWindow = ({
           }
         });
       });
+      // Also use timeout as fallback for mobile
+      setTimeout(() => {
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        }
+      }, 100);
     }
     lastMessageCountRef.current = messages.length;
   }, [messages]);
+
+  // Force scroll when connection is established and overlay disappears
+  useEffect(() => {
+    if (isConnected && messages.length > 0) {
+      setTimeout(() => {
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        }
+      }, 200);
+    }
+  }, [isConnected, messages.length]);
 
   // Dragging logic
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -305,7 +322,7 @@ const PrivateChatWindow = ({
           if (isMounted) {
             setMessages(decryptedMessages);
             lastMessageCountRef.current = decryptedMessages.length;
-            // Scroll to bottom after loading messages - use multiple RAF for mobile
+            // Force scroll to bottom after loading history
             requestAnimationFrame(() => {
               requestAnimationFrame(() => {
                 if (messagesContainerRef.current) {
@@ -313,6 +330,12 @@ const PrivateChatWindow = ({
                 }
               });
             });
+            // Use timeout as well for mobile reliability
+            setTimeout(() => {
+              if (messagesContainerRef.current) {
+                messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+              }
+            }, 150);
           }
         } else {
           console.log('[PM-HISTORY] No messages found in DB');
