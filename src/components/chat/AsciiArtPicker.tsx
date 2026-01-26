@@ -57,21 +57,21 @@ const findClosestColor = (r: number, g: number, b: number): string => {
 };
 
 // Convert image to IRC colored block art with 99-color palette
-const imageToColoredBlocks = (img: HTMLImageElement, maxWidth: number = 80, maxHeight: number = 40): string => {
+const imageToColoredBlocks = (img: HTMLImageElement, maxWidth: number = 100, maxHeight: number = 50): string => {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   if (!ctx) return '';
 
-  // Calculate dimensions with character aspect ratio
+  // Calculate dimensions - for tiny block chars, aspect is nearly 1:1
   const aspectRatio = img.width / img.height;
-  const charAspect = 0.5;
+  const charAspect = 1.2; // Blocks are slightly taller than wide at 6px
   
   let width = maxWidth;
-  let height = Math.floor(width / aspectRatio * charAspect);
+  let height = Math.floor(width / aspectRatio / charAspect);
   
   if (height > maxHeight) {
     height = maxHeight;
-    width = Math.floor(height * aspectRatio / charAspect);
+    width = Math.floor(height * aspectRatio * charAspect);
   }
 
   canvas.width = width;
@@ -334,7 +334,7 @@ const AsciiArtPicker = ({ onArtSelect }: AsciiArtPickerProps) => {
 
       reader.onload = (event) => {
         img.onload = () => {
-          const coloredArt = imageToColoredBlocks(img, 80, 40);
+          const coloredArt = imageToColoredBlocks(img, 100, 50);
           if (coloredArt) {
             onArtSelect(coloredArt);
             toast({
