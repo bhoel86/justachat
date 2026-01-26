@@ -448,6 +448,7 @@ const PrivateChatWindow = ({
 
     return () => {
       isMounted = false;
+      hasLoadedRef.current = false; // Reset so messages reload on next open
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
       }
