@@ -1,14 +1,41 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { X, Lock, Send, Minus, Shield, Check, CheckCheck, Phone, Video } from "lucide-react";
+import { X, Lock, Send, Minus, Shield, Check, CheckCheck, Phone, Video, ImagePlus, Zap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { generateSessionKey, encryptMessage, encryptWithMasterKey, decryptMessage, exportKey, importKey, generateSessionId } from "@/lib/encryption";
 import EmojiPicker from "./EmojiPicker";
+import TextFormatMenu, { TextFormat, encodeFormat } from "./TextFormatMenu";
+import FormattedText from "./FormattedText";
 import { useToast } from "@/hooks/use-toast";
 import { CHAT_BOTS, ROOM_BOTS } from "@/lib/chatBots";
 import { usePrivateCall } from "@/hooks/usePrivateCall";
 import PrivateCallUI from "./PrivateCallUI";
 import IncomingCallModal from "./IncomingCallModal";
+import { compressImage } from "@/lib/imageCompression";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+// IRC-style actions for PM
+const PM_ACTIONS = {
+  funny: [
+    { emoji: "🐟", action: "slaps", suffix: "around with a large trout" },
+    { emoji: "🍕", action: "throws", suffix: "a slice of pizza at" },
+    { emoji: "🎸", action: "serenades", suffix: "with an air guitar solo" },
+    { emoji: "💨", action: "blows", suffix: "a raspberry at" },
+  ],
+  nice: [
+    { emoji: "🙌", action: "high-fives", suffix: "" },
+    { emoji: "🤗", action: "gives", suffix: "a warm hug" },
+    { emoji: "🎉", action: "celebrates", suffix: "with confetti" },
+    { emoji: "☕", action: "offers", suffix: "a cup of coffee" },
+  ],
+};
 
 // Get bot ID from user ID if it's a simulated user
 const getBotIdFromUserId = (userId: string): string | null => {
@@ -76,6 +103,14 @@ const PrivateChatWindow = ({
   const [isBotTyping, setIsBotTyping] = useState(false);
   const [seenMessageIds, setSeenMessageIds] = useState<Set<string>>(new Set());
   
+  // New state for image upload, text formatting, and actions
+  const [attachedImage, setAttachedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [textFormat, setTextFormat] = useState<TextFormat>({ textStyle: 'none' });
+  const [selectedAction, setSelectedAction] = useState<{ emoji: string; action: string; suffix: string } | null>(null);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -85,6 +120,7 @@ const PrivateChatWindow = ({
   const sessionKeyRef = useRef<CryptoKey | null>(null);
   const lastMessageCountRef = useRef(0);
   const hasLoadedRef = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   // Check if target user is a bot
@@ -490,15 +526,35 @@ const PrivateChatWindow = ({
 
   const handleSend = async () => {
     const currentKey = sessionKeyRef.current || sessionKey;
-    if (!message.trim() || !currentKey || !channelRef.current) return;
+    
+    // Handle image upload first if attached
+    let imageUrl: string | null = null;
+    if (attachedImage) {
+      imageUrl = await uploadImage();
+      if (!imageUrl && !message.trim()) return;
+      clearImage();
+    }
+    
+    if (!message.trim() && !imageUrl) return;
+    if (!currentKey || !channelRef.current) return;
 
-    const trimmedMessage = message.trim();
+    // Apply text formatting if set
+    let finalMessage = message.trim();
+    if (textFormat.textStyle !== 'none' || textFormat.bgColor) {
+      finalMessage = encodeFormat(textFormat, finalMessage);
+    }
+    
+    // Add image URL to message if uploaded
+    if (imageUrl) {
+      finalMessage = finalMessage ? `${finalMessage} [img:${imageUrl}]` : `[img:${imageUrl}]`;
+    }
+    
     const msgId = `${Date.now()}-${Math.random()}`;
     
     try {
-      const encrypted = await encryptMessage(trimmedMessage, currentKey);
+      const encrypted = await encryptMessage(finalMessage, currentKey);
       const masterKeyForStorage = 'JAC_PM_MASTER_2024';
-      const encryptedForStorage = await encryptWithMasterKey(trimmedMessage, masterKeyForStorage);
+      const encryptedForStorage = await encryptWithMasterKey(finalMessage, masterKeyForStorage);
       
       const { error: dbError } = await supabase
         .from('private_messages')
@@ -522,26 +578,29 @@ const PrivateChatWindow = ({
           senderId: currentUserId,
           senderName: currentUsername,
           timestamp: new Date().toISOString(),
-          sessionId
+          sessionId,
+          imageUrl
         }
       });
 
       setMessages(prev => [...prev, {
         id: msgId,
-        content: trimmedMessage,
+        content: finalMessage,
         senderId: currentUserId,
         senderName: currentUsername,
         timestamp: new Date(),
-        isOwn: true
+        isOwn: true,
+        imageUrl: imageUrl || undefined
       }]);
 
-      monitorMessage(trimmedMessage, currentUserId, currentUsername);
+      monitorMessage(finalMessage, currentUserId, currentUsername);
       setMessage('');
+      setTextFormat({ textStyle: 'none' });
 
       // Trigger bot "seen" and response if chatting with a simulated user
       if (isTargetBot) {
         markMessageAsSeen(msgId);
-        generateBotResponse(trimmedMessage);
+        generateBotResponse(finalMessage);
       }
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -555,6 +614,105 @@ const PrivateChatWindow = ({
 
   const handleEmojiSelect = (emoji: string) => {
     setMessage(prev => prev + emoji);
+  };
+
+  // Image upload handlers
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 25 * 1024 * 1024) {
+      toast({ variant: "destructive", title: "Image too large", description: "Please select an image under 25MB" });
+      return;
+    }
+
+    try {
+      const compressed = await compressImage(file, { maxWidth: 1920, maxHeight: 1920, quality: 0.85, outputType: "image/jpeg" });
+      if (compressed.size > 10 * 1024 * 1024) {
+        toast({ variant: "destructive", title: "Image still too large", description: "After compression, the image is still over 10MB." });
+        return;
+      }
+      setAttachedImage(compressed);
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(compressed);
+    } catch (err) {
+      toast({ variant: "destructive", title: "Failed to process image", description: err instanceof Error ? err.message : "Could not compress image" });
+    }
+  };
+
+  const clearImage = () => {
+    setAttachedImage(null);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const uploadImage = async (): Promise<string | null> => {
+    if (!attachedImage) return null;
+    
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const safeName = attachedImage.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const suggestedPath = `chat-images/${currentUserId}/${Date.now()}-${safeName}`;
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) throw new Error("You must be signed in to upload images.");
+
+      const endpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/upload-image`;
+      const apikey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      const formData = new FormData();
+      formData.append("file", attachedImage);
+      formData.append("bucket", "avatars");
+      formData.append("path", suggestedPath);
+
+      const data = await new Promise<any>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", endpoint);
+        xhr.responseType = "json";
+        xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
+        if (apikey) xhr.setRequestHeader("apikey", apikey);
+
+        xhr.upload.onprogress = (evt) => {
+          if (evt.lengthComputable && evt.total > 0) {
+            setUploadProgress(Math.min(99, Math.round((evt.loaded / evt.total) * 100)));
+          }
+        };
+
+        xhr.onload = () => {
+          const resp = xhr.response ?? (() => { try { return JSON.parse(xhr.responseText); } catch { return xhr.responseText; } })();
+          if (xhr.status >= 200 && xhr.status < 300) { resolve(resp); return; }
+          reject(new Error(`Upload failed (HTTP ${xhr.status})`));
+        };
+        xhr.onerror = () => reject(new Error("Upload failed: network error"));
+        xhr.send(formData);
+      });
+
+      setUploadProgress(100);
+      if (data?.error) {
+        toast({ variant: "destructive", title: "Upload failed", description: data.message || data.error });
+        return null;
+      }
+      return data?.url || null;
+    } catch (error) {
+      toast({ variant: "destructive", title: "Upload failed", description: error instanceof Error ? error.message : "Failed to upload" });
+      return null;
+    } finally {
+      setIsUploading(false);
+      setTimeout(() => setUploadProgress(0), 500);
+    }
+  };
+
+  // Action selection handler
+  const handleActionSelect = (action: typeof PM_ACTIONS.funny[0]) => {
+    const actionText = action.suffix 
+      ? `/me ${action.emoji} ${action.action} ${targetUsername} ${action.suffix}`
+      : `/me ${action.emoji} ${action.action} ${targetUsername}`;
+    setMessage(actionText);
+    setSelectedAction(null);
   };
 
   const handleClose = () => {
@@ -688,7 +846,7 @@ const PrivateChatWindow = ({
                 {!msg.isOwn && (
                   <p className="text-[10px] font-medium mb-0.5 opacity-70">{msg.senderName}</p>
                 )}
-                <p className="text-xs break-words">{msg.content}</p>
+                <div className="text-xs break-words"><FormattedText text={msg.content} /></div>
                 {msg.imageUrl && (
                   <div className="mt-1.5">
                     <img 
@@ -735,29 +893,89 @@ const PrivateChatWindow = ({
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Image Preview */}
+      {imagePreview && (
+        <div className="px-2 py-1 border-t border-border bg-muted/20">
+          <div className="relative inline-block">
+            <img src={imagePreview} alt="Preview" className="h-12 rounded border border-border" />
+            <button onClick={clearImage} className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5">
+              <X className="w-2.5 h-2.5" />
+            </button>
+          </div>
+          {isUploading && (
+            <div className="mt-1 h-1 bg-muted rounded-full overflow-hidden">
+              <div className="h-full bg-primary transition-all" style={{ width: `${uploadProgress}%` }} />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Input */}
       <div className="p-2 border-t border-border bg-card">
-        <div className="flex gap-1.5">
+        <div className="flex items-center gap-1">
+          {/* Emoji Picker */}
           <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+          
+          {/* Text Format Menu */}
+          <div className="shrink-0 [&_button]:h-7 [&_button]:w-7 [&_button]:rounded-lg">
+            <TextFormatMenu currentFormat={textFormat} onFormatChange={setTextFormat} />
+          </div>
+          
+          {/* Actions Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+                <Zap className="w-3.5 h-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-44 bg-popover border border-border z-50">
+              <DropdownMenuLabel className="text-[10px]">Funny Actions</DropdownMenuLabel>
+              {PM_ACTIONS.funny.map((action, i) => (
+                <DropdownMenuItem key={i} onClick={() => handleActionSelect(action)} className="text-xs">
+                  {action.emoji} {action.action}...
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-[10px]">Nice Actions</DropdownMenuLabel>
+              {PM_ACTIONS.nice.map((action, i) => (
+                <DropdownMenuItem key={i} onClick={() => handleActionSelect(action)} className="text-xs">
+                  {action.emoji} {action.action}...
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          {/* Image Upload */}
+          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-7 w-7 shrink-0" 
+            onClick={() => fileInputRef.current?.click()} 
+            disabled={isUploading}
+          >
+            {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" />}
+          </Button>
+          
           <input
             type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
             onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
             placeholder="Message..."
-            disabled={!isConnected}
-            className="flex-1 bg-input rounded-lg px-2.5 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50"
+            disabled={!isConnected || isUploading}
+            className="flex-1 bg-input rounded-lg px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50 min-w-0"
           />
           <Button
             onClick={handleSend}
-            disabled={!message.trim() || !isConnected}
+            disabled={(!message.trim() && !attachedImage) || !isConnected || isUploading}
             variant="jac"
             size="icon"
-            className="h-8 w-8 rounded-lg shrink-0"
+            className="h-7 w-7 rounded-lg shrink-0"
           >
-            <Send className="h-3.5 w-3.5" />
+            <Send className="h-3 w-3" />
           </Button>
         </div>
       </div>
