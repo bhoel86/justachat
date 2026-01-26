@@ -85,7 +85,6 @@ const imageToColoredBlocks = (img: HTMLImageElement, maxWidth: number = 80, maxH
   const pixels = imageData.data;
 
   let result = '';
-  let lastColor = '';
   
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -97,19 +96,13 @@ const imageToColoredBlocks = (img: HTMLImageElement, maxWidth: number = 80, maxH
       
       if (a < 128) {
         result += ' ';
-        lastColor = '';
       } else {
         const colorCode = findClosestColor(r, g, b);
-        // Only add color code if it changed
-        if (colorCode !== lastColor) {
-          result += `\x03${colorCode},${colorCode}`;
-          lastColor = colorCode;
-        }
-        result += '█';
+        // Always add color code for each block to ensure consistency
+        result += `\x03${colorCode}█`;
       }
     }
-    result += '\x03\n'; // Reset at end of line
-    lastColor = '';
+    result += '\x03\n'; // Reset color at end of line
   }
 
   return result.trim();
