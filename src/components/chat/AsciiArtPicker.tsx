@@ -13,46 +13,90 @@ import { AtSign, ImagePlus, Heart, Star, Skull, Cat, Dog, Fish, Coffee, Music, S
 import { useToast } from '@/hooks/use-toast';
 
 // ASCII characters from dark to light (extended set for more detail)
-const ASCII_CHARS = '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^`\'. ';
+const ASCII_CHARS_DETAILED = '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^`\'. ';
 
-// Convert image to ASCII art
-const imageToAscii = (img: HTMLImageElement, maxWidth: number = 60, maxHeight: number = 30): string => {
+// Block characters for better visual representation
+const BLOCK_CHARS = '█▓▒░ ';
+
+// Apply contrast enhancement to improve detail visibility
+const enhanceContrast = (pixels: Uint8ClampedArray, width: number, height: number): number[] => {
+  const brightnesses: number[] = [];
+  
+  // First pass: collect all brightness values
+  for (let i = 0; i < pixels.length; i += 4) {
+    const r = pixels[i];
+    const g = pixels[i + 1];
+    const b = pixels[i + 2];
+    const a = pixels[i + 3];
+    const brightness = a < 128 ? 255 : (0.299 * r + 0.587 * g + 0.114 * b);
+    brightnesses.push(brightness);
+  }
+  
+  // Find min/max for contrast stretching
+  let min = 255, max = 0;
+  for (const b of brightnesses) {
+    if (b < min) min = b;
+    if (b > max) max = b;
+  }
+  
+  // Apply contrast stretching
+  const range = max - min || 1;
+  return brightnesses.map(b => ((b - min) / range) * 255);
+};
+
+// Convert image to ASCII art with enhanced detail
+const imageToAscii = (img: HTMLImageElement, maxWidth: number = 80, maxHeight: number = 40, useBlocks: boolean = false): string => {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   if (!ctx) return '';
 
-  // Calculate aspect ratio and dimensions
+  // Calculate aspect ratio and dimensions - higher resolution for more detail
   const aspectRatio = img.width / img.height;
+  // Character aspect ratio is approximately 2:1 (height:width)
+  const charAspect = 0.5;
+  
   let width = maxWidth;
-  let height = Math.floor(width / aspectRatio / 2); // Divide by 2 because chars are taller than wide
+  let height = Math.floor(width / aspectRatio * charAspect);
   
   if (height > maxHeight) {
     height = maxHeight;
-    width = Math.floor(height * aspectRatio * 2);
+    width = Math.floor(height * aspectRatio / charAspect);
   }
 
-  canvas.width = width;
-  canvas.height = height;
+  // Use a larger internal canvas for better sampling
+  const sampleScale = 2;
+  canvas.width = width * sampleScale;
+  canvas.height = height * sampleScale;
   
-  ctx.drawImage(img, 0, 0, width, height);
-  const imageData = ctx.getImageData(0, 0, width, height);
+  // Enable image smoothing for better quality
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const pixels = imageData.data;
+  
+  // Get contrast-enhanced brightness values
+  const enhancedBrightness = enhanceContrast(pixels, canvas.width, canvas.height);
 
+  const chars = useBlocks ? BLOCK_CHARS : ASCII_CHARS_DETAILED;
   let ascii = '';
+  
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      const idx = (y * width + x) * 4;
-      const r = pixels[idx];
-      const g = pixels[idx + 1];
-      const b = pixels[idx + 2];
-      const a = pixels[idx + 3];
+      // Sample multiple pixels and average them for better quality
+      let totalBrightness = 0;
+      for (let sy = 0; sy < sampleScale; sy++) {
+        for (let sx = 0; sx < sampleScale; sx++) {
+          const idx = ((y * sampleScale + sy) * canvas.width + (x * sampleScale + sx));
+          totalBrightness += enhancedBrightness[idx];
+        }
+      }
+      const avgBrightness = totalBrightness / (sampleScale * sampleScale);
       
-      // Calculate brightness (0-255)
-      const brightness = a < 128 ? 255 : (0.299 * r + 0.587 * g + 0.114 * b);
-      
-      // Map brightness to ASCII character
-      const charIndex = Math.floor((brightness / 255) * (ASCII_CHARS.length - 1));
-      ascii += ASCII_CHARS[charIndex];
+      // Map brightness to character
+      const charIndex = Math.floor((avgBrightness / 255) * (chars.length - 1));
+      ascii += chars[Math.min(charIndex, chars.length - 1)];
     }
     ascii += '\n';
   }
@@ -236,7 +280,7 @@ const AsciiArtPicker = ({ onArtSelect }: AsciiArtPickerProps) => {
 
       reader.onload = (event) => {
         img.onload = () => {
-          const asciiArt = imageToAscii(img, 50, 25);
+          const asciiArt = imageToAscii(img, 80, 40, false);
           if (asciiArt) {
             onArtSelect(asciiArt);
             toast({
