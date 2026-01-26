@@ -8,7 +8,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import EmojiPicker from "./EmojiPicker";
 import TextFormatMenu, { TextFormat, encodeFormat } from "./TextFormatMenu";
 import MentionAutocomplete from "./MentionAutocomplete";
-import GifPicker from "./GifPicker";
 import { useRadioOptional } from "@/contexts/RadioContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
@@ -573,7 +572,7 @@ const ChatInput = ({ onSend, isMuted = false, canControlRadio = false, onlineUse
         {!isMobile && (
           <>
             <TextFormatMenu currentFormat={textFormat} onFormatChange={setTextFormat} />
-            <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+            <EmojiPicker onEmojiSelect={handleEmojiSelect} onGifSelect={(gifUrl) => onSend(`[img:${gifUrl}]`)} />
             
             {/* User Actions Dropdown */}
             <DropdownMenu>
@@ -834,23 +833,6 @@ const ChatInput = ({ onSend, isMuted = false, canControlRadio = false, onlineUse
           <TooltipContent>Attach Image</TooltipContent>
         </Tooltip>
 
-        {/* GIF Picker */}
-        <GifPicker onSelect={(gifUrl) => onSend(`[img:${gifUrl}]`)}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                className="h-10 w-10 lg:h-12 lg:w-12 rounded-xl shrink-0"
-                disabled={isMuted}
-              >
-                <span className="text-sm font-bold">GIF</span>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Send GIF</TooltipContent>
-          </Tooltip>
-        </GifPicker>
 
         {/* Image preview */}
         {imagePreview && (
