@@ -147,11 +147,14 @@ const PrivateChatWindow = ({
 
   // Scroll to bottom when new messages are added (own messages or incoming)
   useEffect(() => {
-    if (messages.length > lastMessageCountRef.current) {
+    if (messages.length > 0) {
+      // Use double RAF for more reliable mobile scrolling
       requestAnimationFrame(() => {
-        if (messagesContainerRef.current) {
-          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-        }
+        requestAnimationFrame(() => {
+          if (messagesContainerRef.current) {
+            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+          }
+        });
       });
     }
     lastMessageCountRef.current = messages.length;
@@ -302,11 +305,13 @@ const PrivateChatWindow = ({
           if (isMounted) {
             setMessages(decryptedMessages);
             lastMessageCountRef.current = decryptedMessages.length;
-            // Scroll to bottom after loading messages
+            // Scroll to bottom after loading messages - use multiple RAF for mobile
             requestAnimationFrame(() => {
-              if (messagesContainerRef.current) {
-                messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-              }
+              requestAnimationFrame(() => {
+                if (messagesContainerRef.current) {
+                  messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+                }
+              });
             });
           }
         } else {
