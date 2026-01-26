@@ -12,6 +12,89 @@ const rainbowColors = [
   '#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#3b82f6', '#a855f7'
 ];
 
+// IRC color palette (16 standard colors)
+const IRC_COLORS: { [key: string]: string } = {
+  '00': '#FFFFFF', // white
+  '01': '#000000', // black
+  '02': '#00007F', // navy
+  '03': '#009300', // green
+  '04': '#FF0000', // red
+  '05': '#7F0000', // brown
+  '06': '#9C009C', // purple
+  '07': '#FC7F00', // orange
+  '08': '#FFFF00', // yellow
+  '09': '#00FC00', // lime
+  '10': '#009393', // teal
+  '11': '#00FFFF', // cyan
+  '12': '#0000FC', // blue
+  '13': '#FF00FF', // pink
+  '14': '#7F7F7F', // grey
+  '15': '#D2D2D2', // light grey
+};
+
+// Parse IRC color codes (\x03FG or \x03FG,BG)
+const parseIrcColors = (text: string): React.ReactNode[] => {
+  const parts: React.ReactNode[] = [];
+  const colorRegex = /\x03(\d{1,2})(?:,(\d{1,2}))?/g;
+  
+  let lastIndex = 0;
+  let match;
+  let currentFg: string | null = null;
+  let currentBg: string | null = null;
+  
+  // Split by color codes and newlines
+  const segments = text.split(/(\x03\d{1,2}(?:,\d{1,2})?|\x03|\n)/);
+  
+  segments.forEach((segment, i) => {
+    if (!segment) return;
+    
+    if (segment === '\n') {
+      parts.push(<br key={`br-${i}`} />);
+      return;
+    }
+    
+    if (segment === '\x03') {
+      // Reset colors
+      currentFg = null;
+      currentBg = null;
+      return;
+    }
+    
+    const colorMatch = segment.match(/^\x03(\d{1,2})(?:,(\d{1,2}))?$/);
+    if (colorMatch) {
+      const fg = colorMatch[1].padStart(2, '0');
+      const bg = colorMatch[2]?.padStart(2, '0');
+      currentFg = IRC_COLORS[fg] || null;
+      currentBg = bg ? IRC_COLORS[bg] : null;
+      return;
+    }
+    
+    // Regular text - apply current colors
+    if (currentFg || currentBg) {
+      parts.push(
+        <span
+          key={`text-${i}`}
+          style={{
+            color: currentFg || undefined,
+            backgroundColor: currentBg || undefined,
+          }}
+        >
+          {segment}
+        </span>
+      );
+    } else {
+      parts.push(<span key={`text-${i}`}>{segment}</span>);
+    }
+  });
+  
+  return parts;
+};
+
+// Check if text contains IRC color codes
+const hasIrcColors = (text: string): boolean => {
+  return text.includes('\x03');
+};
+
 // Extract image URL from [img:url] format
 const extractImage = (text: string): { hasImage: boolean; imageUrl: string | null; textContent: string } => {
   const imgMatch = text.match(/\[img:(https?:\/\/[^\]]+)\]/);
@@ -104,6 +187,15 @@ const FormattedText = ({ text, className = '' }: FormattedTextProps) => {
   };
   
   const renderText = () => {
+    // Check for IRC color codes first (colored block art)
+    if (hasIrcColors(textContent)) {
+      return (
+        <pre className={`font-mono text-[8px] leading-[8px] whitespace-pre ${className}`}>
+          {parseIrcColors(textContent)}
+        </pre>
+      );
+    }
+    
     if (!decoded) {
       return renderTextWithMentions(textContent, className);
     }
