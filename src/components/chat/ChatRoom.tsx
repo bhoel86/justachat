@@ -27,6 +27,7 @@ import { parseCommand, executeCommand, isCommand, CommandContext } from "@/lib/c
 import { getModerator, getWelcomeMessage, getRandomTip, isAdultChannel } from "@/lib/roomConfig";
 import { moderateContent, shouldBlockMessage } from "@/lib/contentModeration";
 import { useChannelModerationSettings } from "@/hooks/useChannelModerationSettings";
+import { useSkipVote } from "@/hooks/useSkipVote";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Users, X, Hash, BellOff, Bell } from "lucide-react";
@@ -431,6 +432,16 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
     enabled: currentChannel?.name === 'general',
   });
 
+  // Skip vote system for radio
+  const skipVote = useSkipVote({
+    onSkip: () => {
+      if (radio) {
+        radio.skip();
+      }
+    },
+    addBotMessage,
+  });
+
   // Show personalized welcome message when entering a channel
   useEffect(() => {
     if (!currentChannel || loading || !user || !username) return;
@@ -804,6 +815,24 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
         return;
       }
 
+      // Handle skip vote command (user-initiated vote to skip)
+      if (result.message.startsWith('SKIP_VOTE_COMMAND:')) {
+        const parts = result.message.split(':');
+        const initiatorId = parts[1];
+        const initiatorUsername = parts[2];
+        
+        if (!radio?.isPlaying) {
+          addSystemMessage('📻 Radio is not playing. Nothing to skip!');
+          return;
+        }
+        
+        const voteResult = skipVote.initiateVote(initiatorId, initiatorUsername);
+        if (!voteResult.success) {
+          addSystemMessage(voteResult.message);
+        }
+        return;
+      }
+
       // Handle trivia commands
       if (result.message.startsWith('TRIVIA_COMMAND:')) {
         const action = result.message.split(':')[1];
@@ -878,6 +907,15 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
           });
       }
       return;
+    }
+
+    // Check if this is a vote for the skip vote system
+    if (skipVote.isVoteActive) {
+      const wasVote = skipVote.castVote(user.id, username, content);
+      if (wasVote) {
+        // Don't send "yes" as a regular message if it was a vote
+        return;
+      }
     }
 
     if (isMuted || isRoomMuted) {
