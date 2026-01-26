@@ -77,7 +77,8 @@ const parseIrcColors = (text: string): React.ReactNode[] => {
         const fg = colorMatch[1];
         const bg = colorMatch[2];
         currentFg = getIrcColor(fg);
-        currentBg = bg ? getIrcColor(bg) : null;
+        // If no background specified, use foreground color as background for block art
+        currentBg = bg ? getIrcColor(bg) : currentFg;
         return;
       }
     }
