@@ -89,9 +89,8 @@ const parseIrcColors = (text: string): React.ReactNode[] => {
         <span
           key={`text-${i}`}
           style={{
-            color: currentFg || undefined,
-            backgroundColor: currentBg || undefined,
-            lineHeight: 1,
+            color: currentBg || currentFg || undefined, // Use bg color for text too
+            backgroundColor: currentBg || currentFg || undefined,
           }}
         >
           {segment}
@@ -207,13 +206,16 @@ const FormattedText = ({ text, className = '' }: FormattedTextProps) => {
       return (
         <div className="flex justify-center w-full">
           <pre 
-            className={`font-mono whitespace-pre overflow-x-auto inline-block ${className}`}
+            className={`whitespace-pre overflow-x-auto inline-block ${className}`}
             style={{ 
-              fontSize: '6px', 
-              lineHeight: '6px',
-              letterSpacing: '0px',
-              fontFamily: 'monospace',
+              fontSize: '8px', 
+              lineHeight: 1,
+              letterSpacing: 0,
+              wordSpacing: 0,
+              fontFamily: '"Courier New", monospace',
               textAlign: 'left',
+              margin: 0,
+              padding: 0,
             }}
           >
             {parseIrcColors(textContent)}
