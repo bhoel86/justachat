@@ -12,97 +12,122 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { AtSign, ImagePlus, Heart, Star, Skull, Cat, Dog, Fish, Coffee, Music, Sparkles, Flame, Moon, Sun, Zap, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-// ASCII characters for different density levels (dark to light)
-const ASCII_DENSITY = '@%#*+=-:. ';
-const ASCII_DETAILED = '$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,"^`\'. ';
+// Block characters for colored art (from full to empty)
+const BLOCK_CHARS = ['█', '▓', '▒', '░', ' '];
 
-// Edge detection characters based on gradient direction
-const EDGE_CHARS: { [key: string]: string } = {
-  horizontal: '-',
-  vertical: '|',
-  diagonal1: '/',
-  diagonal2: '\\',
-  corner: '+',
-  none: ' '
-};
+// IRC color palette (16 colors) - we'll map to closest
+const IRC_COLORS = [
+  { r: 255, g: 255, b: 255, code: '00' }, // white
+  { r: 0, g: 0, b: 0, code: '01' },       // black
+  { r: 0, g: 0, b: 127, code: '02' },     // navy
+  { r: 0, g: 147, b: 0, code: '03' },     // green
+  { r: 255, g: 0, b: 0, code: '04' },     // red
+  { r: 127, g: 0, b: 0, code: '05' },     // brown
+  { r: 156, g: 0, b: 156, code: '06' },   // purple
+  { r: 252, g: 127, b: 0, code: '07' },   // orange
+  { r: 255, g: 255, b: 0, code: '08' },   // yellow
+  { r: 0, g: 252, b: 0, code: '09' },     // lime
+  { r: 0, g: 147, b: 147, code: '10' },   // teal
+  { r: 0, g: 255, b: 255, code: '11' },   // cyan
+  { r: 0, g: 0, b: 252, code: '12' },     // blue
+  { r: 255, g: 0, b: 255, code: '13' },   // pink
+  { r: 127, g: 127, b: 127, code: '14' }, // grey
+  { r: 210, g: 210, b: 210, code: '15' }, // light grey
+];
 
-// Sobel edge detection kernels
-const sobelX = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]];
-const sobelY = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]];
-
-// Apply Sobel edge detection
-const detectEdges = (brightness: number[], width: number, height: number): { magnitude: number[], direction: number[] } => {
-  const magnitude: number[] = new Array(width * height).fill(0);
-  const direction: number[] = new Array(width * height).fill(0);
+// Find closest IRC color
+const findClosestColor = (r: number, g: number, b: number): typeof IRC_COLORS[0] => {
+  let minDist = Infinity;
+  let closest = IRC_COLORS[0];
   
-  for (let y = 1; y < height - 1; y++) {
-    for (let x = 1; x < width - 1; x++) {
-      let gx = 0, gy = 0;
-      
-      for (let ky = -1; ky <= 1; ky++) {
-        for (let kx = -1; kx <= 1; kx++) {
-          const idx = (y + ky) * width + (x + kx);
-          const b = brightness[idx];
-          gx += b * sobelX[ky + 1][kx + 1];
-          gy += b * sobelY[ky + 1][kx + 1];
-        }
-      }
-      
-      const idx = y * width + x;
-      magnitude[idx] = Math.sqrt(gx * gx + gy * gy);
-      direction[idx] = Math.atan2(gy, gx);
+  for (const color of IRC_COLORS) {
+    const dist = Math.sqrt(
+      Math.pow(r - color.r, 2) + 
+      Math.pow(g - color.g, 2) + 
+      Math.pow(b - color.b, 2)
+    );
+    if (dist < minDist) {
+      minDist = dist;
+      closest = color;
     }
   }
-  
-  return { magnitude, direction };
+  return closest;
 };
 
-// Get edge character based on gradient direction
-const getEdgeChar = (angle: number): string => {
-  const deg = (angle * 180 / Math.PI + 180) % 180;
-  if (deg < 22.5 || deg >= 157.5) return '-';
-  if (deg < 67.5) return '/';
-  if (deg < 112.5) return '|';
-  return '\\';
-};
-
-// Enhanced contrast with histogram equalization
-const enhanceContrast = (pixels: Uint8ClampedArray): number[] => {
-  const brightnesses: number[] = [];
-  
-  for (let i = 0; i < pixels.length; i += 4) {
-    const r = pixels[i];
-    const g = pixels[i + 1];
-    const b = pixels[i + 2];
-    const a = pixels[i + 3];
-    const brightness = a < 128 ? 255 : (0.299 * r + 0.587 * g + 0.114 * b);
-    brightnesses.push(brightness);
-  }
-  
-  // Histogram equalization for better contrast
-  const histogram = new Array(256).fill(0);
-  for (const b of brightnesses) histogram[Math.floor(b)]++;
-  
-  const cdf = new Array(256).fill(0);
-  cdf[0] = histogram[0];
-  for (let i = 1; i < 256; i++) cdf[i] = cdf[i - 1] + histogram[i];
-  
-  const cdfMin = cdf.find(v => v > 0) || 0;
-  const total = brightnesses.length;
-  
-  return brightnesses.map(b => {
-    const idx = Math.floor(b);
-    return ((cdf[idx] - cdfMin) / (total - cdfMin)) * 255;
-  });
-};
-
-// Convert image to ASCII art with edge detection
-const imageToAscii = (img: HTMLImageElement, maxWidth: number = 100, maxHeight: number = 50): string => {
+// Convert image to colored block art (plain text with color codes for IRC)
+const imageToColoredBlocks = (img: HTMLImageElement, maxWidth: number = 60, maxHeight: number = 30): string => {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   if (!ctx) return '';
 
-  // Calculate dimensions with character aspect ratio compensation
+  // Calculate dimensions
+  const aspectRatio = img.width / img.height;
+  const charAspect = 0.5; // Characters are about 2x taller than wide
+  
+  let width = maxWidth;
+  let height = Math.floor(width / aspectRatio * charAspect);
+  
+  if (height > maxHeight) {
+    height = maxHeight;
+    width = Math.floor(height * aspectRatio / charAspect);
+  }
+
+  canvas.width = width;
+  canvas.height = height;
+  
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, 0, 0, width, height);
+  
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const pixels = imageData.data;
+
+  let result = '';
+  let lastColorCode = '';
+  
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = (y * width + x) * 4;
+      const r = pixels[idx];
+      const g = pixels[idx + 1];
+      const b = pixels[idx + 2];
+      const a = pixels[idx + 3];
+      
+      if (a < 128) {
+        // Transparent - use space
+        result += ' ';
+        lastColorCode = '';
+      } else {
+        // Find closest IRC color
+        const color = findClosestColor(r, g, b);
+        
+        // Calculate brightness to select block character
+        const brightness = (r + g + b) / 3 / 255;
+        const blockIndex = Math.floor(brightness * (BLOCK_CHARS.length - 1));
+        const block = BLOCK_CHARS[Math.min(blockIndex, BLOCK_CHARS.length - 1)];
+        
+        // Add IRC color code if changed (format: \x03FG,BG)
+        const colorCode = `\x03${color.code},${color.code}`;
+        if (colorCode !== lastColorCode) {
+          result += colorCode;
+          lastColorCode = colorCode;
+        }
+        result += '█'; // Always use full block, color does the work
+      }
+    }
+    result += '\x03\n'; // Reset color at end of line
+    lastColorCode = '';
+  }
+
+  return result.trim();
+};
+
+// Simpler colored HTML output for web display
+const imageToColoredHtml = (img: HTMLImageElement, maxWidth: number = 80, maxHeight: number = 40): string => {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
+
   const aspectRatio = img.width / img.height;
   const charAspect = 0.5;
   
@@ -122,39 +147,29 @@ const imageToAscii = (img: HTMLImageElement, maxWidth: number = 100, maxHeight: 
   ctx.drawImage(img, 0, 0, width, height);
   
   const imageData = ctx.getImageData(0, 0, width, height);
-  const brightness = enhanceContrast(imageData.data);
-  
-  // Detect edges
-  const { magnitude, direction } = detectEdges(brightness, width, height);
-  
-  // Find max magnitude for normalization
-  const maxMag = Math.max(...magnitude, 1);
-  
-  // Threshold for edge detection
-  const edgeThreshold = maxMag * 0.15;
-  
-  let ascii = '';
+  const pixels = imageData.data;
+
+  let result = '';
   
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      const idx = y * width + x;
-      const b = brightness[idx];
-      const mag = magnitude[idx];
-      const dir = direction[idx];
+      const idx = (y * width + x) * 4;
+      const r = pixels[idx];
+      const g = pixels[idx + 1];
+      const b = pixels[idx + 2];
+      const a = pixels[idx + 3];
       
-      if (mag > edgeThreshold) {
-        // Use edge character
-        ascii += getEdgeChar(dir);
+      if (a < 128) {
+        result += ' ';
       } else {
-        // Use density character (inverted - dark areas become spaces)
-        const charIndex = Math.floor((b / 255) * (ASCII_DETAILED.length - 1));
-        ascii += ASCII_DETAILED[charIndex];
+        // Use half-block for better vertical resolution, color it
+        result += `[C:${r},${g},${b}]█[/C]`;
       }
     }
-    ascii += '\n';
+    result += '\n';
   }
 
-  return ascii.trim();
+  return result.trim();
 };
 
 // Premade ASCII art collection
@@ -333,12 +348,12 @@ const AsciiArtPicker = ({ onArtSelect }: AsciiArtPickerProps) => {
 
       reader.onload = (event) => {
         img.onload = () => {
-          const asciiArt = imageToAscii(img, 100, 50);
-          if (asciiArt) {
-            onArtSelect(asciiArt);
+          const coloredArt = imageToColoredBlocks(img, 60, 30);
+          if (coloredArt) {
+            onArtSelect(coloredArt);
             toast({
               title: "Image converted!",
-              description: "Your image has been converted to ASCII art",
+              description: "Your image has been converted to colored block art",
             });
           }
           setIsConverting(false);
