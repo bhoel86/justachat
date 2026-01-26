@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Phone, PhoneOff, Video, VideoOff, Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CallState, CallType } from '@/hooks/usePrivateCall';
@@ -33,12 +33,61 @@ const PrivateCallUI = ({
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationRef = useRef<number | null>(null);
+  const [micLevel, setMicLevel] = useState(0);
+
+  // Set up audio analyzer for mic level
+  useEffect(() => {
+    if (!localStream || isAudioMuted) {
+      setMicLevel(0);
+      return;
+    }
+
+    const audioTrack = localStream.getAudioTracks()[0];
+    if (!audioTrack) {
+      setMicLevel(0);
+      return;
+    }
+
+    try {
+      const audioContext = new AudioContext();
+      const source = audioContext.createMediaStreamSource(localStream);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.5;
+      source.connect(analyser);
+      analyserRef.current = analyser;
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+      const updateLevel = () => {
+        if (analyserRef.current) {
+          analyserRef.current.getByteFrequencyData(dataArray);
+          const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+          const normalizedLevel = Math.min(average / 128, 1);
+          setMicLevel(normalizedLevel);
+        }
+        animationRef.current = requestAnimationFrame(updateLevel);
+      };
+
+      updateLevel();
+
+      return () => {
+        if (animationRef.current) {
+          cancelAnimationFrame(animationRef.current);
+        }
+        audioContext.close();
+      };
+    } catch (err) {
+      console.warn('[PrivateCallUI] Failed to set up audio analyzer:', err);
+    }
+  }, [localStream, isAudioMuted]);
 
   useEffect(() => {
     if (localVideoRef.current && localStream) {
       console.log('[PrivateCallUI] Setting local video srcObject');
       localVideoRef.current.srcObject = localStream;
-      // Force play for mobile browsers
       localVideoRef.current.play().catch(err => {
         console.warn('[PrivateCallUI] Local video autoplay failed:', err);
       });
@@ -52,7 +101,6 @@ const PrivateCallUI = ({
         console.log('[PrivateCallUI] Remote track:', t.kind, t.label, 'enabled:', t.enabled, 'readyState:', t.readyState);
       });
       
-      // Set video element for video calls
       if (remoteVideoRef.current) {
         console.log('[PrivateCallUI] Attaching remote stream to video element');
         remoteVideoRef.current.srcObject = remoteStream;
@@ -61,7 +109,6 @@ const PrivateCallUI = ({
         });
       }
       
-      // Also set audio element as fallback for voice calls
       if (remoteAudioRef.current) {
         console.log('[PrivateCallUI] Attaching remote stream to audio element');
         remoteAudioRef.current.srcObject = remoteStream;
@@ -78,15 +125,22 @@ const PrivateCallUI = ({
   const isConnected = callState === 'connected';
   const isCalling = callState === 'calling';
 
+  // Calculate mic level indicator color and height
+  const getMicLevelColor = (level: number) => {
+    if (level < 0.3) return 'bg-green-500';
+    if (level < 0.7) return 'bg-yellow-500';
+    return 'bg-red-500';
+  };
+
   return (
     <div className="absolute inset-0 bg-background/95 backdrop-blur-sm z-50 flex flex-col rounded-xl overflow-hidden">
-      {/* Hidden audio element to ensure audio always plays (especially for voice calls) */}
+      {/* Hidden audio element to ensure audio always plays */}
       <audio ref={remoteAudioRef} autoPlay playsInline className="hidden" />
       
       {/* Video display area */}
       {isVideo ? (
         <div className="flex-1 relative bg-black">
-          {/* Remote video (large) - NOT muted so we can hear them */}
+          {/* Remote video (large) */}
           <video
             ref={remoteVideoRef}
             autoPlay
@@ -109,6 +163,24 @@ const PrivateCallUI = ({
               </div>
             )}
           </div>
+
+          {/* Mic level indicator for video calls */}
+          {isConnected && !isAudioMuted && (
+            <div className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-black/50 rounded-full px-2 py-1">
+              <Mic className="h-3.5 w-3.5 text-white" />
+              <div className="flex items-end gap-0.5 h-4">
+                {[0.2, 0.4, 0.6, 0.8, 1].map((threshold, i) => (
+                  <div
+                    key={i}
+                    className={`w-1 rounded-full transition-all duration-75 ${
+                      micLevel >= threshold ? getMicLevelColor(micLevel) : 'bg-white/30'
+                    }`}
+                    style={{ height: `${(i + 1) * 3 + 4}px` }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* No remote video yet */}
           {!remoteStream && (
@@ -140,19 +212,27 @@ const PrivateCallUI = ({
             {isCalling ? 'Calling...' : isConnected ? formattedDuration : 'Connecting...'}
           </p>
           
-          {/* Audio visualization placeholder */}
+          {/* Mic level indicator for voice calls */}
           {isConnected && (
-            <div className="flex items-center gap-0.5 mt-4">
-              {[...Array(5)].map((_, i) => (
-                <div
-                  key={i}
-                  className="w-1 bg-primary rounded-full animate-pulse"
-                  style={{
-                    height: `${12 + Math.random() * 16}px`,
-                    animationDelay: `${i * 100}ms`,
-                  }}
-                />
-              ))}
+            <div className="flex items-center gap-2 mt-4 bg-card/50 rounded-full px-4 py-2">
+              {isAudioMuted ? (
+                <MicOff className="h-4 w-4 text-destructive" />
+              ) : (
+                <Mic className="h-4 w-4 text-foreground" />
+              )}
+              <div className="flex items-end gap-0.5 h-5">
+                {[0.15, 0.3, 0.45, 0.6, 0.75, 0.9].map((threshold, i) => (
+                  <div
+                    key={i}
+                    className={`w-1.5 rounded-full transition-all duration-75 ${
+                      !isAudioMuted && micLevel >= threshold 
+                        ? getMicLevelColor(micLevel) 
+                        : 'bg-muted-foreground/30'
+                    }`}
+                    style={{ height: `${(i + 1) * 2.5 + 5}px` }}
+                  />
+                ))}
+              </div>
             </div>
           )}
         </div>
