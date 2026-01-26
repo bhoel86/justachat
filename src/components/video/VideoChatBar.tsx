@@ -15,9 +15,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import FormattedText from '@/components/chat/FormattedText';
 import VideoUserMenu from '@/components/video/VideoUserMenu';
-import GifPicker from '@/components/chat/GifPicker';
+import EmojiPicker from '@/components/chat/EmojiPicker';
 import { 
-  Send, MessageSquare, Smile, Zap, ImagePlus, X, Loader2,
+  Send, MessageSquare, Zap, ImagePlus, X, Loader2,
   Crown, Shield, Star
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -383,70 +383,27 @@ const VideoChatBar = ({ roomId, odious, username, avatarUrl, currentUserRole, on
 
       {/* Input */}
       <div className="flex items-center gap-1 p-1.5 border-t border-border bg-muted/20">
-        {/* Emoji Picker */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
-              <Smile className="w-3.5 h-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="p-2 bg-popover border border-border z-50">
-            <div className="grid grid-cols-8 gap-1">
-              {['😀', '😂', '❤️', '👍', '🔥', '😮', '😢', '😡', '🎉', '💯', '🤣', '😍', '🙌', '👏', '💪', '🤔'].map(emoji => (
-                <button key={emoji} onClick={() => handleEmojiSelect(emoji)} className="h-6 w-6 flex items-center justify-center hover:bg-muted rounded text-sm">
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Actions Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className={`h-7 w-7 shrink-0 ${selectedAction ? 'bg-yellow-500/20 text-yellow-500' : ''}`}>
-              <Zap className="w-3.5 h-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-48 bg-popover border border-border z-50">
-            <DropdownMenuLabel className="text-[10px]">Funny Actions</DropdownMenuLabel>
-            {USER_ACTIONS.funny.map((action, i) => (
-              <DropdownMenuItem key={i} onClick={() => handleActionSelect(action)} className="text-xs">
-                {action.emoji} {action.action}...
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-[10px]">Nice Actions</DropdownMenuLabel>
-            {USER_ACTIONS.nice.map((action, i) => (
-              <DropdownMenuItem key={i} onClick={() => handleActionSelect(action)} className="text-xs">
-                {action.emoji} {action.action}...
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* GIF Picker */}
-        <GifPicker onSelect={(gifUrl) => {
-          const gifMessage: ChatMessage = {
-            id: crypto.randomUUID(),
-            odious,
-            username,
-            avatarUrl,
-            content: `[img:${gifUrl}]`,
-            timestamp: Date.now(),
-            role: rolesByUserId[odious]
-          };
-          channelRef.current?.send({
-            type: 'broadcast',
-            event: 'chat-message',
-            payload: gifMessage
-          });
-          setMessages(prev => [...prev, gifMessage]);
-        }}>
-          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
-            <span className="text-[9px] font-bold">GIF</span>
-          </Button>
-        </GifPicker>
+        {/* Emoji & GIF Picker */}
+        <EmojiPicker 
+          onEmojiSelect={handleEmojiSelect} 
+          onGifSelect={(gifUrl) => {
+            const gifMessage: ChatMessage = {
+              id: crypto.randomUUID(),
+              odious,
+              username,
+              avatarUrl,
+              content: `[img:${gifUrl}]`,
+              timestamp: Date.now(),
+              role: rolesByUserId[odious]
+            };
+            channelRef.current?.send({
+              type: 'broadcast',
+              event: 'chat-message',
+              payload: gifMessage
+            });
+            setMessages(prev => [...prev, gifMessage]);
+          }}
+        />
 
         {/* Image Upload */}
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />

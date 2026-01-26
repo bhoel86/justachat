@@ -38,17 +38,30 @@ serve(async (req) => {
 
     const data = await response.json();
     
-    // Map Klipy response to our format
-    // Klipy returns data.gifs array with each gif having urls object
-    const gifs = data.gifs || data.results || [];
-    const results = gifs.map((item: any) => ({
-      id: item.id || item.slug || crypto.randomUUID(),
-      title: item.title || item.alt || '',
-      preview: item.urls?.thumbnail || item.urls?.fixed_width || item.urls?.original || '',
-      url: item.urls?.original || item.urls?.fixed_width || item.urls?.thumbnail || '',
-    }));
+    // Klipy response structure: { result: true, data: { data: [...] } }
+    const gifs = data?.data?.data || [];
+    console.log(`Found ${gifs.length} GIFs`);
+    
+    const results = gifs.map((item: any) => {
+      // Get the best available URL: prefer webp for preview (smaller), gif for full
+      const hd = item.file?.hd || {};
+      const md = item.file?.md || {};
+      const sd = item.file?.sd || {};
+      
+      // For preview, use smaller version
+      const previewUrl = sd?.webp?.url || sd?.gif?.url || md?.webp?.url || md?.gif?.url || hd?.webp?.url || hd?.gif?.url || '';
+      // For full GIF, use best quality
+      const fullUrl = hd?.gif?.url || md?.gif?.url || sd?.gif?.url || hd?.webp?.url || '';
+      
+      return {
+        id: item.id?.toString() || item.slug || crypto.randomUUID(),
+        title: item.title || '',
+        preview: previewUrl,
+        url: fullUrl,
+      };
+    });
 
-    console.log(`Found ${results.length} GIFs`);
+    console.log(`Mapped ${results.length} GIFs`);
 
     return new Response(
       JSON.stringify({ results }),
