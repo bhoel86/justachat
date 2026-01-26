@@ -125,7 +125,7 @@ const helpCommand: CommandHandler = async (args, context) => {
 /radio - Start/toggle radio player
 /play - Play radio
 /pause - Pause radio
-/skip - Skip to next station
+/skip - Vote to skip song (needs 2 votes)
 /nowplaying - Show current song
 
 **Trivia Commands (in #trivia):**
@@ -773,10 +773,20 @@ const pauseCommand: CommandHandler = async () => {
   };
 };
 
-const skipCommand: CommandHandler = async () => {
+const skipCommand: CommandHandler = async (args, context) => {
+  // Check if user is admin/owner - they can skip directly
+  if (context.isAdmin || context.isOwner) {
+    return {
+      success: true,
+      message: 'RADIO_COMMAND:skip',
+      isSystemMessage: false,
+    };
+  }
+  
+  // Regular users trigger a vote
   return {
     success: true,
-    message: 'RADIO_COMMAND:skip',
+    message: `SKIP_VOTE_COMMAND:${context.userId}:${context.username}`,
     isSystemMessage: false,
   };
 };
