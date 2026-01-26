@@ -45,18 +45,15 @@ const getIrcColor = (code: string): string => {
   return '#FFFFFF';
 };
 
-// Parse IRC color codes (\x03FG or \x03FG,BG)
+// Parse IRC color codes (\x03FG or \x03FG,BG) - supports 0-98
 const parseIrcColors = (text: string): React.ReactNode[] => {
   const parts: React.ReactNode[] = [];
-  const colorRegex = /\x03(\d{1,2})(?:,(\d{1,2}))?/g;
-  
-  let lastIndex = 0;
-  let match;
   let currentFg: string | null = null;
   let currentBg: string | null = null;
   
-  // Split by color codes and newlines
-  const segments = text.split(/(\x03\d{1,2}(?:,\d{1,2})?|\x03|\n)/);
+  // Split by color codes (1-2 digits) and newlines
+  // Match \x03 followed by optional FG (1-2 digits) and optional ,BG (1-2 digits)
+  const segments = text.split(/(\x03(?:\d{1,2}(?:,\d{1,2})?)?|\n)/);
   
   segments.forEach((segment, i) => {
     if (!segment) return;
@@ -66,20 +63,23 @@ const parseIrcColors = (text: string): React.ReactNode[] => {
       return;
     }
     
-    if (segment === '\x03') {
-      // Reset colors
-      currentFg = null;
-      currentBg = null;
-      return;
-    }
-    
-    const colorMatch = segment.match(/^\x03(\d{1,2})(?:,(\d{1,2}))?$/);
-    if (colorMatch) {
-      const fg = colorMatch[1];
-      const bg = colorMatch[2];
-      currentFg = getIrcColor(fg);
-      currentBg = bg ? getIrcColor(bg) : null;
-      return;
+    // Check if this is a color code
+    if (segment.startsWith('\x03')) {
+      if (segment === '\x03') {
+        // Plain \x03 resets colors
+        currentFg = null;
+        currentBg = null;
+        return;
+      }
+      
+      const colorMatch = segment.match(/^\x03(\d{1,2})(?:,(\d{1,2}))?$/);
+      if (colorMatch) {
+        const fg = colorMatch[1];
+        const bg = colorMatch[2];
+        currentFg = getIrcColor(fg);
+        currentBg = bg ? getIrcColor(bg) : null;
+        return;
+      }
     }
     
     // Regular text - apply current colors
@@ -90,6 +90,7 @@ const parseIrcColors = (text: string): React.ReactNode[] => {
           style={{
             color: currentFg || undefined,
             backgroundColor: currentBg || undefined,
+            lineHeight: 1,
           }}
         >
           {segment}
@@ -203,7 +204,15 @@ const FormattedText = ({ text, className = '' }: FormattedTextProps) => {
     // Check for IRC color codes first (colored block art)
     if (hasIrcColors(textContent)) {
       return (
-        <pre className={`font-mono text-[8px] leading-[8px] whitespace-pre ${className}`}>
+        <pre 
+          className={`font-mono whitespace-pre overflow-x-auto ${className}`}
+          style={{ 
+            fontSize: '6px', 
+            lineHeight: '6px',
+            letterSpacing: '0px',
+            fontFamily: 'monospace',
+          }}
+        >
           {parseIrcColors(textContent)}
         </pre>
       );
