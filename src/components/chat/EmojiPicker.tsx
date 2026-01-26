@@ -84,10 +84,10 @@ const EmojiPicker = ({ onEmojiSelect, onGifSelect }: EmojiPickerProps) => {
   }, [onGifSelect, trendingLoaded]);
 
   useEffect(() => {
-    if (isOpen && activeTab === 'gif' && !searchQuery && !trendingLoaded) {
+   if (isOpen && activeTab === 'gif' && !searchQuery) {
       loadTrending();
     }
-  }, [isOpen, activeTab, searchQuery, trendingLoaded, loadTrending]);
+ }, [isOpen, activeTab, searchQuery]);
 
   useEffect(() => {
     if (activeTab !== 'gif' || !searchQuery) return;

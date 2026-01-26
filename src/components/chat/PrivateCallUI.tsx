@@ -34,6 +34,7 @@ const PrivateCallUI = ({
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+ const audioContextRef = useRef<AudioContext | null>(null);
   const animationRef = useRef<number | null>(null);
   const [micLevel, setMicLevel] = useState(0);
 
@@ -41,6 +42,10 @@ const PrivateCallUI = ({
   useEffect(() => {
     if (!localStream || isAudioMuted) {
       setMicLevel(0);
+     if (animationRef.current) {
+       cancelAnimationFrame(animationRef.current);
+       animationRef.current = null;
+     }
       return;
     }
 
@@ -51,11 +56,21 @@ const PrivateCallUI = ({
     }
 
     try {
-      const audioContext = new AudioContext();
+     // Reuse or create audio context
+     if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+       audioContextRef.current = new AudioContext();
+     }
+     const audioContext = audioContextRef.current;
+     
+     // Resume if suspended (common on mobile)
+     if (audioContext.state === 'suspended') {
+       audioContext.resume();
+     }
+     
       const source = audioContext.createMediaStreamSource(localStream);
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 256;
-      analyser.smoothingTimeConstant = 0.5;
+     analyser.smoothingTimeConstant = 0.8;
       source.connect(analyser);
       analyserRef.current = analyser;
 
@@ -65,7 +80,8 @@ const PrivateCallUI = ({
         if (analyserRef.current) {
           analyserRef.current.getByteFrequencyData(dataArray);
           const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
-          const normalizedLevel = Math.min(average / 128, 1);
+         // Normalize to 0-100 range for better visualization
+         const normalizedLevel = Math.min((average / 255) * 100, 100);
           setMicLevel(normalizedLevel);
         }
         animationRef.current = requestAnimationFrame(updateLevel);
@@ -76,8 +92,11 @@ const PrivateCallUI = ({
       return () => {
         if (animationRef.current) {
           cancelAnimationFrame(animationRef.current);
+         animationRef.current = null;
         }
-        audioContext.close();
+       // Disconnect but keep context for reuse
+       source.disconnect();
+       analyser.disconnect();
       };
     } catch (err) {
       console.warn('[PrivateCallUI] Failed to set up audio analyzer:', err);
@@ -112,6 +131,7 @@ const PrivateCallUI = ({
       if (remoteAudioRef.current) {
         console.log('[PrivateCallUI] Attaching remote stream to audio element');
         remoteAudioRef.current.srcObject = remoteStream;
+       remoteAudioRef.current.volume = 1.0;
         remoteAudioRef.current.play().catch(err => {
           console.warn('[PrivateCallUI] Remote audio autoplay failed:', err);
         });
@@ -127,15 +147,21 @@ const PrivateCallUI = ({
 
   // Calculate mic level indicator color and height
   const getMicLevelColor = (level: number) => {
-    if (level < 0.3) return 'bg-green-500';
-    if (level < 0.7) return 'bg-yellow-500';
+   if (level < 30) return 'bg-green-500';
+   if (level < 70) return 'bg-yellow-500';
     return 'bg-red-500';
   };
 
   return (
     <div className="absolute inset-0 bg-background/95 backdrop-blur-sm z-50 flex flex-col rounded-xl overflow-hidden">
       {/* Hidden audio element to ensure audio always plays */}
-      <audio ref={remoteAudioRef} autoPlay playsInline className="hidden" />
+     <audio 
+       ref={remoteAudioRef} 
+       autoPlay 
+       playsInline
+       controls={false}
+       className="hidden"
+     />
       
       {/* Video display area */}
       {isVideo ? (
@@ -173,7 +199,7 @@ const PrivateCallUI = ({
                   <div
                     key={i}
                     className={`w-1 rounded-full transition-all duration-75 ${
-                      micLevel >= threshold ? getMicLevelColor(micLevel) : 'bg-white/30'
+                     micLevel >= threshold * 100 ? getMicLevelColor(micLevel) : 'bg-white/30'
                     }`}
                     style={{ height: `${(i + 1) * 3 + 4}px` }}
                   />
@@ -221,11 +247,11 @@ const PrivateCallUI = ({
                 <Mic className="h-4 w-4 text-foreground" />
               )}
               <div className="flex items-end gap-0.5 h-5">
-                {[0.15, 0.3, 0.45, 0.6, 0.75, 0.9].map((threshold, i) => (
+               {[15, 30, 45, 60, 75, 90].map((threshold, i) => (
                   <div
                     key={i}
                     className={`w-1.5 rounded-full transition-all duration-75 ${
-                      !isAudioMuted && micLevel >= threshold 
+                     !isAudioMuted && micLevel >= threshold
                         ? getMicLevelColor(micLevel) 
                         : 'bg-muted-foreground/30'
                     }`}
