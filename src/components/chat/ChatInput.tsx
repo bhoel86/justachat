@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import EmojiPicker from "./EmojiPicker";
 import TextFormatMenu, { TextFormat, encodeFormat } from "./TextFormatMenu";
 import MentionAutocomplete from "./MentionAutocomplete";
+import CommandAutocomplete, { CommandDefinition } from "./CommandAutocomplete";
 import { useRadioOptional } from "@/contexts/RadioContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
@@ -57,13 +58,15 @@ const ChatInput = ({ onSend, isMuted = false, canControlRadio = false, onlineUse
   const [mentionQuery, setMentionQuery] = useState("");
   const [mentionPosition, setMentionPosition] = useState({ top: 48, left: 0 });
   const [cursorPosition, setCursorPosition] = useState(0);
+  const [showCommands, setShowCommands] = useState(false);
+  const [commandQuery, setCommandQuery] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const radio = useRadioOptional();
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
-  // Detect @mention typing
+  // Detect @mention and /command typing
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     const cursorPos = e.target.selectionStart || 0;
@@ -77,6 +80,7 @@ const ChatInput = ({ onSend, isMuted = false, canControlRadio = false, onlineUse
     if (mentionMatch) {
       setMentionQuery(mentionMatch[1]);
       setShowMentions(true);
+      setShowCommands(false);
       // Position the autocomplete above the input
       if (inputRef.current) {
         const inputRect = inputRef.current.getBoundingClientRect();
@@ -85,6 +89,22 @@ const ChatInput = ({ onSend, isMuted = false, canControlRadio = false, onlineUse
     } else {
       setShowMentions(false);
       setMentionQuery("");
+    }
+
+    // Check if typing a command (starts with / at beginning of input)
+    if (value.startsWith('/') && !mentionMatch) {
+      const cmdText = value.slice(1); // Remove leading /
+      // Only show if no space yet (still typing command name) or if space and checking for subcommands
+      const parts = cmdText.split(' ');
+      if (parts.length <= 2 && !parts[parts.length - 1].includes(' ')) {
+        setCommandQuery(cmdText);
+        setShowCommands(true);
+      } else {
+        setShowCommands(false);
+      }
+    } else {
+      setShowCommands(false);
+      setCommandQuery("");
     }
   }, []);
 
@@ -110,16 +130,47 @@ const ChatInput = ({ onSend, isMuted = false, canControlRadio = false, onlineUse
     setMentionQuery("");
   }, [message, cursorPosition]);
 
-  // Close mentions on click outside
+  // Handle command selection
+  const handleCommandSelect = useCallback((command: CommandDefinition) => {
+    setMessage(command.command + ' ');
+    setShowCommands(false);
+    setCommandQuery("");
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        const pos = command.command.length + 1;
+        inputRef.current.setSelectionRange(pos, pos);
+      }
+    }, 0);
+  }, []);
+
+  // Handle command with user selection
+  const handleCommandWithUser = useCallback((command: CommandDefinition, username: string) => {
+    setMessage(`${command.command} ${username} `);
+    setShowCommands(false);
+    setCommandQuery("");
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.focus();
+        const pos = command.command.length + username.length + 2;
+        inputRef.current.setSelectionRange(pos, pos);
+      }
+    }, 0);
+  }, []);
+
+  // Close mentions/commands on click outside
   useEffect(() => {
     const handleClickOutside = () => {
       if (showMentions) {
         setShowMentions(false);
       }
+      if (showCommands) {
+        setShowCommands(false);
+      }
     };
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
-  }, [showMentions]);
+  }, [showMentions, showCommands]);
 
   // Emoji categories for mobile dropdown
   const QUICK_EMOJIS = ['😀', '😂', '❤️', '👍', '🔥', '😮', '😢', '😡', '🎉', '💯'];
@@ -892,6 +943,15 @@ const ChatInput = ({ onSend, isMuted = false, canControlRadio = false, onlineUse
               onSelect={handleMentionSelect}
               onClose={() => setShowMentions(false)}
               position={mentionPosition}
+            />
+          )}
+          {showCommands && (
+            <CommandAutocomplete
+              query={commandQuery}
+              onSelect={handleCommandSelect}
+              onSelectUser={handleCommandWithUser}
+              onClose={() => setShowCommands(false)}
+              users={onlineUsers}
             />
           )}
         </div>
