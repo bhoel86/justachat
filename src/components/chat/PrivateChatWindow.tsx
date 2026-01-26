@@ -105,17 +105,14 @@ const PrivateChatWindow = ({
     }
   };
 
-  // Only scroll when new messages are added by current user
+  // Scroll to bottom when new messages are added (own messages or incoming)
   useEffect(() => {
     if (messages.length > lastMessageCountRef.current) {
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage?.isOwn) {
-        requestAnimationFrame(() => {
-          if (messagesContainerRef.current) {
-            messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-          }
-        });
-      }
+      requestAnimationFrame(() => {
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        }
+      });
     }
     lastMessageCountRef.current = messages.length;
   }, [messages]);
@@ -248,6 +245,12 @@ const PrivateChatWindow = ({
           if (isMounted) {
             setMessages(decryptedMessages);
             lastMessageCountRef.current = decryptedMessages.length;
+            // Scroll to bottom after loading messages
+            requestAnimationFrame(() => {
+              if (messagesContainerRef.current) {
+                messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+              }
+            });
           }
         }
       } catch (err) {
