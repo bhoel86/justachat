@@ -327,7 +327,12 @@ const PrivateChatWindow = ({
             try {
               const decrypted = await decryptMessage(data.encrypted, currentKey);
               
-              setMessages(prev => [...prev, {
+              // Prevent duplicates - check if message ID already exists
+              setMessages(prev => {
+                if (prev.some(m => m.id === data.id)) {
+                  return prev; // Message already exists, skip it
+                }
+                return [...prev, {
                 id: data.id,
                 content: decrypted,
                 senderId: data.senderId,
@@ -335,7 +340,8 @@ const PrivateChatWindow = ({
                 timestamp: new Date(data.timestamp),
                 isOwn: false,
                 imageUrl: data.imageUrl
-              }]);
+                }];
+              });
               onNewMessage?.();
             } catch (error) {
               console.error('Failed to decrypt message:', error);
@@ -587,7 +593,10 @@ const PrivateChatWindow = ({
         }
       });
 
-      setMessages(prev => [...prev, {
+    // Add message locally with duplicate check
+    setMessages(prev => {
+      if (prev.some(m => m.id === msgId)) return prev;
+      return [...prev, {
         id: msgId,
         content: finalMessage,
         senderId: currentUserId,
@@ -595,7 +604,8 @@ const PrivateChatWindow = ({
         timestamp: new Date(),
         isOwn: true,
         imageUrl: imageUrl || undefined
-      }]);
+      }];
+    });
 
       monitorMessage(finalMessage, currentUserId, currentUsername);
       setMessage('');
@@ -660,7 +670,10 @@ const PrivateChatWindow = ({
         }
       });
 
-      setMessages(prev => [...prev, {
+    // Add message locally with duplicate check
+    setMessages(prev => {
+      if (prev.some(m => m.id === msgId)) return prev;
+      return [...prev, {
         id: msgId,
         content: finalMessage,
         senderId: currentUserId,
@@ -668,7 +681,8 @@ const PrivateChatWindow = ({
         timestamp: new Date(),
         isOwn: true,
         imageUrl: gifUrl
-      }]);
+      }];
+    });
 
       monitorMessage(finalMessage, currentUserId, currentUsername);
       
