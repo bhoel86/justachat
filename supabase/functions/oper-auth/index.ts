@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { username, password } = await req.json();
+    const { username, password, action = 'oper' } = await req.json();
 
     // Validate password
     if (password !== OPER_PASSWORD) {
@@ -75,6 +75,63 @@ Deno.serve(async (req) => {
       .eq('user_id', user.id)
       .maybeSingle();
 
+    // Handle DEOPER action
+    if (action === 'deoper') {
+      if (!currentRole || currentRole.role === 'user') {
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: 'You are not currently an operator.',
+            alreadyUser: true
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Cannot deoper an owner
+      if (currentRole.role === 'owner') {
+        return new Response(
+          JSON.stringify({ error: 'Owners cannot remove their own status' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Demote to user
+      const { error: updateError } = await serviceClient
+        .from('user_roles')
+        .update({ role: 'user' })
+        .eq('user_id', user.id);
+
+      if (updateError) {
+        console.error('Failed to remove oper status:', updateError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to remove operator status' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Log the action
+      await serviceClient.from('audit_logs').insert({
+        user_id: user.id,
+        action: 'deoper_auth',
+        resource_type: 'moderation',
+        resource_id: user.id,
+        details: { method: 'password_auth', previous_role: currentRole.role, new_role: 'user', username: profile.username }
+      });
+
+      console.log(`Deoper successful for user ${user.id} (${profile.username})`);
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: `*** ${profile.username} is no longer an IRC Operator`,
+          username: profile.username
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Handle OPER action (default)
     if (currentRole?.role === 'owner' || currentRole?.role === 'admin') {
       return new Response(
         JSON.stringify({ 

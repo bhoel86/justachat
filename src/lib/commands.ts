@@ -119,6 +119,7 @@ const helpCommand: CommandHandler = async (args, context) => {
 /whois <username> - View user info
 /roomadmin <password> - Become a room admin (if password is set)
 /oper <username> <password> - Authenticate as IRC operator
+/deoper <username> <password> - Remove your operator status
 
 **Radio Commands:**
 /radio - Start/toggle radio player
@@ -312,6 +313,50 @@ const operCommand: CommandHandler = async (args, context) => {
   } catch (err) {
     console.error('Oper command error:', err);
     return { success: false, message: 'Failed to grant operator status.' };
+  }
+};
+
+// /deoper command - IRC-style operator de-authentication via Edge Function
+const deoperCommand: CommandHandler = async (args, context) => {
+  if (args.length < 2) {
+    return { success: false, message: 'Usage: /deoper <username> <password>' };
+  }
+
+  const [username, password] = args;
+  
+  try {
+    // Call Edge Function to authenticate and remove oper status
+    const { data, error } = await supabaseUntyped.functions.invoke('oper-auth', {
+      body: { username, password, action: 'deoper' }
+    });
+
+    if (error) {
+      console.error('Deoper auth error:', error);
+      return { success: false, message: 'Failed to authenticate.' };
+    }
+
+    if (data?.error) {
+      return { success: false, message: data.error };
+    }
+
+    if (data?.alreadyUser) {
+      return {
+        success: true,
+        message: data.message,
+        isSystemMessage: true,
+      };
+    }
+
+    return {
+      success: true,
+      message: data?.message || `*** ${context.username} is no longer an IRC Operator`,
+      isSystemMessage: true,
+      broadcast: true,
+      refreshRole: true, // Trigger role refresh in UI
+    };
+  } catch (err) {
+    console.error('Deoper command error:', err);
+    return { success: false, message: 'Failed to remove operator status.' };
   }
 };
 
@@ -1298,6 +1343,7 @@ const commands: Record<string, CommandHandler> = {
   kline: klineCommand,
   unkline: unklineCommand,
   klines: klinesCommand,
+  deoper: deoperCommand, // IRC-style operator de-auth
   // Art room commands
   art: artCommand,
   nextart: artCommand, // Alias
