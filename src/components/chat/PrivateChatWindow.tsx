@@ -653,21 +653,20 @@ const PrivateChatWindow = ({
         </span>
       </div>
 
-      {/* Connection Status */}
-      {!isConnected && (
-        <div className="px-2 py-1.5 bg-muted flex items-center justify-center gap-2">
-          <div className="h-3 w-3 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-          <span className="text-[10px] text-muted-foreground">Connecting...</span>
-        </div>
-      )}
-
       {/* Messages */}
       <div 
        ref={messagesContainerRef}
-        className="overflow-y-auto p-2 space-y-2 bg-background/50"
+       className="overflow-y-auto p-2 space-y-2 bg-background/50 relative"
         style={{ height: messageAreaHeight }}
        onMouseDown={(e) => e.stopPropagation()}
       >
+       {/* Connection Status - Overlay */}
+       {!isConnected && (
+         <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center gap-2 z-10">
+           <div className="h-4 w-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+           <span className="text-xs text-muted-foreground">Connecting...</span>
+         </div>
+       )}
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-center">
             <Lock className="h-8 w-8 mb-2 text-primary/30" />
