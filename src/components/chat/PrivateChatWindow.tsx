@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { X, Lock, Send, Minus, Shield, Check, CheckCheck, Phone, Video, ImagePlus, Zap, Loader2, ImageIcon } from "lucide-react";
+import { X, Lock, Send, Minus, Shield, Check, CheckCheck, Phone, Video, ImagePlus, Zap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { generateSessionKey, encryptMessage, encryptWithMasterKey, decryptMessage, exportKey, importKey, generateSessionId } from "@/lib/encryption";
 import EmojiPicker from "./EmojiPicker";
 import TextFormatMenu, { TextFormat, encodeFormat } from "./TextFormatMenu";
 import FormattedText from "./FormattedText";
-import GifPicker from "./GifPicker";
 import { useToast } from "@/hooks/use-toast";
 import { CHAT_BOTS, ROOM_BOTS } from "@/lib/chatBots";
 import { usePrivateCall } from "@/hooks/usePrivateCall";
@@ -979,23 +978,23 @@ const PrivateChatWindow = ({
 
       {/* Input */}
       <div className="p-2 border-t border-border bg-card">
-        <div className="flex items-center gap-1">
-          {/* Emoji Picker */}
-          <EmojiPicker onEmojiSelect={handleEmojiSelect} />
+        <div className="flex items-center gap-1.5">
+          {/* Emoji + GIF Picker */}
+          <EmojiPicker onEmojiSelect={handleEmojiSelect} onGifSelect={(gifUrl) => handleSendGif(gifUrl)} />
           
           {/* Text Format Menu */}
-          <div className="shrink-0 [&_button]:h-7 [&_button]:w-7 [&_button]:rounded-lg">
+          <div className="shrink-0 [&_button]:h-8 [&_button]:w-8 [&_button]:rounded-lg">
             <TextFormatMenu currentFormat={textFormat} onFormatChange={setTextFormat} />
           </div>
           
           {/* Actions Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
-                <Zap className="w-3.5 h-3.5" />
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                <Zap className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-44 bg-popover border border-border z-50">
+            <DropdownMenuContent align="start" className="w-44 bg-popover border border-border z-[9999]">
               <DropdownMenuLabel className="text-[10px]">Funny Actions</DropdownMenuLabel>
               {PM_ACTIONS.funny.map((action, i) => (
                 <DropdownMenuItem key={i} onClick={() => handleActionSelect(action)} className="text-xs">
@@ -1017,19 +1016,12 @@ const PrivateChatWindow = ({
           <Button 
             variant="ghost" 
             size="icon" 
-            className="h-7 w-7 shrink-0" 
+            className="h-8 w-8 shrink-0" 
             onClick={() => fileInputRef.current?.click()} 
             disabled={isUploading}
           >
-            {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" />}
+            {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}
           </Button>
-          
-          {/* GIF Picker */}
-          <GifPicker onSelect={(gifUrl) => handleSendGif(gifUrl)}>
-            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
-              <span className="text-[10px] font-bold">GIF</span>
-            </Button>
-          </GifPicker>
           
           <input
             type="text"
@@ -1040,16 +1032,16 @@ const PrivateChatWindow = ({
             onClick={(e) => e.stopPropagation()}
             placeholder="Message..."
             disabled={!isConnected || isUploading}
-            className="flex-1 bg-input rounded-lg px-2 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50 min-w-0"
+            className="flex-1 bg-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50 min-w-0"
           />
           <Button
             onClick={handleSend}
             disabled={(!message.trim() && !attachedImage) || !isConnected || isUploading}
             variant="jac"
             size="icon"
-            className="h-7 w-7 rounded-lg shrink-0"
+            className="h-8 w-8 rounded-lg shrink-0"
           >
-            <Send className="h-3 w-3" />
+            <Send className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
