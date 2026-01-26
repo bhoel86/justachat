@@ -49,12 +49,13 @@ interface YTPlayer {
   seekTo: (seconds: number, allowSeekAhead: boolean) => void;
   getCurrentTime: () => number;
   getDuration: () => number;
+  getPlayerState: () => number;
 }
 
 interface YTWindow extends Window {
   YT?: {
     Player: new (elementId: string, config: unknown) => YTPlayer;
-    PlayerState: { PLAYING: number; PAUSED: number; ENDED: number };
+    PlayerState: { PLAYING: number; PAUSED: number; ENDED: number; UNSTARTED: number; CUED: number };
   };
   onYouTubeIframeAPIReady?: () => void;
 }
@@ -112,6 +113,12 @@ export const RadioProvider: React.FC<RadioProviderProps> = ({ children }) => {
   });
   const progressInterval = useRef<number | null>(null);
   const playerRef = useRef<YTPlayer | null>(null);
+  
+  // Track broken videos for this session (don't persist - give them another chance next session)
+  const brokenVideosRef = useRef<Set<string>>(new Set());
+  // Track load attempts to detect stuck videos
+  const loadAttemptRef = useRef<{ videoId: string; timestamp: number } | null>(null);
+  const loadTimeoutRef = useRef<number | null>(null);
   
   // Track mounted state to prevent state updates after unmount
   useEffect(() => {
@@ -226,6 +233,22 @@ export const RadioProvider: React.FC<RadioProviderProps> = ({ children }) => {
       document.body.appendChild(container);
     }
 
+    // Track this load attempt
+    loadAttemptRef.current = { videoId: currentSong.videoId, timestamp: Date.now() };
+    
+    // Set timeout to detect videos that fail to load (stuck in UNSTARTED state)
+    if (loadTimeoutRef.current) {
+      clearTimeout(loadTimeoutRef.current);
+    }
+    loadTimeoutRef.current = window.setTimeout(() => {
+      if (loadAttemptRef.current?.videoId === currentSong.videoId) {
+        // Video hasn't started playing after 10 seconds - mark as broken and skip
+        console.log(`Radio: Video ${currentSong.videoId} failed to load, marking as broken and skipping`);
+        brokenVideosRef.current.add(currentSong.videoId);
+        skipBroken();
+      }
+    }, 10000);
+
     playerRef.current = new ytWindow.YT.Player('youtube-radio-player', {
       height: '0',
       width: '0',
@@ -258,6 +281,12 @@ export const RadioProvider: React.FC<RadioProviderProps> = ({ children }) => {
           if (ytWindow.YT?.PlayerState) {
             if (event.data === ytWindow.YT.PlayerState.PLAYING) {
               setIsPlaying(true);
+              // Clear timeout - video is playing successfully
+              if (loadTimeoutRef.current) {
+                clearTimeout(loadTimeoutRef.current);
+                loadTimeoutRef.current = null;
+              }
+              loadAttemptRef.current = null;
             } else if (event.data === ytWindow.YT.PlayerState.PAUSED) {
               setIsPlaying(false);
             } else if (event.data === ytWindow.YT.PlayerState.ENDED) {
@@ -265,9 +294,47 @@ export const RadioProvider: React.FC<RadioProviderProps> = ({ children }) => {
             }
           }
         },
+        onError: (event: { data: number }) => {
+          // YouTube error codes: 2 = invalid param, 5 = HTML5 error, 100 = not found, 101/150 = embedding disabled
+          console.log(`Radio: Video error ${event.data} for ${currentSong?.videoId}, marking as broken`);
+          if (currentSong) {
+            brokenVideosRef.current.add(currentSong.videoId);
+          }
+          // Clear timeout and skip to next
+          if (loadTimeoutRef.current) {
+            clearTimeout(loadTimeoutRef.current);
+            loadTimeoutRef.current = null;
+          }
+          skipBroken();
+        },
       },
     });
   }, [currentSong, volume]);
+  
+  // Skip to next non-broken song
+  const skipBroken = useCallback(() => {
+    let nextIndex = (currentSongIndex + 1) % currentPlaylist.length;
+    let attempts = 0;
+    const maxAttempts = currentPlaylist.length;
+    
+    // Find next song that isn't marked as broken
+    while (brokenVideosRef.current.has(currentPlaylist[nextIndex].videoId) && attempts < maxAttempts) {
+      nextIndex = (nextIndex + 1) % currentPlaylist.length;
+      attempts++;
+    }
+    
+    if (attempts >= maxAttempts) {
+      console.log('Radio: All songs in playlist appear broken, resetting broken list');
+      brokenVideosRef.current.clear();
+    }
+    
+    setCurrentSongIndex(nextIndex);
+    
+    if (playerRef.current && isInitialized) {
+      playerRef.current.loadVideoById(currentPlaylist[nextIndex].videoId);
+      playerRef.current.playVideo();
+    }
+  }, [currentSongIndex, currentPlaylist, isInitialized]);
 
   const play = useCallback(() => {
     if (playerRef.current) {
@@ -284,24 +351,62 @@ export const RadioProvider: React.FC<RadioProviderProps> = ({ children }) => {
   }, []);
 
   const skip = useCallback(() => {
-    const nextIndex = (currentSongIndex + 1) % currentPlaylist.length;
+    let nextIndex = (currentSongIndex + 1) % currentPlaylist.length;
+    
+    // Skip any songs marked as broken
+    let attempts = 0;
+    while (brokenVideosRef.current.has(currentPlaylist[nextIndex].videoId) && attempts < currentPlaylist.length) {
+      nextIndex = (nextIndex + 1) % currentPlaylist.length;
+      attempts++;
+    }
+    
     setCurrentSongIndex(nextIndex);
+    
+    // Track load attempt for timeout detection
+    loadAttemptRef.current = { videoId: currentPlaylist[nextIndex].videoId, timestamp: Date.now() };
+    if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+    loadTimeoutRef.current = window.setTimeout(() => {
+      if (loadAttemptRef.current?.videoId === currentPlaylist[nextIndex].videoId) {
+        console.log(`Radio: Video ${currentPlaylist[nextIndex].videoId} failed to load on skip`);
+        brokenVideosRef.current.add(currentPlaylist[nextIndex].videoId);
+        skipBroken();
+      }
+    }, 10000);
     
     if (playerRef.current && isInitialized) {
       playerRef.current.loadVideoById(currentPlaylist[nextIndex].videoId);
       playerRef.current.playVideo();
     }
-  }, [currentSongIndex, currentPlaylist, isInitialized]);
+  }, [currentSongIndex, currentPlaylist, isInitialized, skipBroken]);
 
   const previous = useCallback(() => {
-    const prevIndex = currentSongIndex === 0 ? currentPlaylist.length - 1 : currentSongIndex - 1;
+    let prevIndex = currentSongIndex === 0 ? currentPlaylist.length - 1 : currentSongIndex - 1;
+    
+    // Skip any songs marked as broken (going backwards)
+    let attempts = 0;
+    while (brokenVideosRef.current.has(currentPlaylist[prevIndex].videoId) && attempts < currentPlaylist.length) {
+      prevIndex = prevIndex === 0 ? currentPlaylist.length - 1 : prevIndex - 1;
+      attempts++;
+    }
+    
     setCurrentSongIndex(prevIndex);
+    
+    // Track load attempt
+    loadAttemptRef.current = { videoId: currentPlaylist[prevIndex].videoId, timestamp: Date.now() };
+    if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+    loadTimeoutRef.current = window.setTimeout(() => {
+      if (loadAttemptRef.current?.videoId === currentPlaylist[prevIndex].videoId) {
+        console.log(`Radio: Video ${currentPlaylist[prevIndex].videoId} failed to load on previous`);
+        brokenVideosRef.current.add(currentPlaylist[prevIndex].videoId);
+        skipBroken();
+      }
+    }, 10000);
     
     if (playerRef.current && isInitialized) {
       playerRef.current.loadVideoById(currentPlaylist[prevIndex].videoId);
       playerRef.current.playVideo();
     }
-  }, [currentSongIndex, currentPlaylist, isInitialized]);
+  }, [currentSongIndex, currentPlaylist, isInitialized, skipBroken]);
 
   const skipGenre = useCallback(() => {
     const currentGenreIndex = genres.indexOf(currentGenre);
@@ -388,12 +493,16 @@ export const RadioProvider: React.FC<RadioProviderProps> = ({ children }) => {
     setTimeout(() => enableRadio(), 100);
   }, [disableRadio, enableRadio]);
 
-  // Cleanup interval and player on unmount
+  // Cleanup interval, player, and timeouts on unmount
   useEffect(() => {
     return () => {
       if (progressInterval.current) {
         clearInterval(progressInterval.current);
         progressInterval.current = null;
+      }
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+        loadTimeoutRef.current = null;
       }
       // Clean up player on unmount
       if (playerRef.current) {
