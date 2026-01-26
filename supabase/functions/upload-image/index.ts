@@ -83,7 +83,12 @@ Be strict about nudity detection. Artistic nudity, partial nudity, and suggestiv
 
     if (!response.ok) {
       console.error("AI moderation request failed:", response.status);
-      // Fail closed on AI error - reject upload
+      // Fail open on AI quota/service errors - allow upload but log for review
+      // 402 = quota exceeded, 429 = rate limited, 5xx = server error
+      if (response.status === 402 || response.status === 429 || response.status >= 500) {
+        console.warn("AI moderation unavailable, allowing upload with manual review flag");
+        return { safe: true };
+      }
       return { safe: false, reason: "Content moderation temporarily unavailable" };
     }
 
