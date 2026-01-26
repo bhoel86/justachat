@@ -112,6 +112,7 @@ const helpCommand: CommandHandler = async (args, context) => {
 /me <action> - Send action message (e.g., /me waves)
 /nick <newname> - Change your display name
 /pm <username> - Start private encrypted chat
+/invite <username> - Invite user to current room
 /clear - Clear your chat (local only)
 /users - List online users
 /whois <username> - View user info
@@ -1175,11 +1176,37 @@ const artCommand: CommandHandler = async (args, context) => {
   };
 };
 
+// Invite command - invite user to current room
+const inviteCommand: CommandHandler = async (args, context) => {
+  if (args.length === 0) {
+    return { success: false, message: 'Usage: /invite <username>' };
+  }
+  
+  const targetUsername = args[0].replace(/^@/, ''); // Strip @ if present
+  const targetUser = await findUserByUsername(targetUsername);
+  
+  if (!targetUser) {
+    return { success: false, message: `User "${targetUsername}" not found.` };
+  }
+  
+  if (targetUser.user_id === context.userId) {
+    return { success: false, message: "You can't invite yourself." };
+  }
+
+  // Return special invite result that ChatRoom will handle
+  return {
+    success: true,
+    message: `INVITE_COMMAND:${targetUser.user_id}:${targetUser.username}`,
+    isSystemMessage: false,
+  };
+};
+
 // Command registry
 const commands: Record<string, CommandHandler> = {
   help: helpCommand,
   me: meCommand,
   nick: nickCommand,
+  invite: inviteCommand,
   pm: pmCommand,
   msg: pmCommand, // Alias
   op: opCommand,

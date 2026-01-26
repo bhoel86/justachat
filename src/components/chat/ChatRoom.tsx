@@ -21,6 +21,7 @@ import LanguageSettingsModal from "@/components/profile/LanguageSettingsModal";
 import RoomSettingsModal from "./RoomSettingsModal";
 import RoomPasswordModal from "./RoomPasswordModal";
 import ArtDisplay from "./ArtDisplay";
+import RoomInvitePopup, { sendRoomInvite } from "./RoomInvitePopup";
 import { useRadioOptional } from "@/contexts/RadioContext";
 import { parseCommand, executeCommand, isCommand, CommandContext } from "@/lib/commands";
 import { getModerator, getWelcomeMessage, getRandomTip, isAdultChannel } from "@/lib/roomConfig";
@@ -749,6 +750,28 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
         return;
       }
 
+      // Check if this is an invite command
+      if (result.message.startsWith('INVITE_COMMAND:')) {
+        const parts = result.message.split(':');
+        const targetUserId = parts[1];
+        const targetUsername = parts[2];
+        
+        const success = await sendRoomInvite(
+          user.id,
+          username,
+          targetUserId,
+          currentChannel.name,
+          currentChannel.id
+        );
+        
+        if (success) {
+          addSystemMessage(`📨 Invite sent to ${targetUsername} for #${currentChannel.name}`);
+        } else {
+          toast({ variant: "destructive", title: "Failed to send invite" });
+        }
+        return;
+      }
+
       // Handle radio commands
       if (result.message.startsWith('RADIO_COMMAND:')) {
         const action = result.message.split(':')[1];
@@ -1211,6 +1234,14 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
         doNotDisturb={privateChats.doNotDisturb}
         onToggleDND={privateChats.toggleDoNotDisturb}
       />
+
+      {/* Room Invite Popup */}
+      {user && (
+        <RoomInvitePopup 
+          userId={user.id} 
+          currentRoomName={currentChannel?.name}
+        />
+      )}
 
       {/* Language Settings Modal */}
       {user && (
