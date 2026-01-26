@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { MessageSquare, X, GripHorizontal, GripVertical, BellOff, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,7 @@ interface PMTrayProps {
 }
 
 const PMTray = ({ minimizedChats, onRestore, onClose, onReorder, doNotDisturb, onToggleDND }: PMTrayProps) => {
+  const isMobile = useIsMobile();
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [draggedTab, setDraggedTab] = useState<number | null>(null);
@@ -108,7 +110,7 @@ const PMTray = ({ minimizedChats, onRestore, onClose, onReorder, doNotDisturb, o
   return (
     <div 
       ref={trayRef}
-      className="fixed bottom-0 left-1/2 z-[999] flex items-end gap-1 pb-2"
+      className="fixed bottom-0 left-1/2 z-[999] flex items-end gap-1 pb-2 lg:pb-2"
       style={{ 
         transform: `translate(calc(-50% + ${position.x}px), ${position.y}px)`,
       }}
@@ -138,15 +140,17 @@ const PMTray = ({ minimizedChats, onRestore, onClose, onReorder, doNotDisturb, o
       )}
 
       {/* Drag handle for whole tray */}
-      <div
-        onMouseDown={handleMouseDown}
-        className={cn(
-          "flex items-center justify-center px-2 py-2 rounded-t-lg border border-b-0 border-border bg-muted/80 cursor-grab shadow-lg",
-          isDragging && "cursor-grabbing"
-        )}
-      >
-        <GripHorizontal className="h-4 w-4 text-muted-foreground" />
-      </div>
+      {!isMobile && (
+        <div
+          onMouseDown={handleMouseDown}
+          className={cn(
+            "flex items-center justify-center px-2 py-2 rounded-t-lg border border-b-0 border-border bg-muted/80 cursor-grab shadow-lg",
+            isDragging && "cursor-grabbing"
+          )}
+        >
+          <GripHorizontal className="h-4 w-4 text-muted-foreground" />
+        </div>
+      )}
 
       {minimizedChats.map((chat, index) => (
         <div
