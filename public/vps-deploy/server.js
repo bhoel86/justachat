@@ -83,6 +83,80 @@ function getBackupInfo() {
   }
 }
 
+// List available backups
+function listBackups() {
+  try {
+    if (!fs.existsSync(BACKUP_DIR)) {
+      return [];
+    }
+    const files = fs.readdirSync(BACKUP_DIR)
+      .filter(f => f.endsWith('.tar.gz'))
+      .map(f => {
+        const stat = fs.statSync(path.join(BACKUP_DIR, f));
+        return {
+          filename: f,
+          size: stat.size,
+          sizeFormatted: formatBytes(stat.size),
+          created: stat.mtime.toISOString()
+        };
+      })
+      .sort((a, b) => new Date(b.created) - new Date(a.created));
+    return files;
+  } catch (e) {
+    return [];
+  }
+}
+
+// Format bytes
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Restore from backup
+function runRestore(filename) {
+  return new Promise((resolve) => {
+    const backupPath = path.join(BACKUP_DIR, filename);
+    
+    if (!fs.existsSync(backupPath)) {
+      resolve({ success: false, error: 'Backup file not found' });
+      return;
+    }
+    
+    // Validate filename to prevent path traversal
+    if (filename.includes('..') || !filename.endsWith('.tar.gz')) {
+      resolve({ success: false, error: 'Invalid backup filename' });
+      return;
+    }
+    
+    const script = `
+      cd ${DEPLOY_DIR} &&
+      # Create a safety backup first
+      tar -czf ${BACKUP_DIR}/pre-restore-$(date +%Y%m%d-%H%M%S).tar.gz --exclude='node_modules' --exclude='.git' . &&
+      # Extract the backup
+      tar -xzf ${backupPath} -C ${DEPLOY_DIR} &&
+      # Reinstall dependencies and rebuild
+      npm install --legacy-peer-deps &&
+      npm run build
+    `;
+
+    exec(script, { 
+      timeout: 300000,
+      maxBuffer: 10 * 1024 * 1024,
+      cwd: DEPLOY_DIR 
+    }, (error, stdout, stderr) => {
+      if (error) {
+        resolve({ success: false, error: error.message, output: stdout, stderr });
+      } else {
+        resolve({ success: true, message: `Restored from ${filename}`, output: stdout, stderr });
+      }
+    });
+  });
+}
+
 // Run deploy (pull from GitHub)
 function runDeploy() {
   return new Promise((resolve) => {
@@ -266,10 +340,18 @@ const server = http.createServer(async (req, res) => {
       deployDir: DEPLOY_DIR,
       appVersion: getAppVersion(),
       git: getGitInfo(),
-      serverVersion: '2.0.0',
+      serverVersion: '2.1.0',
       backupSchedule: backupInfo.schedule,
       lastBackup: backupInfo.lastBackup
     }));
+    return;
+  }
+
+  // List backups endpoint
+  if (url.pathname === '/deploy/backups') {
+    const backups = listBackups();
+    res.writeHead(200, headers);
+    res.end(JSON.stringify({ backups }));
     return;
   }
 
@@ -294,6 +376,14 @@ const server = http.createServer(async (req, res) => {
         break;
       case 'schedule-backup':
         result = await scheduleBackup(body.frequency || 'daily');
+        break;
+      case 'restore':
+        if (!body.filename) {
+          res.writeHead(400, headers);
+          res.end(JSON.stringify({ error: 'Missing filename for restore' }));
+          return;
+        }
+        result = await runRestore(body.filename);
         break;
       default:
         res.writeHead(400, headers);

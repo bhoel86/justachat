@@ -83,8 +83,14 @@ serve(async (req) => {
     if (requestBody?.frequency) {
       body.frequency = requestBody.frequency;
     }
+    if (requestBody?.filename) {
+      body.filename = requestBody.filename;
+    }
 
-    if (action !== "status") {
+    if (action === "list-backups") {
+      endpoint = "/deploy/backups";
+      method = "GET";
+    } else if (action !== "status") {
       endpoint = "/deploy";
       method = "POST";
     }

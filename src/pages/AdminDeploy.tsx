@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, RefreshCw, GitBranch, Server, CheckCircle, XCircle, Download, Upload, Clock, HardDrive } from "lucide-react";
+import { Loader2, RefreshCw, GitBranch, Server, CheckCircle, XCircle, Download, Upload, Clock, HardDrive, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 interface DeployStatus {
@@ -22,6 +22,13 @@ interface DeployStatus {
   backupSchedule?: string;
   lastBackup?: string;
   error?: string;
+}
+
+interface BackupFile {
+  filename: string;
+  size: number;
+  sizeFormatted: string;
+  created: string;
 }
 
 interface DeployResult {
@@ -41,6 +48,9 @@ export default function AdminDeploy() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [deployResult, setDeployResult] = useState<DeployResult | null>(null);
   const [backupFrequency, setBackupFrequency] = useState("daily");
+  const [backups, setBackups] = useState<BackupFile[]>([]);
+  const [selectedBackup, setSelectedBackup] = useState<string>("");
+  const [loadingBackups, setLoadingBackups] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isOwner) {
@@ -71,6 +81,68 @@ export default function AdminDeploy() {
       toast.error("Failed to fetch deploy status");
     } finally {
       setLoadingStatus(false);
+    }
+  };
+
+  const fetchBackups = async () => {
+    setLoadingBackups(true);
+    try {
+      const response = await supabase.functions.invoke("vps-deploy", {
+        body: { action: "list-backups" },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      setBackups(response.data.backups || []);
+    } catch (error: any) {
+      console.error("Failed to fetch backups:", error);
+      toast.error("Failed to fetch backup list");
+    } finally {
+      setLoadingBackups(false);
+    }
+  };
+
+  const executeRestore = async () => {
+    if (!selectedBackup) {
+      toast.error("Please select a backup to restore");
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to restore from ${selectedBackup}? This will overwrite current files and create a safety backup first.`)) {
+      return;
+    }
+
+    setActionLoading("restore");
+    setDeployResult(null);
+
+    try {
+      toast.info("Restoring from backup... This may take several minutes.");
+
+      const response = await supabase.functions.invoke("vps-deploy", {
+        body: { action: "restore", filename: selectedBackup },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      setDeployResult(response.data);
+
+      if (response.data.success) {
+        toast.success("Restore completed successfully!");
+        await fetchStatus();
+        await fetchBackups();
+      } else {
+        toast.error("Restore failed: " + (response.data.error || "Unknown error"));
+      }
+    } catch (error: any) {
+      console.error("Restore failed:", error);
+      toast.error("Restore failed: " + error.message);
+      setDeployResult({ success: false, action: "restore", error: error.message });
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -124,6 +196,7 @@ export default function AdminDeploy() {
   useEffect(() => {
     if (isOwner) {
       fetchStatus();
+      fetchBackups();
     }
   }, [isOwner]);
 
@@ -201,7 +274,7 @@ export default function AdminDeploy() {
           </CardContent>
         </Card>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {/* Scheduled Backups Card */}
           <Card>
             <CardHeader>
@@ -329,6 +402,74 @@ export default function AdminDeploy() {
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Pushing...</>
                 ) : (
                   <><Upload className="h-4 w-4 mr-2" /> Push to GitHub</>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Restore Backup Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <RotateCcw className="h-5 w-5" />
+                Restore Backup
+              </CardTitle>
+              <CardDescription>
+                Restore VPS from a previous backup
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">Select Backup</label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={fetchBackups}
+                    disabled={loadingBackups}
+                    className="h-6 px-2"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${loadingBackups ? "animate-spin" : ""}`} />
+                  </Button>
+                </div>
+                <Select value={selectedBackup} onValueChange={setSelectedBackup}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingBackups ? "Loading..." : "Select backup"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {backups.length === 0 ? (
+                      <SelectItem value="_none" disabled>No backups available</SelectItem>
+                    ) : (
+                      backups.map((backup) => (
+                        <SelectItem key={backup.filename} value={backup.filename}>
+                          <div className="flex flex-col">
+                            <span className="font-mono text-xs">{backup.filename}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {backup.sizeFormatted} • {new Date(backup.created).toLocaleString()}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="bg-destructive/10 border border-destructive/30 p-3 rounded-lg text-xs space-y-1">
+                <p className="text-destructive font-medium">⚠️ Warning</p>
+                <p className="text-muted-foreground">A safety backup will be created before restoring.</p>
+              </div>
+
+              <Button 
+                className="w-full" 
+                variant="destructive"
+                onClick={executeRestore}
+                disabled={actionLoading !== null || !selectedBackup}
+              >
+                {actionLoading === "restore" ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Restoring...</>
+                ) : (
+                  <><RotateCcw className="h-4 w-4 mr-2" /> Restore Backup</>
                 )}
               </Button>
             </CardContent>
