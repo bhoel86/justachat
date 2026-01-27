@@ -64,12 +64,13 @@ serve(async (req) => {
       );
     }
 
-    // Parse request body to get action
+    // Parse request body to get action (only read once!)
     let action = "status";
+    let requestBody: any = {};
     try {
-      const body = await req.json();
-      if (body?.action) {
-        action = body.action;
+      requestBody = await req.json();
+      if (requestBody?.action) {
+        action = requestBody.action;
       }
     } catch {
       // No body or invalid JSON, default to status
@@ -77,21 +78,10 @@ serve(async (req) => {
 
     let endpoint = "/deploy/status";
     let method = "GET";
-    let body: any = { action };
+    const body: any = { action };
 
-    // Parse request body
-    let requestBody: any = {};
-    try {
-      requestBody = await req.json();
-      if (requestBody?.action) {
-        action = requestBody.action;
-        body.action = action;
-      }
-      if (requestBody?.frequency) {
-        body.frequency = requestBody.frequency;
-      }
-    } catch {
-      // No body or invalid JSON, default to status
+    if (requestBody?.frequency) {
+      body.frequency = requestBody.frequency;
     }
 
     if (action !== "status") {
