@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Crown, Shield, ShieldCheck, User, Users, MoreVertical, MessageSquareLock, Bot, Info, Ban, Flag, Camera, AtSign, Settings, FileText, VolumeX, LogOut, Music, Globe, Eye, EyeOff, Zap, Lock, ServerCrash } from "lucide-react";
+import { Crown, Shield, ShieldCheck, User, Users, MoreVertical, MessageSquareLock, Bot, Info, Ban, Flag, Camera, AtSign, Settings, FileText, VolumeX, LogOut, Music, Globe, Eye, EyeOff, Zap, Lock, ServerCrash, UserPlus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { getBotsForChannel } from "@/lib/chatBots";
@@ -22,6 +22,7 @@ import UserAvatar from "@/components/avatar/UserAvatar";
 import ProfileEditModal from "@/components/profile/ProfileEditModal";
 import ProfileViewModal from "@/components/profile/ProfileViewModal";
 import { useRadioOptional } from "@/contexts/RadioContext";
+import FriendsList from "@/components/friends/FriendsList";
 
 interface Member {
   user_id: string;
@@ -94,7 +95,10 @@ const roleConfig = {
   },
 };
 
+type SidebarTab = 'members' | 'friends';
+
 const MemberList = ({ onlineUserIds, listeningUsers, channelName = 'general', onOpenPm, onAction }: MemberListProps) => {
+  const [activeTab, setActiveTab] = useState<SidebarTab>('members');
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [botChatTarget, setBotChatTarget] = useState<{ moderator: ModeratorInfo; channelName: string } | null>(null);
@@ -452,91 +456,76 @@ const MemberList = ({ onlineUserIds, listeningUsers, channelName = 'general', on
   return (
     <>
       <div className="w-64 sm:w-60 bg-card border-l border-border flex flex-col h-full max-h-screen">
-        <div className="p-3 sm:p-4 border-b border-border bg-muted/30">
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-            <h2 className="font-semibold text-sm sm:text-base text-foreground">Members</h2>
-          </div>
+        {/* Tab Header - Members | Friends side by side */}
+        <div className="flex border-b border-border">
+          <button
+            onClick={() => setActiveTab('members')}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 text-xs font-medium transition-colors",
+              activeTab === 'members'
+                ? "bg-primary/10 text-primary border-b-2 border-primary"
+                : "text-muted-foreground hover:bg-muted/50"
+            )}
+          >
+            <Users className="h-3.5 w-3.5" />
+            <span>Members</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('friends')}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 text-xs font-medium transition-colors",
+              activeTab === 'friends'
+                ? "bg-primary/10 text-primary border-b-2 border-primary"
+                : "text-muted-foreground hover:bg-muted/50"
+            )}
+          >
+            <UserPlus className="h-3.5 w-3.5" />
+            <span>Friends</span>
+          </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2">
-          {/* Channel Moderator - Always on top */}
-          <div className="mb-4 p-2 rounded-lg bg-muted/40 border border-border/50">
-            <p className="text-xs font-medium text-muted-foreground uppercase px-1 mb-2">
-              Moderator
-            </p>
-            <div className="space-y-1">
-              <BotMemberItem 
-                member={botMember} 
-                moderator={moderator}
-                channelName={channelName}
-                onPmClick={() => setBotChatTarget({ moderator, channelName })}
-                onBlockClick={() => {
-                  toast({
-                    variant: "destructive",
-                    title: "Cannot block moderators",
-                    description: "Moderators are essential for room management and cannot be blocked."
-                  });
-                }}
-                onInfoClick={() => {
-                  toast({
-                    title: `${moderator.avatar} ${moderator.name}`,
-                    description: `${moderator.displayName} - Moderator for #${channelName}. Personality based on famous hackers.`
-                  });
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Online Members */}
-          {onlineMembers.length > 0 && (
+        {/* Tab Content */}
+        {activeTab === 'members' ? (
+          <div className="flex-1 overflow-y-auto p-2">
+            {/* Channel Moderator - Always on top */}
             <div className="mb-4 p-2 rounded-lg bg-muted/40 border border-border/50">
               <p className="text-xs font-medium text-muted-foreground uppercase px-1 mb-2">
-                Online — {onlineMembers.length}
+                Moderator
               </p>
               <div className="space-y-1">
-                {onlineMembers.map((member) => (
-                  <MemberItem 
-                    key={member.user_id} 
-                    member={member} 
-                    canManage={canManageRole(member)}
-                    canModerate={canModerate(member)}
-                    canKline={canKline(member)}
-                    availableRoles={getAvailableRoles(member)}
-                    onRoleChange={handleRoleChange}
-                    onBan={() => handleBan(member)}
-                    onKick={() => handleKick(member)}
-                    onMute={(duration) => handleMute(member, duration)}
-                    onKline={() => handleKline(member)}
-                    onPmClick={member.user_id !== user?.id && onOpenPm ? () => onOpenPm(member.user_id, member.username) : undefined}
-                    onAction={member.user_id !== user?.id && onAction ? (msg) => onAction(member.username, msg) : undefined}
-                    isCurrentUser={member.user_id === user?.id}
-                    onProfileClick={member.user_id === user?.id 
-                      ? () => setProfileModalOpen(true) 
-                      : () => setViewProfileTarget(member)}
-                    currentlyPlaying={listeningUsers?.get(member.user_id) || null}
-                  />
-                ))}
+                <BotMemberItem 
+                  member={botMember} 
+                  moderator={moderator}
+                  channelName={channelName}
+                  onPmClick={() => setBotChatTarget({ moderator, channelName })}
+                  onBlockClick={() => {
+                    toast({
+                      variant: "destructive",
+                      title: "Cannot block moderators",
+                      description: "Moderators are essential for room management and cannot be blocked."
+                    });
+                  }}
+                  onInfoClick={() => {
+                    toast({
+                      title: `${moderator.avatar} ${moderator.name}`,
+                      description: `${moderator.displayName} - Moderator for #${channelName}. Personality based on famous hackers.`
+                    });
+                  }}
+                />
               </div>
             </div>
-          )}
 
-          {/* Offline Members Toggle */}
-          {offlineMembers.length > 0 && (
-            <div className="p-2 rounded-lg bg-muted/40 border border-border/50">
-              <button
-                onClick={() => setShowOffline(!showOffline)}
-                className="flex items-center gap-2 w-full px-1 mb-2 text-xs font-medium text-muted-foreground uppercase hover:text-foreground transition-colors"
-              >
-                {showOffline ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                <span>Offline — {offlineMembers.length}</span>
-              </button>
-              {showOffline && (
+            {/* Online Members */}
+            {onlineMembers.length > 0 && (
+              <div className="mb-4 p-2 rounded-lg bg-muted/40 border border-border/50">
+                <p className="text-xs font-medium text-muted-foreground uppercase px-1 mb-2">
+                  Online — {onlineMembers.length}
+                </p>
                 <div className="space-y-1">
-                  {offlineMembers.map((member) => (
+                  {onlineMembers.map((member) => (
                     <MemberItem 
                       key={member.user_id} 
-                      member={member}
+                      member={member} 
                       canManage={canManageRole(member)}
                       canModerate={canModerate(member)}
                       canKline={canKline(member)}
@@ -556,10 +545,56 @@ const MemberList = ({ onlineUserIds, listeningUsers, channelName = 'general', on
                     />
                   ))}
                 </div>
-              )}
-            </div>
-          )}
-        </div>
+              </div>
+            )}
+
+            {/* Offline Members Toggle */}
+            {offlineMembers.length > 0 && (
+              <div className="p-2 rounded-lg bg-muted/40 border border-border/50">
+                <button
+                  onClick={() => setShowOffline(!showOffline)}
+                  className="flex items-center gap-2 w-full px-1 mb-2 text-xs font-medium text-muted-foreground uppercase hover:text-foreground transition-colors"
+                >
+                  {showOffline ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                  <span>Offline — {offlineMembers.length}</span>
+                </button>
+                {showOffline && (
+                  <div className="space-y-1">
+                    {offlineMembers.map((member) => (
+                      <MemberItem 
+                        key={member.user_id} 
+                        member={member}
+                        canManage={canManageRole(member)}
+                        canModerate={canModerate(member)}
+                        canKline={canKline(member)}
+                        availableRoles={getAvailableRoles(member)}
+                        onRoleChange={handleRoleChange}
+                        onBan={() => handleBan(member)}
+                        onKick={() => handleKick(member)}
+                        onMute={(duration) => handleMute(member, duration)}
+                        onKline={() => handleKline(member)}
+                        onPmClick={member.user_id !== user?.id && onOpenPm ? () => onOpenPm(member.user_id, member.username) : undefined}
+                        onAction={member.user_id !== user?.id && onAction ? (msg) => onAction(member.username, msg) : undefined}
+                        isCurrentUser={member.user_id === user?.id}
+                        onProfileClick={member.user_id === user?.id 
+                          ? () => setProfileModalOpen(true) 
+                          : () => setViewProfileTarget(member)}
+                        currentlyPlaying={listeningUsers?.get(member.user_id) || null}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex-1 overflow-hidden">
+            <FriendsList
+              currentUserId={user?.id || ''}
+              onOpenPm={onOpenPm || (() => {})}
+            />
+          </div>
+        )}
       </div>
 
       {/* Bot Chat Modal */}
