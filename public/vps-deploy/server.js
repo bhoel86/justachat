@@ -318,8 +318,8 @@ const server = http.createServer(async (req, res) => {
   res.end(JSON.stringify({ error: 'Not found' }));
 });
 
-server.listen(PORT, '127.0.0.1', () => {
-  console.log(`JAC Deploy Server v2.0 running on http://127.0.0.1:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`JAC Deploy Server v2.0 running on http://0.0.0.0:${PORT}`);
   console.log(`Deploy directory: ${DEPLOY_DIR}`);
   console.log(`Backup directory: ${BACKUP_DIR}`);
   console.log(`Git branch: ${GIT_BRANCH}`);
