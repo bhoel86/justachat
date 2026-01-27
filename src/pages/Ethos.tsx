@@ -39,7 +39,7 @@ const Ethos = () => {
       </header>
 
       {/* Hero Section - with monitor glow background */}
-      <section className="relative py-16 sm:py-24 overflow-hidden">
+      <section className="relative py-4 sm:py-6 overflow-hidden">
         {/* Background image - faded */}
         <div 
           className="absolute inset-0 bg-cover bg-center opacity-[0.35]"
@@ -52,9 +52,9 @@ const Ethos = () => {
             <img 
               src="/justachat-logo-google-ads.png" 
               alt="Justachat™" 
-              className="w-[400px] sm:w-[500px] lg:w-[600px] mx-auto mb-2 opacity-20"
+              className="w-[400px] sm:w-[500px] lg:w-[600px] mx-auto -mb-4 opacity-20"
             />
-            <h1 className="text-4xl sm:text-5xl font-bold mb-6">
+            <h1 className="text-4xl sm:text-5xl font-bold mb-4">
               Why This <span className="jac-gradient-text">Exists</span>
             </h1>
             <p className="text-xl text-muted-foreground">
