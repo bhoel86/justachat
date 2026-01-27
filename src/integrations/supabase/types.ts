@@ -880,6 +880,11 @@ export type Database = {
           created_at: string
           ghost_mode: boolean | null
           id: string
+          is_minor: boolean | null
+          parent_consent_sent_at: string | null
+          parent_consent_token: string | null
+          parent_consent_verified: boolean | null
+          parent_email: string | null
           preferred_language: string | null
           updated_at: string
           user_id: string
@@ -892,6 +897,11 @@ export type Database = {
           created_at?: string
           ghost_mode?: boolean | null
           id?: string
+          is_minor?: boolean | null
+          parent_consent_sent_at?: string | null
+          parent_consent_token?: string | null
+          parent_consent_verified?: boolean | null
+          parent_email?: string | null
           preferred_language?: string | null
           updated_at?: string
           user_id: string
@@ -904,6 +914,11 @@ export type Database = {
           created_at?: string
           ghost_mode?: boolean | null
           id?: string
+          is_minor?: boolean | null
+          parent_consent_sent_at?: string | null
+          parent_consent_token?: string | null
+          parent_consent_verified?: boolean | null
+          parent_email?: string | null
           preferred_language?: string | null
           updated_at?: string
           user_id?: string

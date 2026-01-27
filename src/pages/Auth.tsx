@@ -382,7 +382,8 @@ const Auth = () => {
         }
         
         const parsedAge = parseInt(age, 10);
-        const { error } = await signUp(email, password, username, parsedAge, parsedAge < 18 ? parentEmail : undefined);
+        const isMinor = parsedAge >= 13 && parsedAge < 18;
+        const { error, data } = await signUp(email, password, username, parsedAge, isMinor ? parentEmail : undefined);
         if (error) {
           if (error.message.includes("already registered")) {
             toast({
@@ -399,10 +400,34 @@ const Auth = () => {
             });
           }
         } else {
-          toast({
-            title: "Welcome to Justachat™!",
-            description: "Your account has been created successfully."
-          });
+          // If minor, send parent consent email
+          if (isMinor && parentEmail && data?.user?.id) {
+            try {
+              await supabase.functions.invoke("send-parent-consent", {
+                body: {
+                  userId: data.user.id,
+                  parentEmail: parentEmail,
+                  minorUsername: username,
+                  minorAge: parsedAge,
+                },
+              });
+              toast({
+                title: "Account Created!",
+                description: "A consent email has been sent to your parent/guardian. Your account will be fully activated once they approve."
+              });
+            } catch (emailError) {
+              console.error("Failed to send parent consent email:", emailError);
+              toast({
+                title: "Account Created",
+                description: "Your account was created but we couldn't send the consent email. An admin will review your account."
+              });
+            }
+          } else {
+            toast({
+              title: "Welcome to Justachat™!",
+              description: "Your account has been created successfully."
+            });
+          }
         }
       }
     } finally {
