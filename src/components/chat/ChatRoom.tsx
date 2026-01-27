@@ -262,10 +262,15 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
     checkRoomStatus();
   }, [user, currentChannel]);
 
+  // State for room settings - can be any channel the user has access to
+  const [settingsChannel, setSettingsChannel] = useState<Channel | null>(null);
+
   // Listen for room settings event
   useEffect(() => {
     const handleOpenRoomSettings = (e: CustomEvent<Channel>) => {
-      if (e.detail && e.detail.id === currentChannel?.id) {
+      if (e.detail) {
+        // Store the channel being edited and show the modal
+        setSettingsChannel(e.detail);
         setShowRoomSettings(true);
       }
     };
@@ -274,7 +279,7 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
     return () => {
       window.removeEventListener('openRoomSettings', handleOpenRoomSettings as EventListener);
     };
-  }, [currentChannel]);
+  }, []);
 
   // Fetch channel topic
   useEffect(() => {
@@ -1398,12 +1403,15 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
         />
       )}
       
-      {/* Room Settings Modal */}
-      {user && currentChannel && isRoomOwner && (
+      {/* Room Settings Modal - can be opened for any channel the user owns or is admin of */}
+      {user && settingsChannel && (
         <RoomSettingsModal
           open={showRoomSettings}
-          onOpenChange={setShowRoomSettings}
-          channel={currentChannel}
+          onOpenChange={(open) => {
+            setShowRoomSettings(open);
+            if (!open) setSettingsChannel(null);
+          }}
+          channel={settingsChannel}
           userId={user.id}
         />
       )}
