@@ -26,6 +26,7 @@ import Ethos from "./pages/Ethos";
 import Games from "./pages/Games";
 import VoiceChat from "./pages/VoiceChat";
 import VideoChat from "./pages/VideoChat";
+import Legal from "./pages/Legal";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -61,6 +62,7 @@ const App = () => (
               <Route path="/games" element={<Games />} />
               <Route path="/voice-chat" element={<VoiceChat />} />
               <Route path="/video-chat" element={<VideoChat />} />
+              <Route path="/legal" element={<Legal />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

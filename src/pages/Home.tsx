@@ -931,6 +931,13 @@ const Home = () => {
                       justachat.net
                     </a>
                     <span className="text-xs text-muted-foreground/50">•</span>
+                    <Link 
+                      to="/legal" 
+                      className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      Legal
+                    </Link>
+                    <span className="text-xs text-muted-foreground/50">•</span>
                     <span className="text-xs text-muted-foreground/70 font-mono">{getVersionString()}</span>
                   </div>
                 </div>
