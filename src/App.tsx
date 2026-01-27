@@ -19,6 +19,8 @@ import AdminMutes from "./pages/AdminMutes";
 import AdminIRC from "./pages/AdminIRC";
 import AdminBots from "./pages/AdminBots";
 import AdminKlines from "./pages/AdminKlines";
+import AdminMinors from "./pages/AdminMinors";
+import VerifyConsent from "./pages/VerifyConsent";
 import DownloadProxy from "./pages/DownloadProxy";
 import ClientDownload from "./pages/ClientDownload";
 import Dating from "./pages/Dating";
@@ -56,6 +58,8 @@ const App = () => (
               <Route path="/admin/irc" element={<AdminIRC />} />
               <Route path="/admin/bots" element={<AdminBots />} />
               <Route path="/admin/klines" element={<AdminKlines />} />
+              <Route path="/admin/minors" element={<AdminMinors />} />
+              <Route path="/verify-consent" element={<VerifyConsent />} />
               <Route path="/download-proxy" element={<DownloadProxy />} />
               <Route path="/downloads" element={<ClientDownload />} />
               <Route path="/dating" element={<Dating />} />
