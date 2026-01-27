@@ -281,12 +281,12 @@ const ChannelList = ({ currentChannelId, onChannelSelect, autoSelectFirst = true
 
   return (
     <div className="w-56 bg-secondary/30 border-r border-border flex flex-col h-full">
-      <div className="p-4 border-b border-border space-y-2">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-foreground text-sm">Channels</h2>
+      <div className="p-3 border-b border-border">
+        <div className="flex items-center gap-2">
+          <h2 className="font-semibold text-foreground text-sm flex-1">Channels</h2>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-6 w-6">
+              <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0">
                 <Plus className="h-4 w-4" />
               </Button>
             </DialogTrigger>
@@ -544,32 +544,31 @@ const ChannelList = ({ currentChannelId, onChannelSelect, autoSelectFirst = true
                 </span>
               )}
               
-              {/* Dropdown menu for room owners, site owners, or admins */}
-              {((user && channel.created_by === user.id) || isOwner || isAdmin) && channel.name !== 'general' && (
+              {/* Gear icon for room owner or site admin/owner - NOT visible to other room owners */}
+              {((user && channel.created_by === user.id) || isOwner || isAdmin) && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.dispatchEvent(new CustomEvent('openRoomSettings', { detail: channel }));
+                  }}
+                  className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-opacity shrink-0"
+                  title="Room Settings"
+                >
+                  <Settings className="h-3 w-3" />
+                </button>
+              )}
+              
+              {/* Dropdown menu for site owners or admins (hide/delete) */}
+              {(isOwner || isAdmin || (user && channel.created_by === user.id)) && channel.name !== 'general' && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                     <button
-                      className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-opacity shrink-0"
                     >
                       <MoreVertical className="h-3 w-3" />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-44 bg-popover border-border z-50">
-                    {/* Room Settings - Room owner only */}
-                    {user && channel.created_by === user.id && (
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Dispatch custom event to open room settings
-                          window.dispatchEvent(new CustomEvent('openRoomSettings', { detail: channel }));
-                        }}
-                        className="cursor-pointer text-xs"
-                      >
-                        <Settings className="h-3.5 w-3.5 mr-2" />
-                        Room Settings
-                      </DropdownMenuItem>
-                    )}
-                    
                     {/* Hide/Show - Site Admin only */}
                     {isAdmin && (
                       <DropdownMenuItem
