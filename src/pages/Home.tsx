@@ -125,7 +125,7 @@ const Home = () => {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate("/auth");
+      navigate("/login");
     }
   }, [user, loading, navigate]);
 
@@ -181,7 +181,7 @@ const Home = () => {
 
   const handleSignOut = async () => {
     await signOut();
-    window.location.href = '/auth';
+    window.location.href = '/login';
   };
 
 

@@ -126,7 +126,7 @@ const AdminBans = () => {
   }
 
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   if (!isModerator) {
