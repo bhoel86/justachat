@@ -9,7 +9,7 @@ import {
   Dumbbell, Cpu, Heart, Coffee, HelpCircle, Hash, Settings, FileText,
   Ban, Key, MapPin, UserCog, ChevronDown, Mail, VolumeX, Menu, 
   Download, Terminal, LifeBuoy, MessageCircle, Server, Bot, RefreshCw, Unlock, BookOpen,
-  Radio, Camera
+  Radio, Camera, Rocket
 } from "lucide-react";
 import { toast } from "sonner";
 import { getVersionString } from "@/lib/version";
@@ -297,6 +297,42 @@ const Home = () => {
                     </div>
                   </Link>
                 </DropdownMenuItem>
+
+                {(isOwner || isAdmin) && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-xs text-muted-foreground">
+                      Admin
+                    </DropdownMenuLabel>
+
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin" className="flex items-center gap-2 cursor-pointer">
+                        <Shield className="w-4 h-4 text-primary" />
+                        <div>
+                          <span>Admin Panel</span>
+                          <p className="text-xs text-muted-foreground">Moderation & tools</p>
+                        </div>
+                      </Link>
+                    </DropdownMenuItem>
+
+                    {isOwner && (
+                      <DropdownMenuItem asChild>
+                        <Link
+                          to="/admin/deploy"
+                          className="flex items-center gap-2 cursor-pointer"
+                        >
+                          <Rocket className="w-4 h-4 text-primary" />
+                          <div>
+                            <span>Deploy (VPS)</span>
+                            <p className="text-xs text-muted-foreground">
+                              Backups & GitHub sync
+                            </p>
+                          </div>
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -425,6 +461,16 @@ const Home = () => {
                           <div>
                             <span>API & Secrets</span>
                             <p className="text-xs text-muted-foreground">View API info</p>
+                          </div>
+                        </Link>
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin/deploy" className="flex items-center gap-2 cursor-pointer">
+                          <Rocket className="w-4 h-4 text-primary" />
+                          <div>
+                            <span>Deploy (VPS)</span>
+                            <p className="text-xs text-muted-foreground">Backups & GitHub sync</p>
                           </div>
                         </Link>
                       </DropdownMenuItem>
