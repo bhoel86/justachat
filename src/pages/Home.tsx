@@ -207,7 +207,7 @@ const Home = () => {
               <img 
                 src="/justachat-logo-google-ads.png" 
                 alt="Justachat™" 
-                className="h-8 sm:h-10 w-auto"
+                className="w-20 sm:w-24 h-auto opacity-80 hover:opacity-100 transition-opacity"
               />
             </Link>
             
