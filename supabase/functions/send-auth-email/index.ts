@@ -1,11 +1,13 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@4.0.0";
+import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const hookSecret = Deno.env.get("SEND_EMAIL_HOOK_SECRET");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, webhook-id, webhook-timestamp, webhook-signature",
 };
 
 interface AuthEmailPayload {
@@ -202,14 +204,36 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    const payload: AuthEmailPayload = await req.json();
+    const payload = await req.text();
+    let parsedPayload: AuthEmailPayload;
+
+    // If hook secret is configured, verify the webhook signature
+    if (hookSecret) {
+      const headers = Object.fromEntries(req.headers);
+      const wh = new Webhook(hookSecret);
+      
+      try {
+        parsedPayload = wh.verify(payload, headers) as AuthEmailPayload;
+        console.log("Webhook signature verified successfully");
+      } catch (verifyError) {
+        console.error("Webhook signature verification failed:", verifyError);
+        return new Response(
+          JSON.stringify({ error: "Invalid webhook signature" }),
+          { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+    } else {
+      // No hook secret configured, parse payload directly (less secure)
+      parsedPayload = JSON.parse(payload);
+      console.log("Warning: No hook secret configured, skipping signature verification");
+    }
     
     console.log("Auth email request received:", {
-      email: payload.user?.email,
-      type: payload.email_data?.email_action_type,
+      email: parsedPayload.user?.email,
+      type: parsedPayload.email_data?.email_action_type,
     });
 
-    const { user, email_data } = payload;
+    const { user, email_data } = parsedPayload;
     
     if (!user?.email || !email_data) {
       throw new Error("Missing required email data");
@@ -217,8 +241,8 @@ serve(async (req: Request): Promise<Response> => {
 
     const { token_hash, redirect_to, email_action_type, site_url } = email_data;
     
-    // Build the confirmation URL
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || site_url;
+    // Build the confirmation URL - use VPS URL for self-hosted
+    const supabaseUrl = site_url || "https://justachat.net";
     const confirmUrl = `${supabaseUrl}/auth/v1/verify?token=${token_hash}&type=${email_action_type}&redirect_to=${redirect_to || "https://justachat.net"}`;
     
     const username = user.user_metadata?.username || "";
