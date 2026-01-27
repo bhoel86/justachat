@@ -1164,11 +1164,6 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
             setShowChannelSidebar(false);
           }}
           autoSelectFirst={false}
-          currentUserId={user?.id || ''}
-          onOpenPm={(userId, targetUsername) => {
-            handleOpenPm(userId, targetUsername);
-            setShowChannelSidebar(false);
-          }}
         />
       </div>
 
