@@ -339,6 +339,19 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
             .eq('user_id', newMessage.user_id)
             .single();
           setMessages(prev => [...prev, { ...newMessage, profile: profile || undefined }]);
+          
+          // Broadcast to lobby mirror if this is #general
+          if (currentChannel.name === 'general' && profile) {
+            supabase.channel('general-lobby-mirror').send({
+              type: 'broadcast',
+              event: 'user-message',
+              payload: { 
+                username: profile.username, 
+                content: newMessage.content, 
+                avatarUrl: profile.avatar_url 
+              }
+            });
+          }
         }
       )
       .on(
