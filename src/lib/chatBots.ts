@@ -379,16 +379,41 @@ export const getRandomMigratingBot = (): ChatBot => {
   return MIGRATING_BOTS[Math.floor(Math.random() * MIGRATING_BOTS.length)];
 };
 
-// Get base bot count for a room (static room bots, not including migrating bots)
+// Room-specific bot population weights (higher = more bots)
+const ROOM_BOT_WEIGHTS: Record<string, { min: number; max: number }> = {
+  'general': { min: 8, max: 15 },
+  'adults-21-plus': { min: 6, max: 12 },
+  'lounge': { min: 5, max: 10 },
+  'music': { min: 4, max: 9 },
+  'dating': { min: 4, max: 8 },
+  'games': { min: 3, max: 7 },
+  'movies-tv': { min: 3, max: 6 },
+  'technology': { min: 2, max: 5 },
+  'sports': { min: 2, max: 5 },
+  'trivia': { min: 2, max: 4 },
+  'art': { min: 1, max: 3 },
+  'politics': { min: 0, max: 2 },
+  'help': { min: 0, max: 0 }, // No bots in help
+};
+
+// Cache for consistent bot counts during a session
+const roomBotCountCache: Record<string, number> = {};
+
+// Get bot count for a room with realistic distribution
 export const getRoomBotCount = (roomName: string): number => {
-  // Count room-specific bots
-  const roomBotCount = ROOM_BOTS.filter(bot => bot.room === roomName).length;
+  // Return cached value if exists
+  if (roomBotCountCache[roomName] !== undefined) {
+    return roomBotCountCache[roomName];
+  }
   
-  // Add a portion of global bots (they appear across rooms)
-  const globalBotShare = Math.floor(CHAT_BOTS.length / 12); // Divide among 12 rooms
+  // Get weight config for room, default to low count
+  const weight = ROOM_BOT_WEIGHTS[roomName] || { min: 1, max: 3 };
   
-  // Add random migrating bot count (simulating distribution)
-  const migratingBotShare = Math.floor(MIGRATING_BOTS.length / 12);
+  // Generate random count within range
+  const count = Math.floor(Math.random() * (weight.max - weight.min + 1)) + weight.min;
   
-  return roomBotCount + globalBotShare + migratingBotShare;
+  // Cache it
+  roomBotCountCache[roomName] = count;
+  
+  return count;
 };
