@@ -21,6 +21,9 @@ const PAYPAL_SDK_SCRIPT_ID = "paypal-hosted-buttons-sdk";
 const PAYPAL_POLL_INTERVAL_MS = 250;
 const PAYPAL_MAX_WAIT_MS = 15000;
 
+const PAYPAL_DONATE_URL = `https://www.paypal.com/donate/?hosted_button_id=${PAYPAL_HOSTED_BUTTON_ID}`;
+const PAYPAL_SIGNIN_URL = `https://www.paypal.com/signin?returnUri=${encodeURIComponent(PAYPAL_DONATE_URL)}`;
+
 const loadPayPalHostedButtonsSdk = () => {
   if (window.paypal?.HostedButtons) return Promise.resolve();
 
@@ -181,12 +184,14 @@ const PayPalDonateModal = ({ open, onOpenChange }: PayPalDonateModalProps) => {
             Payments processed securely via PayPal
           </p>
           
-          {/* Account switching section - always visible once loaded */}
+          {/* Account switching section */}
           <div className="flex flex-col items-center gap-2 pt-2 border-t border-border w-full">
-            <p className="text-xs text-muted-foreground text-center">
-              Wrong PayPal account? Sign out first, then reload:
+            <p className="text-xs text-muted-foreground text-center max-w-xs">
+              If PayPal keeps auto-logging you into the wrong account, we can’t override PayPal cookies from inside the embedded button.
+              Use one of the options below:
             </p>
-            <div className="flex gap-3 items-center">
+
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 items-center">
               <a
                 href="https://www.paypal.com/signout"
                 target="_blank"
@@ -195,12 +200,31 @@ const PayPalDonateModal = ({ open, onOpenChange }: PayPalDonateModalProps) => {
               >
                 Sign out of PayPal
               </a>
-              <span className="text-muted-foreground">→</span>
+
+              <a
+                href={PAYPAL_SIGNIN_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-primary hover:text-primary/80 underline"
+              >
+                Log in with a different account
+              </a>
+
+              <a
+                href={PAYPAL_DONATE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-primary hover:text-primary/80 underline"
+              >
+                Open donation page in new tab
+              </a>
+
               <button
+                type="button"
                 onClick={reloadPayPalButton}
                 className="text-xs text-primary hover:text-primary/80 underline"
               >
-                Reload button
+                Reload embedded button
               </button>
             </div>
           </div>
