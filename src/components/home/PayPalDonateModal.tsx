@@ -61,6 +61,17 @@ const PayPalDonateModal = ({ open, onOpenChange }: PayPalDonateModalProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const renderedRef = useRef(false);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const reloadPayPalButton = () => {
+    // Clear container and reset state to trigger re-render
+    if (containerRef.current) {
+      containerRef.current.innerHTML = "";
+    }
+    renderedRef.current = false;
+    setStatus("loading");
+    setReloadKey(prev => prev + 1);
+  };
 
   useEffect(() => {
     if (!open) {
@@ -138,7 +149,7 @@ const PayPalDonateModal = ({ open, onOpenChange }: PayPalDonateModalProps) => {
       cancelled = true;
       cleanup();
     };
-  }, [open]);
+  }, [open, reloadKey]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -170,20 +181,29 @@ const PayPalDonateModal = ({ open, onOpenChange }: PayPalDonateModalProps) => {
             Payments processed securely via PayPal
           </p>
           
-          {status === "ready" && (
-            <a
-              href="https://www.paypal.com/signout"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-muted-foreground hover:text-primary underline"
-              onClick={() => {
-                // Close modal so user can re-open after signing out
-                onOpenChange(false);
-              }}
-            >
-              Use a different PayPal account
-            </a>
-          )}
+          {/* Account switching section - always visible once loaded */}
+          <div className="flex flex-col items-center gap-2 pt-2 border-t border-border w-full">
+            <p className="text-xs text-muted-foreground text-center">
+              Wrong PayPal account? Sign out first, then reload:
+            </p>
+            <div className="flex gap-3 items-center">
+              <a
+                href="https://www.paypal.com/signout"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-primary hover:text-primary/80 underline"
+              >
+                Sign out of PayPal
+              </a>
+              <span className="text-muted-foreground">→</span>
+              <button
+                onClick={reloadPayPalButton}
+                className="text-xs text-primary hover:text-primary/80 underline"
+              >
+                Reload button
+              </button>
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
