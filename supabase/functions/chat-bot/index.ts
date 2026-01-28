@@ -93,6 +93,20 @@ const USER_PERSONALITIES: Record<string, { name: string; personality: string; st
     gender: 'male',
     appearance: 'late 20s, dark hoodie, never shows face clearly, keyboard warrior aesthetic, terminal green glow vibe',
   },
+  'user-bella': {
+    name: 'StarGirl2005',
+    personality: 'Optimistic and curious about everything. Loves pop culture and making friends.',
+    style: 'Youthful energy. Uses current slang naturally. Friendly and approachable.',
+    gender: 'female',
+    appearance: 'early 20s, long straight dark hair, bright eyes, trendy casual style, gen-z aesthetic',
+  },
+  'user-mia': {
+    name: 'VibesOnly22',
+    personality: 'Chill energy, good listener. Relaxed but engaged in conversations.',
+    style: 'Laid-back tone. Uses "vibe" and "mood" naturally. Supportive without being intense.',
+    gender: 'female',
+    appearance: 'mid 20s, wavy brown hair, warm smile, cozy aesthetic with oversized hoodies, relaxed style',
+  },
 
   // ========== GENERAL ROOM ==========
   'gen-1': {
