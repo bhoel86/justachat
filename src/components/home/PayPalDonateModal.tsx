@@ -132,7 +132,7 @@ const PayPalDonateModal = ({ open, onOpenChange }: PayPalDonateModalProps) => {
           <div 
             ref={containerRef} 
             id={containerId}
-            className="w-full flex justify-center min-h-[50px]"
+            style={{ minHeight: 50, width: '100%' }}
           />
 
           {status === "loading" && (
