@@ -63,7 +63,6 @@ const https = require('https');
 const crypto = require('crypto');
 
 const app = express();
-app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
@@ -283,16 +282,32 @@ const sendEmailViaResend = (to, subject, html) => {
 };
 
 // Verify webhook signature (optional but recommended)
-const verifySignature = (payload, signature) => {
+// GoTrue custom email hooks are signed using the Svix/Standard Webhooks header format:
+//   svix-id, svix-timestamp, svix-signature
+// The signed string is: `${svix-id}.${svix-timestamp}.${rawBody}`
+// and the secret is base64 (often formatted like: "whsec_<base64>").
+const verifySignature = (rawPayload, headers) => {
   if (!HOOK_SECRET) return true; // Skip if no secret configured
-  
+
   try {
-    const [timestamp, sig] = signature.split(',');
-    const expected = crypto
-      .createHmac('sha256', HOOK_SECRET)
-      .update(`${timestamp}.${payload}`)
-      .digest('hex');
-    return sig === expected;
+    const svixId = headers['svix-id'];
+    const svixTimestamp = headers['svix-timestamp'];
+    const svixSignature = headers['svix-signature'];
+    if (!svixId || !svixTimestamp || !svixSignature) return false;
+
+    const base64 = HOOK_SECRET.includes('_') ? HOOK_SECRET.split('_')[1] : HOOK_SECRET;
+    const secretBytes = Buffer.from(base64, 'base64');
+
+    const signedContent = `${svixId}.${svixTimestamp}.${rawPayload}`;
+    const expected = crypto.createHmac('sha256', secretBytes).update(signedContent).digest('base64');
+
+    // svix-signature may include multiple candidates: "v1,AAA v1,BBB"
+    const provided = String(svixSignature)
+      .split(' ')
+      .map((part) => part.split(',')[1])
+      .filter(Boolean);
+
+    return provided.includes(expected);
   } catch {
     return false;
   }
@@ -309,20 +324,19 @@ app.get('/health', (req, res) => {
 });
 
 // Main webhook endpoint
-app.post('/hook/email', async (req, res) => {
+app.post('/hook/email', express.raw({ type: 'application/json' }), async (req, res) => {
   console.log('[Email Webhook] Received request');
   
   try {
-    // Verify signature if secret is configured
-    const signature = req.headers['x-webhook-signature'];
-    if (HOOK_SECRET && signature) {
-      if (!verifySignature(JSON.stringify(req.body), signature)) {
-        console.error('[Email Webhook] Invalid signature');
-        return res.status(401).json({ error: 'Invalid signature' });
-      }
+    const rawPayload = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : String(req.body || '');
+
+    if (!verifySignature(rawPayload, req.headers)) {
+      console.error('[Email Webhook] Invalid signature');
+      return res.status(401).json({ error: 'Invalid signature' });
     }
 
-    const { user, email_data } = req.body;
+    const parsed = JSON.parse(rawPayload || '{}');
+    const { user, email_data } = parsed;
     
     if (!user?.email || !email_data) {
       console.error('[Email Webhook] Missing required data');
@@ -379,7 +393,8 @@ FROM_EMAIL=Justachat™ <noreply@justachat.net>
 SITE_URL=https://justachat.net
 
 # Optional: Webhook signature secret (for security)
-# Generate with: openssl rand -hex 32
+# Generate with: openssl rand -base64 32
+# Or use a Svix-formatted secret like: whsec_<base64>
 HOOK_SECRET=
 ENV_EOF
 
@@ -471,12 +486,21 @@ echo ""
 echo "   Add/update these lines:"
 echo "   ─────────────────────────────────────────"
 echo "   GOTRUE_MAILER_AUTOCONFIRM=false"
+echo "   # Disable SMTP (no ports 25/465/587)"
 echo "   GOTRUE_SMTP_HOST="
 echo "   GOTRUE_SMTP_PORT="
 echo "   GOTRUE_SMTP_USER="
 echo "   GOTRUE_SMTP_PASS="
+echo ""
+echo "   # Enable HTTP email hook (recommended)"
+echo "   GOTRUE_HOOK_SEND_EMAIL_ENABLED=true"
+echo "   GOTRUE_HOOK_SEND_EMAIL_URI=http://host.docker.internal:3001/hook/email"
+echo "   GOTRUE_HOOK_SEND_EMAIL_SECRET=whsec_REPLACE_WITH_BASE64_SECRET"
+echo ""
+echo "   # Backward-compat for older GoTrue configs (safe to include)"
 echo "   GOTRUE_HOOK_CUSTOM_EMAIL_ENABLED=true"
 echo "   GOTRUE_HOOK_CUSTOM_EMAIL_URI=http://host.docker.internal:3001/hook/email"
+echo "   GOTRUE_HOOK_CUSTOM_EMAIL_SECRET=whsec_REPLACE_WITH_BASE64_SECRET"
 echo "   ─────────────────────────────────────────"
 echo ""
 echo -e "${BLUE}3. Reload services:${NC}"
