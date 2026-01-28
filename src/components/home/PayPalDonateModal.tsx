@@ -28,7 +28,7 @@ const PayPalDonateModal = ({ open, onOpenChange }: PayPalDonateModalProps) => {
       // Render PayPal button after script loads
       if (containerRef.current && (window as any).paypal) {
         (window as any).paypal.HostedButtons({
-          hostedButtonId: "WNQPVMMUAPGL2",
+          hostedButtonId: "LGBCRRXBZ9M5E",
         }).render(containerRef.current);
       }
     };
@@ -49,7 +49,7 @@ const PayPalDonateModal = ({ open, onOpenChange }: PayPalDonateModalProps) => {
       containerRef.current.innerHTML = "";
       if ((window as any).paypal) {
         (window as any).paypal.HostedButtons({
-          hostedButtonId: "WNQPVMMUAPGL2",
+          hostedButtonId: "LGBCRRXBZ9M5E",
         }).render(containerRef.current);
       }
     }
@@ -72,7 +72,7 @@ const PayPalDonateModal = ({ open, onOpenChange }: PayPalDonateModalProps) => {
           {/* PayPal Button Container */}
           <div 
             ref={containerRef} 
-            id="paypal-container-WNQPVMMUAPGL2"
+            id="paypal-container-LGBCRRXBZ9M5E"
             className="w-full flex justify-center min-h-[50px]"
           />
           
