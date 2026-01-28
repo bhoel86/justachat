@@ -287,6 +287,13 @@ CREATE TABLE IF NOT EXISTS public.user_locations (
 );
 ALTER TABLE public.user_locations ENABLE ROW LEVEL SECURITY;
 
+-- Create public view for user_locations (excludes sensitive fields)
+CREATE OR REPLACE VIEW public.user_locations_public
+WITH (security_invoker=on) AS
+SELECT 
+  id, user_id, city, region, country, country_code, timezone, last_seen, created_at
+FROM public.user_locations;
+
 CREATE TABLE IF NOT EXISTS public.login_attempts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   identifier text NOT NULL,
