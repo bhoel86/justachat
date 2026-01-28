@@ -206,8 +206,8 @@ const LobbyMirrorRoom = () => {
           />
         </div>
         
-        {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-2 sm:p-4 flex flex-col relative">
+        {/* Messages Area - No scrolling, shows latest messages only */}
+        <div className="flex-1 overflow-hidden p-2 sm:p-4 flex flex-col relative">
           {/* Transparent logo watermark */}
           <div 
             className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
