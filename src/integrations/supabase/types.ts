@@ -1489,6 +1489,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_locations_public: {
+        Row: {
+          city: string | null
+          country: string | null
+          country_code: string | null
+          created_at: string | null
+          id: string | null
+          last_seen: string | null
+          region: string | null
+          timezone: string | null
+          user_id: string | null
+        }
+        Insert: {
+          city?: string | null
+          country?: string | null
+          country_code?: string | null
+          created_at?: string | null
+          id?: string | null
+          last_seen?: string | null
+          region?: string | null
+          timezone?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          city?: string | null
+          country?: string | null
+          country_code?: string | null
+          created_at?: string | null
+          id?: string | null
+          last_seen?: string | null
+          region?: string | null
+          timezone?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       channel_has_password: { Args: { _channel_id: string }; Returns: boolean }
