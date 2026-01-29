@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { MessageCircle, Mail, Lock, User, ArrowRight, ShieldCheck, ArrowLeft, AlertTriangle, Calendar, Users } from "lucide-react";
+import { Browser } from '@capacitor/browser';
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -52,11 +53,68 @@ const Auth = () => {
   const captchaRequired =
     mode === "signup" && CAPTCHA_REQUIRED_HOSTS.has(window.location.hostname);
 
-  // Detect if running in Capacitor (Android/iOS app) - Google OAuth doesn't work in WebViews
+  // Detect if running in Capacitor (Android/iOS app)
   const isCapacitorApp = typeof window !== 'undefined' && 
     (window.hasOwnProperty('Capacitor') || 
      navigator.userAgent.includes('CapacitorApp') ||
      document.URL.startsWith('capacitor://'));
+
+  // Handle Google OAuth - uses external browser for Capacitor app
+  const handleGoogleSignIn = async (switchAccount = false) => {
+    try {
+      if (switchAccount) {
+        try {
+          await supabase.auth.signOut({ scope: 'local' });
+        } finally {
+          clearAuthStorage();
+        }
+      }
+
+      if (isCapacitorApp) {
+        // For Capacitor: Open OAuth in system browser
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const redirectUrl = 'https://justachat.net/'; // Must use production URL for deep linking
+        
+        const oauthUrl = `${supabaseUrl}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectUrl)}&prompt=select_account`;
+        
+        // Open in external browser
+        await Browser.open({ 
+          url: oauthUrl,
+          windowName: '_system'
+        });
+        
+        toast({
+          title: "Signing in...",
+          description: "Complete sign-in in your browser, then return to the app."
+        });
+      } else {
+        // For web: Use normal OAuth flow
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: `${window.location.origin}/`,
+            queryParams: {
+              prompt: 'select_account'
+            }
+          }
+        });
+        if (error) {
+          toast({
+            variant: "destructive",
+            title: "Google Sign-In Failed",
+            description: error.message
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Google sign-in error:', err);
+      toast({
+        variant: "destructive",
+        title: "Sign-In Error",
+        description: "Failed to open Google sign-in. Please try again."
+      });
+    }
+  };
 
   // Check if current user is owner (for debug mode)
   useEffect(() => {
@@ -902,8 +960,8 @@ const Auth = () => {
             </form>
           )}
 
-          {/* Google Sign-In - show for login and signup modes, but NOT in Capacitor/mobile app */}
-          {(mode === "login" || mode === "signup") && !isCapacitorApp && (
+          {/* Google Sign-In - show for login and signup modes (works on both web and app) */}
+          {(mode === "login" || mode === "signup") && (
             <div className="mt-4">
               <div className="relative flex items-center justify-center my-4">
                 <div className="border-t border-border w-full" />
@@ -916,24 +974,7 @@ const Auth = () => {
                 variant="outline"
                 size="lg"
                 className="w-full gap-2"
-                onClick={async () => {
-                  const { error } = await supabase.auth.signInWithOAuth({
-                    provider: 'google',
-                    options: {
-                      redirectTo: `${window.location.origin}/`,
-                      queryParams: {
-                        prompt: 'select_account'
-                      }
-                    }
-                  });
-                  if (error) {
-                    toast({
-                      variant: "destructive",
-                      title: "Google Sign-In Failed",
-                      description: error.message
-                    });
-                  }
-                }}
+                onClick={() => handleGoogleSignIn(false)}
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path
@@ -962,42 +1003,15 @@ const Auth = () => {
           {/* Links row: Use different account | Sign up/in */}
           {(mode === "login" || mode === "signup") && (
             <div className="mt-4 flex items-center justify-center gap-3 text-sm">
-              {/* Only show Google account switcher if not in Capacitor app */}
-              {!isCapacitorApp && (
-                <>
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        await supabase.auth.signOut({ scope: 'local' });
-                      } finally {
-                        clearAuthStorage();
-                      }
-                      const { error } = await supabase.auth.signInWithOAuth({
-                        provider: 'google',
-                        options: {
-                          redirectTo: `${window.location.origin}/`,
-                          queryParams: {
-                            prompt: 'select_account'
-                          }
-                        }
-                      });
-                      if (error) {
-                        toast({
-                          variant: "destructive",
-                          title: "Failed to switch account",
-                          description: error.message
-                        });
-                      }
-                    }}
-                    className="text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    Use a different Google account
-                  </button>
-                  
-                  <span className="text-muted-foreground/50">|</span>
-                </>
-              )}
+              <button
+                type="button"
+                onClick={() => handleGoogleSignIn(true)}
+                className="text-muted-foreground hover:text-primary transition-colors"
+              >
+                Use a different Google account
+              </button>
+              
+              <span className="text-muted-foreground/50">|</span>
               
               <button
                 type="button"
