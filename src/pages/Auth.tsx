@@ -642,10 +642,13 @@ const Auth = () => {
       <div className="relative z-10 w-full max-w-md animate-slide-up">
         {/* Big Justachat™ Header */}
         <div className="flex flex-col items-center mb-10">
-          <h1 className="font-display text-5xl sm:text-6xl md:text-7xl font-bold jac-gradient-text text-center tracking-tight">
-            Justachat<sup className="text-xl sm:text-2xl md:text-3xl align-super">™</sup>
+          <h1 className="font-display text-7xl sm:text-8xl md:text-9xl font-black text-center tracking-tight drop-shadow-2xl">
+            <span className="bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent animate-pulse">
+              Justachat
+            </span>
+            <sup className="text-2xl sm:text-3xl md:text-4xl align-super text-primary font-bold">™</sup>
           </h1>
-          <p className="text-muted-foreground mt-3 text-lg">Connect Instantly, Chat Freely</p>
+          <p className="text-muted-foreground mt-4 text-lg tracking-wide">Connect Instantly, Chat Freely</p>
         </div>
 
         {/* Form Card */}
