@@ -237,7 +237,7 @@ ENVFILE
 echo "  Supabase environment configured"
 
 # =============================================
-# STEP 5: Start Supabase stack
+# STEP 5: Start Supabase stack (staged to avoid analytics blocking)
 # =============================================
 echo "[5/9] Starting Supabase Docker stack..."
 cd ~/supabase/docker
@@ -245,11 +245,66 @@ cd ~/supabase/docker
 # Pull latest images
 sudo docker compose pull 2>/dev/null || true
 
-# Start services
-sudo docker compose up -d
+# Stage 1: Start database first (required by everything)
+echo "  Stage 1: Starting database..."
+sudo docker compose up -d supabase-db
+echo "  Waiting for database to initialize (20s)..."
+sleep 20
 
-echo "  Waiting for database to initialize (30s)..."
-sleep 30
+# Stage 2: Wait for DB to be healthy
+echo "  Stage 2: Waiting for database health check..."
+for i in {1..30}; do
+  if sudo docker inspect supabase-db --format='{{.State.Health.Status}}' 2>/dev/null | grep -q healthy; then
+    echo "  ✓ Database is healthy"
+    break
+  fi
+  echo "    Waiting for DB... ($i/30)"
+  sleep 2
+done
+
+# Stage 3: Start analytics in BACKGROUND (don't wait for health)
+echo "  Stage 3: Starting analytics in background (non-blocking)..."
+sudo docker compose up -d supabase-analytics --no-deps &
+ANALYTICS_PID=$!
+
+# Stage 4: Start all other services immediately
+echo "  Stage 4: Starting remaining services..."
+sleep 3
+sudo docker compose up -d \
+  supabase-vector \
+  supabase-imgproxy \
+  supabase-meta \
+  supabase-pooler \
+  supabase-auth \
+  supabase-rest \
+  supabase-realtime \
+  supabase-storage \
+  supabase-edge-functions \
+  supabase-kong \
+  supabase-studio
+
+# Wait for analytics background process to finish (just the command, not health)
+wait $ANALYTICS_PID 2>/dev/null || true
+
+echo "  Waiting for services to stabilize (15s)..."
+sleep 15
+
+# Quick health verification
+echo "  Verifying core services..."
+ANON_KEY_CHECK=$(grep "^ANON_KEY=" .env | cut -d'=' -f2- | tr -d '"')
+AUTH_STATUS=$(curl -sS -o /dev/null -w "%{http_code}" "http://127.0.0.1:8000/auth/v1/health" -H "apikey: $ANON_KEY_CHECK" 2>/dev/null || echo "000")
+REST_STATUS=$(curl -sS -o /dev/null -w "%{http_code}" "http://127.0.0.1:8000/rest/v1/" -H "apikey: $ANON_KEY_CHECK" 2>/dev/null || echo "000")
+
+if [ "$AUTH_STATUS" = "200" ] && [ "$REST_STATUS" = "200" ]; then
+  echo "  ✓ Auth API: OK"
+  echo "  ✓ REST API: OK"
+else
+  echo "  ⚠ Auth API: $AUTH_STATUS"
+  echo "  ⚠ REST API: $REST_STATUS"
+  echo "  (Services may still be starting - continuing anyway)"
+fi
+
+echo "  Note: Analytics may still be warming up in background - this is normal"
 
 # =============================================
 # STEP 6: Clone and build frontend
