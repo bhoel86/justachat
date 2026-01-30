@@ -11,6 +11,8 @@ interface ThemedMascotProps {
 
 export const ThemedMascot: React.FC<ThemedMascotProps> = ({ side, className = '' }) => {
   const { theme } = useTheme();
+  
+  console.log('[ThemedMascot] Current theme:', theme, 'Side:', side);
 
   // For JAC Modern theme, show the robot mascots
   if (theme === 'jac') {

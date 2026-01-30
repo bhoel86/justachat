@@ -13,8 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getVersionString } from "@/lib/version";
 import { clearAuthStorage } from "@/lib/authStorage";
 import { ThemeSelector } from "@/components/theme/ThemeSelector";
-import mascotLeft from "@/assets/mascot-left.png";
-import mascotRight from "@/assets/mascot-right.png";
+import { ThemedMascot } from "@/components/theme/ThemedMascot";
 
 const emailSchema = z.string().email("Please enter a valid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
@@ -1070,12 +1069,8 @@ const Auth = () => {
         {/* Official Footer with Mascots */}
         <footer className="mt-8 w-full">
           <div className="flex items-center justify-center gap-4">
-            {/* Left mascot */}
-            <img 
-              src={mascotLeft} 
-              alt="Mascot" 
-              className="h-12 sm:h-14 w-auto object-contain"
-            />
+            {/* Left mascot - theme aware */}
+            <ThemedMascot side="left" className="h-12 sm:h-14" />
             
             {/* Center content */}
             <div className="flex flex-col items-center gap-2">
@@ -1152,12 +1147,8 @@ const Auth = () => {
               </div>
             </div>
             
-            {/* Right mascot */}
-            <img 
-              src={mascotRight} 
-              alt="Mascot" 
-              className="h-12 sm:h-14 w-auto object-contain"
-            />
+            {/* Right mascot - theme aware */}
+            <ThemedMascot side="right" className="h-12 sm:h-14" />
           </div>
         </footer>
       </div>
