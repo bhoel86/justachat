@@ -66,15 +66,23 @@ echo "Enter your API keys (press Enter to skip if already saved):"
 echo ""
 read -r -p "RESEND_API_KEY: " RESEND_API_KEY
 read -r -p "OPENAI_API_KEY: " OPENAI_API_KEY
+read -r -p "TURNSTILE_SECRET_KEY (Cloudflare CAPTCHA): " TURNSTILE_SECRET_KEY
 read -r -p "GOOGLE_CLIENT_ID: " GOOGLE_CLIENT_ID
 read -r -s -p "GOOGLE_CLIENT_SECRET: " GOOGLE_CLIENT_SECRET
 echo ""
 
 if [ -z "${RESEND_API_KEY}" ] || [ -z "${OPENAI_API_KEY}" ] || [ -z "${GOOGLE_CLIENT_ID}" ] || [ -z "${GOOGLE_CLIENT_SECRET}" ]; then
   echo ""
-  echo "ERROR: All API keys are required!"
+  echo "ERROR: Core API keys are required (RESEND, OPENAI, GOOGLE)!"
   echo ""
   exit 1
+fi
+
+if [ -z "${TURNSTILE_SECRET_KEY}" ]; then
+  echo ""
+  echo "WARNING: TURNSTILE_SECRET_KEY not provided - CAPTCHA will not work!"
+  echo "You can add it later to: ~/supabase/docker/volumes/functions/.env"
+  echo ""
 fi
 
 # =============================================
@@ -676,6 +684,7 @@ cat > "$DOCKER_DIR/volumes/functions/.env" << FUNCENV
 SUPABASE_URL=https://justachat.net
 SUPABASE_ANON_KEY=${ANON_KEY}
 SUPABASE_SERVICE_ROLE_KEY=${SERVICE_KEY}
+TURNSTILE_SECRET_KEY=${TURNSTILE_SECRET_KEY:-}
 OPENAI_API_KEY=${OPENAI_API_KEY}
 FUNCENV
 
