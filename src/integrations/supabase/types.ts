@@ -222,6 +222,7 @@ export type Database = {
           chat_speed: number
           enabled: boolean
           id: string
+          moderator_bots_enabled: boolean
           updated_at: string
           updated_by: string | null
         }
@@ -230,6 +231,7 @@ export type Database = {
           chat_speed?: number
           enabled?: boolean
           id?: string
+          moderator_bots_enabled?: boolean
           updated_at?: string
           updated_by?: string | null
         }
@@ -238,6 +240,7 @@ export type Database = {
           chat_speed?: number
           enabled?: boolean
           id?: string
+          moderator_bots_enabled?: boolean
           updated_at?: string
           updated_by?: string | null
         }

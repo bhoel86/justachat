@@ -18,6 +18,7 @@ interface BotSettings {
   enabled: boolean;
   allowed_channels: string[];
   chat_speed: number;
+  moderator_bots_enabled: boolean;
   updated_at: string;
 }
 
@@ -61,6 +62,7 @@ const AdminBots = () => {
             enabled: true,
             allowed_channels: ROOM_NAMES,
             chat_speed: 5,
+            moderator_bots_enabled: true,
             updated_by: user?.id
           })
           .select()
@@ -214,6 +216,31 @@ const AdminBots = () => {
     }
   };
 
+  const handleModeratorBotsToggle = async (enabled: boolean) => {
+    if (!settings) return;
+
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("bot_settings")
+        .update({ 
+          moderator_bots_enabled: enabled,
+          updated_by: user?.id 
+        })
+        .eq("id", settings.id);
+
+      if (error) throw error;
+
+      setSettings({ ...settings, moderator_bots_enabled: enabled });
+      toast.success(enabled ? "Moderator bots will stay active" : "Moderator bots follow main toggle");
+    } catch (err) {
+      console.error("Error:", err);
+      toast.error("Failed to update setting");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleRefresh = () => {
     setRefreshing(true);
     fetchSettings();
@@ -331,14 +358,16 @@ const AdminBots = () => {
           </Card>
         </div>
 
-        {/* Speed Control */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Gauge className="h-5 w-5 text-primary" />
-              Chat Speed
-            </CardTitle>
-          </CardHeader>
+        {/* Settings Row: Speed Control & Moderator Bots */}
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* Speed Control */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Gauge className="h-5 w-5 text-primary" />
+                Chat Speed
+              </CardTitle>
+            </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -369,6 +398,45 @@ const AdminBots = () => {
             </div>
           </CardContent>
         </Card>
+
+          {/* Moderator Bots Toggle */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Bot className="h-5 w-5 text-primary" />
+                Moderator Bots
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Keep moderator bots running</p>
+                    <p className="text-xs text-muted-foreground">
+                      Pixel (video) and Echo (voice) stay active even when main bots are off
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings?.moderator_bots_enabled ?? true}
+                    onCheckedChange={handleModeratorBotsToggle}
+                    disabled={saving}
+                  />
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  <Badge variant={settings?.moderator_bots_enabled ? "default" : "secondary"}>
+                    Pixel
+                  </Badge>
+                  <Badge variant={settings?.moderator_bots_enabled ? "default" : "secondary"}>
+                    Echo
+                  </Badge>
+                  <span className="text-muted-foreground ml-2">
+                    {settings?.moderator_bots_enabled ? "Always on" : "Follow main toggle"}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Split Layout: Rooms List | Bot Directory */}
         <div className="grid gap-6 lg:grid-cols-3">
