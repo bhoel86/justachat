@@ -494,21 +494,16 @@ const MemberList = ({ onlineUserIds, listeningUsers, channelName = 'general', on
         {/* Tab Content */}
         {activeTab === 'members' ? (
           <div className="flex-1 overflow-y-auto p-2">
-            {/* STAFF SECTION - All staff roles grouped together */}
-            <div className="mb-4 p-2 rounded-lg bg-gradient-to-b from-amber-500/5 to-primary/5 border border-amber-500/20">
-              <p className="text-xs font-semibold text-amber-400 uppercase px-1 mb-3 flex items-center gap-1.5">
-                <Crown className="h-3.5 w-3.5" />
-                Staff
-              </p>
-              
+            {/* STAFF SECTION - Compact */}
+            <div className="mb-2">
               {/* Owner Section */}
               {onlineOwners.length > 0 && (
-                <div className="mb-2">
-                  <p className="text-[10px] font-medium text-amber-400/80 uppercase px-1 mb-1 flex items-center gap-1">
+                <div className="mb-1">
+                  <p className="text-[10px] font-medium text-amber-400 uppercase px-1 mb-0.5 flex items-center gap-1">
                     <Crown className="h-2.5 w-2.5" />
                     Owner
                   </p>
-                  <div className="space-y-1 pl-1 border-l-2 border-amber-500/30 ml-1">
+                  <div className="space-y-0.5 pl-2 border-l border-amber-500/40">
                     {onlineOwners.map((member) => (
                       <MemberItem 
                         key={member.user_id} 
@@ -537,12 +532,12 @@ const MemberList = ({ onlineUserIds, listeningUsers, channelName = 'general', on
 
               {/* Admin Section */}
               {onlineAdmins.length > 0 && (
-                <div className="mb-2">
-                  <p className="text-[10px] font-medium text-red-400/80 uppercase px-1 mb-1 flex items-center gap-1">
+                <div className="mb-1">
+                  <p className="text-[10px] font-medium text-red-400 uppercase px-1 mb-0.5 flex items-center gap-1">
                     <ShieldCheck className="h-2.5 w-2.5" />
                     Admins — {onlineAdmins.length}
                   </p>
-                  <div className="space-y-1 pl-1 border-l-2 border-red-500/30 ml-1">
+                  <div className="space-y-0.5 pl-2 border-l border-red-500/40">
                     {onlineAdmins.map((member) => (
                       <MemberItem 
                         key={member.user_id} 
@@ -571,11 +566,11 @@ const MemberList = ({ onlineUserIds, listeningUsers, channelName = 'general', on
 
               {/* Moderators Section (includes bot + human mods) */}
               <div className="mb-1">
-                <p className="text-[10px] font-medium text-primary/80 uppercase px-1 mb-1 flex items-center gap-1">
+                <p className="text-[10px] font-medium text-primary uppercase px-1 mb-0.5 flex items-center gap-1">
                   <Shield className="h-2.5 w-2.5" />
-                  Moderators — {onlineModerators.length + 1}
+                  Mods — {onlineModerators.length + 1}
                 </p>
-                <div className="space-y-1 pl-1 border-l-2 border-primary/30 ml-1">
+                <div className="space-y-0.5 pl-2 border-l border-primary/40">
                   {/* Bot Moderator first */}
                   <BotMemberItem 
                     member={botMember} 
