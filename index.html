@@ -34,6 +34,21 @@
 </head>
 
   <body>
+    <script>
+      // Apply theme immediately to prevent flash of unstyled content
+      (function() {
+        try {
+          var theme = localStorage.getItem('jac-theme');
+          if (theme === 'retro80s') {
+            document.documentElement.classList.add('theme-retro80s');
+          } else {
+            document.documentElement.classList.add('theme-jac');
+          }
+        } catch (e) {
+          document.documentElement.classList.add('theme-jac');
+        }
+      })();
+    </script>
     <noscript>
       <div style="background:#0d1117;color:#e6edf3;font-family:system-ui,sans-serif;padding:40px;text-align:center;min-height:100vh;">
         <h1 style="color:#7dd3c0;margin-bottom:16px;">Welcome to Justachat™</h1>
