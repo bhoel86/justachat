@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { RadioProvider } from "@/contexts/RadioContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { RetroFloatingIcons } from "@/components/theme/RetroFloatingIcons";
 import Home from "./pages/Home";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -45,6 +46,7 @@ const App = () => (
       <AuthProvider>
         <RadioProvider>
           <TooltipProvider>
+            <RetroFloatingIcons />
             <Toaster />
             <Sonner />
             <BrowserRouter>
