@@ -396,23 +396,17 @@ const FakeChatPreview = () => {
         
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-2 space-y-1 relative">
-          {/* Transparent text watermark */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-            <div className="flex items-center gap-1.5 select-none" style={{ opacity: 0.35 }}>
-              <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <linearGradient id="watermark-gradient-preview" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#22d3ee" />
-                    <stop offset="100%" stopColor="#a855f7" />
-                  </linearGradient>
-                </defs>
-                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="url(#watermark-gradient-preview)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              <span className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
-                Justachat™
-              </span>
-            </div>
-          </div>
+          {/* Transparent logo watermark */}
+          <div 
+            className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
+            style={{
+              backgroundImage: 'url(/justachat-logo-google-ads.png)',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              backgroundSize: '200px',
+              opacity: 0.15
+            }}
+          />
           {messages.map((msg) => {
             const userData = getUserData(msg.username);
             return (
