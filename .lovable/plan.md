@@ -1,146 +1,241 @@
 
-# Fix Analytics Blocking Stack Startup - Permanently
+# JustAChat VPS - Complete From-Scratch Rebuild Plan
 
-## Problem Analysis
+## Overview
 
-The VPS gets stuck "waiting on analytics" during the rebuild because:
+You're rebuilding the VPS from scratch. The frontend directory (`/var/www/justachat`) is missing, which is why you're getting 500 errors. Here's the complete step-by-step process to get everything running.
 
-1. **Root cause**: The Supabase `docker-compose.yml` defines `supabase-analytics` (Logflare) as a dependency for Kong with a `service_healthy` condition
-2. **Effect**: When you run `docker compose up -d`, Docker waits for analytics to pass its health check before starting Kong and other services
-3. **Why it's slow**: The analytics container is resource-intensive and can take 2-5+ minutes to become healthy on modest VPS hardware
-4. **Why it blocks**: The current `rebuild-vps.sh` uses a simple `docker compose up -d` which waits synchronously for all health checks
+---
 
-## Solution
+## Prerequisites - What You Need Before Starting
 
-Modify the rebuild script to use a **staged startup approach** that:
-1. Starts core services (db, vector) first
-2. Starts analytics in the **background** with `--no-deps` (so it doesn't block)
-3. Immediately starts all other services without waiting for analytics
-4. Reports success even while analytics is still warming up
+Have these ready before running the rebuild:
 
-This mirrors the logic already in `fix-analytics-block.sh` but bakes it directly into the rebuild script so you never hit this issue again.
+| Item | Where to get it |
+|------|-----------------|
+| **RESEND_API_KEY** | https://resend.com/api-keys |
+| **OPENAI_API_KEY** | https://platform.openai.com/api-keys |
+| **GOOGLE_CLIENT_ID** | https://console.cloud.google.com/apis/credentials |
+| **GOOGLE_CLIENT_SECRET** | Same as above |
 
-## Implementation
+---
 
-### Changes to `public/vps-deploy/rebuild-vps.sh`
+## Step-by-Step Instructions
 
-**Replace Step 5 (lines 242-253)** with staged startup logic:
-
-```text
-# STEP 5: Start Supabase stack (staged to avoid analytics blocking)
-echo "[5/9] Starting Supabase Docker stack..."
-cd ~/supabase/docker
-
-# Pull latest images
-sudo docker compose pull 2>/dev/null || true
-
-# Stage 1: Start database first (required by everything)
-echo "  Stage 1: Starting database..."
-sudo docker compose up -d supabase-db
-echo "  Waiting for database to initialize (20s)..."
-sleep 20
-
-# Stage 2: Wait for DB to be healthy
-echo "  Stage 2: Waiting for database health check..."
-for i in {1..30}; do
-  if sudo docker inspect supabase-db --format='{{.State.Health.Status}}' 2>/dev/null | grep -q healthy; then
-    echo "  ✓ Database is healthy"
-    break
-  fi
-  echo "    Waiting for DB... ($i/30)"
-  sleep 2
-done
-
-# Stage 3: Start analytics in BACKGROUND (don't wait for health)
-echo "  Stage 3: Starting analytics in background (non-blocking)..."
-sudo docker compose up -d supabase-analytics --no-deps &
-ANALYTICS_PID=$!
-
-# Stage 4: Start all other services immediately
-echo "  Stage 4: Starting remaining services..."
-sleep 3
-sudo docker compose up -d \
-  supabase-vector \
-  supabase-imgproxy \
-  supabase-meta \
-  supabase-pooler \
-  supabase-auth \
-  supabase-rest \
-  supabase-realtime \
-  supabase-storage \
-  supabase-edge-functions \
-  supabase-kong \
-  supabase-studio
-
-# Wait for analytics background process to finish (just the command, not health)
-wait $ANALYTICS_PID 2>/dev/null || true
-
-echo "  Waiting for services to stabilize (15s)..."
-sleep 15
-
-# Quick health verification
-echo "  Verifying core services..."
-ANON_KEY_CHECK=$(grep "^ANON_KEY=" .env | cut -d'=' -f2- | tr -d '"')
-AUTH_STATUS=$(curl -sS -o /dev/null -w "%{http_code}" "http://127.0.0.1:8000/auth/v1/health" -H "apikey: $ANON_KEY_CHECK" 2>/dev/null || echo "000")
-REST_STATUS=$(curl -sS -o /dev/null -w "%{http_code}" "http://127.0.0.1:8000/rest/v1/" -H "apikey: $ANON_KEY_CHECK" 2>/dev/null || echo "000")
-
-if [ "$AUTH_STATUS" = "200" ] && [ "$REST_STATUS" = "200" ]; then
-  echo "  ✓ Auth API: OK"
-  echo "  ✓ REST API: OK"
-else
-  echo "  ⚠ Auth API: $AUTH_STATUS"
-  echo "  ⚠ REST API: $REST_STATUS"
-  echo "  (Services may still be starting - continuing anyway)"
-fi
-
-echo "  Note: Analytics may still be warming up in background - this is normal"
-```
-
-### Why This Works
-
-| Before | After |
-|--------|-------|
-| `docker compose up -d` blocks on analytics health | Analytics started with `--no-deps &` (background, no dependencies) |
-| 30s fixed wait | Staged waits only where needed |
-| All-or-nothing startup | Services start as soon as DB is ready |
-| Rebuild can hang 5+ minutes | Core services up in ~60 seconds |
-
-### Technical Details
-
-- **`--no-deps`**: Tells Docker Compose not to start/wait for dependencies
-- **`&`**: Runs the analytics container start in background
-- **`wait $ANALYTICS_PID`**: Waits for the command to finish (not for health check)
-- **Explicit service list**: Bypasses dependency chain entirely
-
-### What About Analytics?
-
-Analytics will still start and become healthy eventually (usually 2-5 minutes). The difference is:
-- Kong and other services start immediately
-- The rebuild script completes
-- Analytics continues booting in the background
-- Once healthy, Kong automatically detects it and can route `/analytics/v1` requests
-
-If analytics fails completely, it has **no impact** on:
-- Authentication
-- Database queries
-- Edge functions
-- Realtime subscriptions
-- Storage
-
-Analytics is only used for Supabase Studio dashboards and logging - not required for JustAChat to function.
-
-## Testing After Deployment
-
-After running the updated rebuild script:
+### Step 1: SSH into the VPS
 
 ```bash
-# Check all containers are running
-sudo docker ps --format "table {{.Names}}\t{{.Status}}" | grep supabase
-
-# Verify core APIs work
-curl -s "http://127.0.0.1:8000/auth/v1/health" -H "apikey: YOUR_ANON_KEY"
-curl -s "http://127.0.0.1:8000/rest/v1/" -H "apikey: YOUR_ANON_KEY"
-
-# Check analytics status (may say "starting" for a few minutes)
-sudo docker logs supabase-analytics --tail 20
+ssh unix@157.245.174.197
+# Password: Khoel15$$
 ```
+
+### Step 2: Download the rebuild script from GitHub
+
+Since `/var/www/justachat` doesn't exist, we need to clone it first to get the scripts:
+
+```bash
+# Create directory and set ownership
+sudo mkdir -p /var/www/justachat
+sudo chown -R unix:unix /var/www/justachat
+
+# Clone the repo
+cd /var/www
+rm -rf justachat
+git clone https://github.com/UnixMint/justachat-unix.git justachat
+cd justachat
+```
+
+### Step 3: Run the rebuild script
+
+```bash
+bash public/vps-deploy/rebuild-vps-v2.sh
+```
+
+The script will prompt you for:
+1. RESEND_API_KEY
+2. OPENAI_API_KEY
+3. GOOGLE_CLIENT_ID
+4. GOOGLE_CLIENT_SECRET
+5. Whether to disable root login (say Y)
+
+**What the script does automatically:**
+- Stops all services
+- Generates fresh JWT keys (ANON_KEY, SERVICE_KEY)
+- Creates the Supabase Docker `.env` with all settings
+- Starts database first, waits for health
+- Starts analytics in background (won't block)
+- Starts all other services (auth, rest, kong, etc.)
+- Builds the frontend with correct `.env`
+- Sets up the email webhook service
+- Copies edge functions to Docker volume
+- Applies database schema
+
+### Step 4: Configure Nginx (if not already done)
+
+After the rebuild, install the Nginx config with the email hook route:
+
+```bash
+sudo tee /etc/nginx/sites-available/justachat > /dev/null << 'NGINX'
+server {
+    listen 80;
+    server_name justachat.net www.justachat.net;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name justachat.net www.justachat.net;
+
+    ssl_certificate /etc/letsencrypt/live/justachat.net/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/justachat.net/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Cross-Origin-Opener-Policy "same-origin-allow-popups" always;
+
+    root /var/www/justachat/dist;
+    index index.html;
+
+    # SPA routing
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Email webhook (GoTrue -> Resend)
+    location = /hook/email {
+        proxy_pass http://127.0.0.1:3001/hook/email;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+
+    # Supabase APIs
+    location ~ ^/(rest|auth|realtime|storage|functions)/v1 {
+        proxy_pass http://localhost:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_read_timeout 86400;
+    }
+
+    # Deploy service
+    location /deploy/ {
+        proxy_pass http://127.0.0.1:6680/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_read_timeout 300s;
+    }
+
+    # Static asset caching
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+        try_files $uri =404;
+    }
+}
+NGINX
+
+# Enable and test
+sudo ln -sf /etc/nginx/sites-available/justachat /etc/nginx/sites-enabled/justachat
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+### Step 5: Verify everything is working
+
+```bash
+# Check containers are running
+cd ~/supabase/docker
+sudo docker ps --format "table {{.Names}}\t{{.Status}}" | grep -E 'supabase|kong|realtime'
+
+# Get the ANON_KEY
+ANON_KEY=$(grep "^ANON_KEY=" .env | cut -d'=' -f2- | tr -d '"')
+
+# Test Auth API
+curl -s "http://127.0.0.1:8000/auth/v1/health" -H "apikey: $ANON_KEY"
+# Should return: {"description":"GoTrue is alive","version":"..."}
+
+# Test REST API
+curl -s "http://127.0.0.1:8000/rest/v1/" -H "apikey: $ANON_KEY" | head -c 100
+
+# Test email webhook
+curl -s http://127.0.0.1:3001/
+# Should return: Email webhook OK
+
+# Check the site
+curl -sI https://justachat.net | head -5
+# Should return: HTTP/2 200
+```
+
+### Step 6: Save your credentials
+
+The script saves credentials to `~/justachat-credentials.txt`. Copy this somewhere safe:
+
+```bash
+cat ~/justachat-credentials.txt
+```
+
+---
+
+## What If Something Goes Wrong?
+
+### "Analytics stuck" during rebuild
+This is handled automatically - analytics runs in background and won't block Kong or other services.
+
+### 500 error after rebuild
+Check if the build succeeded:
+```bash
+ls -la /var/www/justachat/dist/index.html
+```
+If missing, rebuild frontend:
+```bash
+cd /var/www/justachat
+npm install && npm run build
+```
+
+### Auth API returning errors
+Check the auth container logs:
+```bash
+sudo docker logs supabase-auth --tail 50
+```
+
+### Email not sending
+Check email webhook:
+```bash
+sudo systemctl status justachat-email
+sudo journalctl -u justachat-email --tail 30
+```
+
+---
+
+## Quick Reference Commands
+
+| Task | Command |
+|------|---------|
+| SSH in | `ssh unix@157.245.174.197` |
+| Check all containers | `cd ~/supabase/docker && sudo docker ps` |
+| Restart Supabase | `cd ~/supabase/docker && sudo docker compose restart` |
+| Restart email service | `sudo systemctl restart justachat-email` |
+| Rebuild frontend | `cd /var/www/justachat && npm run build` |
+| View auth logs | `sudo docker logs supabase-auth -f` |
+| View nginx errors | `sudo tail -f /var/log/nginx/error.log` |
+
+---
+
+## Summary
+
+1. **SSH in** as `unix`
+2. **Clone repo** to `/var/www/justachat`
+3. **Run** `bash public/vps-deploy/rebuild-vps-v2.sh` (enter API keys when prompted)
+4. **Install Nginx config** with email hook route
+5. **Verify** with curl commands
+
+The entire process takes about 5-10 minutes depending on npm install and Docker image pulls.
