@@ -233,6 +233,15 @@ Deno.serve(async (req) => {
     // Channels created by user (set created_by to null)
     await adminClient.from("channels").update({ created_by: null }).eq("created_by", targetUserId);
 
+    // Bot settings (clear updated_by reference to avoid FK constraint violation)
+    await adminClient.from("bot_settings").update({ updated_by: null }).eq("updated_by", targetUserId);
+
+    // Donation settings (clear updated_by reference)
+    await adminClient.from("donation_settings").update({ updated_by: null }).eq("updated_by", targetUserId);
+
+    // Channel settings (clear updated_by reference)
+    await adminClient.from("channel_settings").update({ updated_by: null }).eq("updated_by", targetUserId);
+
     // User roles
     await adminClient.from("user_roles").delete().eq("user_id", targetUserId);
 
