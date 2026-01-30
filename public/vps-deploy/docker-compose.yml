@@ -2,8 +2,6 @@
 # Production-ready Docker Compose (NO ANALYTICS)
 # Based on Supabase self-hosted v2
 
-version: "3.8"
-
 services:
   #============================================================================
   # DATABASE
