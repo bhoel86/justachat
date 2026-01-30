@@ -38,6 +38,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Menu, Users, X, Hash, BellOff, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTheme } from "@/contexts/ThemeContext";
+import { RetroWatermark } from "@/components/theme/RetroWatermark";
 
 interface Message {
   id: string;
@@ -85,6 +87,8 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
   const [showMemberSidebar, setShowMemberSidebar] = useState(false);
   const [showRoomSheet, setShowRoomSheet] = useState(false);
   const isMobile = useIsMobile();
+  const { theme } = useTheme();
+  const isRetro = theme === 'retro80s';
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -1267,17 +1271,21 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
         )}
         
         <div className="flex-1 overflow-y-auto p-2 sm:p-4 flex flex-col relative">
-          {/* Transparent logo watermark */}
-          <div 
-            className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
-            style={{
-              backgroundImage: 'url(/justachat-logo-google-ads.png)',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
-              backgroundSize: '300px',
-              opacity: 0.15
-            }}
-          />
+          {/* Transparent logo watermark - theme aware */}
+          {isRetro ? (
+            <RetroWatermark />
+          ) : (
+            <div 
+              className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
+              style={{
+                backgroundImage: 'url(/justachat-logo-google-ads.png)',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: '300px',
+                opacity: 0.15
+              }}
+            />
+          )}
           {loading ? (
             <div className="flex items-center justify-center flex-1">
               <div className="h-8 w-8 rounded-xl jac-gradient-bg animate-pulse" />

@@ -9,6 +9,8 @@ import { Users, X, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { getBotsForChannel, CHAT_BOTS, getBotResponseDelay } from "@/lib/chatBots";
+import { useTheme } from "@/contexts/ThemeContext";
+import { RetroWatermark } from "@/components/theme/RetroWatermark";
 
 interface MirrorMessage {
   id: string;
@@ -25,6 +27,8 @@ interface MirrorMessage {
 const LobbyMirrorRoom = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { theme } = useTheme();
+  const isRetro = theme === 'retro80s';
   const [messages, setMessages] = useState<MirrorMessage[]>([]);
   const [showMemberSidebar, setShowMemberSidebar] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -208,17 +212,21 @@ const LobbyMirrorRoom = () => {
         
         {/* Messages Area - No scrolling, shows latest messages only */}
         <div className="flex-1 overflow-hidden p-2 sm:p-4 flex flex-col relative">
-          {/* Transparent logo watermark */}
-          <div 
-            className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
-            style={{
-              backgroundImage: 'url(/justachat-logo-google-ads.png)',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
-              backgroundSize: '300px',
-              opacity: 0.15
-            }}
-          />
+          {/* Transparent logo watermark - theme aware */}
+          {isRetro ? (
+            <RetroWatermark />
+          ) : (
+            <div 
+              className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
+              style={{
+                backgroundImage: 'url(/justachat-logo-google-ads.png)',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: '300px',
+                opacity: 0.15
+              }}
+            />
+          )}
           
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center flex-1 text-muted-foreground">

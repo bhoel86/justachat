@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import UserAvatar from "@/components/avatar/UserAvatar";
 import { Shield, Crown } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
+import { RetroWatermark } from "@/components/theme/RetroWatermark";
 
 interface FakeMessage {
   id: number;
@@ -140,6 +142,8 @@ const shuffleArray = <T,>(array: T[]): T[] => {
 };
 
 const FakeChatPreview = () => {
+  const { theme } = useTheme();
+  const isRetro = theme === 'retro80s';
   const [messages, setMessages] = useState<FakeMessage[]>([]);
   const [usedConversations, setUsedConversations] = useState<Set<number>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -396,17 +400,21 @@ const FakeChatPreview = () => {
         
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-2 space-y-1 relative">
-          {/* Transparent logo watermark */}
-          <div 
-            className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
-            style={{
-              backgroundImage: 'url(/justachat-logo-google-ads.png)',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
-              backgroundSize: '200px',
-              opacity: 0.15
-            }}
-          />
+          {/* Transparent logo watermark - theme aware */}
+          {isRetro ? (
+            <RetroWatermark />
+          ) : (
+            <div 
+              className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
+              style={{
+                backgroundImage: 'url(/justachat-logo-google-ads.png)',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: '200px',
+                opacity: 0.15
+              }}
+            />
+          )}
           {messages.map((msg) => {
             const userData = getUserData(msg.username);
             return (
