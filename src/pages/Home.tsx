@@ -43,6 +43,8 @@ import triviaBg from "@/assets/rooms/trivia-bg.jpg";
 import welcomeBanner from "@/assets/welcome-banner.png";
 import mascotLeft from "@/assets/mascot-left.png";
 import mascotRight from "@/assets/mascot-right.png";
+import { RetroWelcomeBanner } from "@/components/theme/RetroWelcomeBanner";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface Channel {
   id: string;
@@ -111,6 +113,8 @@ const Home = () => {
   const { user, loading, signOut, isOwner, isAdmin } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { theme } = useTheme();
+  const isRetro = theme === 'retro80s';
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loadingChannels, setLoadingChannels] = useState(true);
   const [roomUserCounts, setRoomUserCounts] = useState<RoomUserCounts>({});
@@ -559,19 +563,27 @@ const Home = () => {
           {/* Welcome Banner - Clickable */}
           <div 
             onClick={() => navigate('/chat/general')}
-            className="relative mx-3 mt-3 rounded-xl overflow-hidden border border-border cursor-pointer active:scale-[0.98] transition-transform"
+            className={`relative mx-3 mt-3 rounded-xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform ${
+              isRetro ? '' : 'border border-border'
+            }`}
           >
-            <img 
-              src={welcomeBanner} 
-              alt="Welcome to Justachat" 
-              className="w-full h-24 object-cover"
-            />
-            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold text-white drop-shadow-lg">Welcome!</h2>
-                <p className="text-xs text-white/90 drop-shadow-md mt-1">Tap anywhere to join chat</p>
-              </div>
-            </div>
+            {isRetro ? (
+              <RetroWelcomeBanner variant="mobile" />
+            ) : (
+              <>
+                <img 
+                  src={welcomeBanner} 
+                  alt="Welcome to Justachat" 
+                  className="w-full h-24 object-cover"
+                />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                  <div className="text-center">
+                    <h2 className="text-2xl font-bold text-white drop-shadow-lg">Welcome!</h2>
+                    <p className="text-xs text-white/90 drop-shadow-md mt-1">Tap anywhere to join chat</p>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           
           {/* Full Chat Mirror - Takes up remaining space */}
@@ -585,28 +597,40 @@ const Home = () => {
           {/* Main Content */}
           <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
             {/* Welcome Banner - Full Width */}
-            <div className="relative rounded-xl sm:rounded-2xl overflow-hidden mb-4 sm:mb-6 border border-border">
-              <img 
-                src={welcomeBanner} 
-                alt="Welcome to Justachat" 
-                className="w-full h-24 sm:h-32 md:h-40 object-cover"
-              />
-              {/* Welcome text overlay */}
-              <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                <div className="text-center">
-                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white drop-shadow-lg">Welcome!</h2>
-                  <p className="text-xs sm:text-sm md:text-base text-white/90 drop-shadow-md mt-1">This is the main hangout spot.</p>
-                </div>
-                <Button 
-                  onClick={() => {
+            <div className={`relative rounded-xl sm:rounded-2xl overflow-hidden mb-4 sm:mb-6 ${isRetro ? '' : 'border border-border'}`}>
+              {isRetro ? (
+                <RetroWelcomeBanner 
+                  variant="desktop" 
+                  onJoinClick={() => {
                     const generalChannel = channels.find(c => c.name === 'general');
                     if (generalChannel) handleJoinRoom(generalChannel);
                   }}
-                  className="absolute right-2 sm:right-4 top-2 sm:top-4 jac-gradient-bg hover:opacity-90 text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 h-auto"
-                >
-                  Join Chat
-                </Button>
-              </div>
+                />
+              ) : (
+                <>
+                  <img 
+                    src={welcomeBanner} 
+                    alt="Welcome to Justachat" 
+                    className="w-full h-24 sm:h-32 md:h-40 object-cover"
+                  />
+                  {/* Welcome text overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                    <div className="text-center">
+                      <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white drop-shadow-lg">Welcome!</h2>
+                      <p className="text-xs sm:text-sm md:text-base text-white/90 drop-shadow-md mt-1">This is the main hangout spot.</p>
+                    </div>
+                    <Button 
+                      onClick={() => {
+                        const generalChannel = channels.find(c => c.name === 'general');
+                        if (generalChannel) handleJoinRoom(generalChannel);
+                      }}
+                      className="absolute right-2 sm:right-4 top-2 sm:top-4 jac-gradient-bg hover:opacity-90 text-xs sm:text-sm px-3 sm:px-4 py-1.5 sm:py-2 h-auto"
+                    >
+                      Join Chat
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Chat Rooms + Lobby Mirror Side by Side - Same Height */}
