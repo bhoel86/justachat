@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Heart } from 'lucide-react';
 
@@ -14,8 +15,14 @@ export const ValentinesCupid: React.FC = () => {
   const [direction, setDirection] = useState(1); // 1 = right, -1 = left
   const [arrows, setArrows] = useState<Arrow[]>([]);
   const [arrowId, setArrowId] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
 
   const isValentines = theme === 'valentines';
+
+  // Ensure portal target exists
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Animate cupid flying back and forth
   useEffect(() => {
@@ -61,12 +68,14 @@ export const ValentinesCupid: React.FC = () => {
   }, [position, direction, arrowId, isValentines]);
 
   // Don't render for non-valentines themes
-  if (!isValentines) {
+  if (!isValentines || !isMounted || typeof document === 'undefined') {
     return null;
   }
 
-  return (
-    <div className="absolute inset-x-0 -top-16 h-24 pointer-events-none overflow-visible z-50">
+  // NOTE: fixed positioning prevents clipping from any ancestor containers
+  // (some pages use overflow/isolation for layered backgrounds).
+  return createPortal(
+    <div className="fixed left-0 right-0 bottom-24 h-24 pointer-events-none overflow-visible z-50">
       {/* Flying Cupid */}
       <div
         className="absolute top-2"
@@ -188,6 +197,7 @@ export const ValentinesCupid: React.FC = () => {
           100% { opacity: 0; transform: translateX(120px) translateY(-80px); }
         }
       `}</style>
-    </div>
+    </div>,
+    document.body
   );
 };
