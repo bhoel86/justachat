@@ -125,6 +125,7 @@ const Home = () => {
   const isValentines = theme === 'valentines';
   const isStPatricks = theme === 'stpatricks';
   const isMatrix = theme === 'matrix';
+  const isElectron = typeof window !== 'undefined' && (window as any).electronAPI?.isElectron === true;
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loadingChannels, setLoadingChannels] = useState(true);
   const [roomUserCounts, setRoomUserCounts] = useState<RoomUserCounts>({});
@@ -254,7 +255,7 @@ const Home = () => {
   }
 
   return (
-    <div className={`bg-background text-foreground relative ${isMobile ? 'min-h-screen' : 'h-screen overflow-hidden flex flex-col'}`}>
+    <div className={`bg-background text-foreground relative ${isElectron && !isMobile ? 'h-screen overflow-hidden flex flex-col' : 'min-h-screen'}`}>
       {/* Floating theme decorations */}
       <ValentinesFloatingHearts />
       <StPatricksFloatingIcons />
@@ -570,10 +571,10 @@ const Home = () => {
       ) : (
         /* DESKTOP FULL VIEW */
         <>
-          {/* Main Content - fills remaining viewport */}
-          <main className="flex-1 container mx-auto px-3 sm:px-4 py-3 flex flex-col overflow-hidden">
-            {/* Chat Rooms + Lobby Mirror Side by Side - fills available height */}
-            <div className="flex flex-col lg:flex-row lg:items-stretch gap-3 flex-1 min-h-0">
+          {/* Main Content - fills remaining viewport on Electron */}
+          <main className={`container mx-auto px-3 sm:px-4 py-3 ${isElectron ? 'flex-1 flex flex-col overflow-hidden' : ''}`}>
+            {/* Chat Rooms + Lobby Mirror Side by Side */}
+            <div className={`flex flex-col lg:flex-row lg:items-stretch gap-3 ${isElectron ? 'flex-1 min-h-0' : ''}`} style={!isElectron ? { height: '480px' } : undefined}>
               {/* Room Cards */}
               <div className="lg:w-64 xl:w-72 flex-shrink-0 h-full">
                 <div className={`p-2 sm:p-3 h-full overflow-hidden flex flex-col ${
@@ -814,8 +815,8 @@ const Home = () => {
               </div>
             </div>
             
-            {/* Footer - Compact for desktop */}
-            <footer className="mt-3 pt-3 border-t border-border flex-shrink-0">
+            {/* Footer - Compact on Electron, normal on web */}
+            <footer className={`border-t border-border ${isElectron ? 'mt-3 pt-3 flex-shrink-0' : 'mt-8 sm:mt-12 pt-6 sm:pt-8'}`}>
               <div className="flex flex-col gap-4">
                 {/* Main footer row */}
                 <div className="flex items-center">

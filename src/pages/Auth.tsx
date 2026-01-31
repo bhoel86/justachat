@@ -68,6 +68,9 @@ const Auth = () => {
      navigator.userAgent.includes('CapacitorApp') ||
      document.URL.startsWith('capacitor://'));
 
+  // Detect if running in Electron desktop app
+  const isElectron = typeof window !== 'undefined' && (window as any).electronAPI?.isElectron === true;
+
   // Handle Google OAuth - uses external browser for Capacitor app
   const handleGoogleSignIn = async (switchAccount = false) => {
     try {
@@ -629,7 +632,7 @@ const Auth = () => {
 
   if (loading) {
     return (
-      <div className="h-screen bg-background flex items-center justify-center overflow-hidden">
+      <div className={`${isElectron ? 'h-screen overflow-hidden' : 'min-h-screen'} bg-background flex items-center justify-center`}>
         <div className="h-12 w-12 rounded-xl jac-gradient-bg animate-pulse" />
       </div>
     );
@@ -641,7 +644,7 @@ const Auth = () => {
   const isMatrix = theme === 'matrix';
 
   return (
-    <div className="h-screen bg-background flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden">
+    <div className={`${isElectron ? 'h-screen overflow-hidden' : 'min-h-screen'} bg-background flex flex-col items-center justify-center p-4 sm:p-6 relative`}>
       {/* Theme selector in top right */}
       <div className="absolute top-4 right-4 z-30">
         <div className="bg-card/80 backdrop-blur-sm rounded-lg border border-border p-1">
