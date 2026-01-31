@@ -35,12 +35,20 @@ const applyThemeClass = (theme: ThemeName) => {
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<ThemeName>('jac');
   const [isLoading, setIsLoading] = useState(true);
+  const lastUserChangeRef = React.useRef<number>(0);
 
   // Fetch global theme from database on mount
   useEffect(() => {
     let isMounted = true;
 
     const fetchTheme = async () => {
+      // Skip polling if user just changed theme (5 second cooldown)
+      const timeSinceUserChange = Date.now() - lastUserChangeRef.current;
+      if (timeSinceUserChange < 5000) {
+        console.log('[Theme] Skipping poll - user changed theme recently');
+        return;
+      }
+
       try {
         const { data, error } = await supabase
           .from('site_settings')
@@ -117,6 +125,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setTheme = async (newTheme: ThemeName) => {
     console.log('[Theme] Owner setting theme to:', newTheme);
     
+    // Mark that user just changed theme - prevents polling from overwriting
+    lastUserChangeRef.current = Date.now();
+    
     // Optimistically update local state
     setThemeState(newTheme);
     applyThemeClass(newTheme);
@@ -133,7 +144,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.error('[Theme] Failed to save to DB:', error.message);
       // Note: Non-owners will get an RLS error, which is expected
     } else {
-      console.log('[Theme] Saved to DB');
+      console.log('[Theme] Saved to DB successfully');
     }
   };
 
