@@ -16,6 +16,41 @@ echo ""
 
 cd "$PROJECT_DIR"
 
+# -----------------------------------------------------------------------------
+# electron-builder requirement:
+# electron + electron-builder must be in devDependencies (not dependencies).
+# Our web repo can't always reflect that, so for VPS desktop builds we patch the
+# local package.json temporarily, then restore it.
+# -----------------------------------------------------------------------------
+
+PKG_JSON="$PROJECT_DIR/package.json"
+PKG_BAK="$PROJECT_DIR/package.json.__desktop_build_bak"
+
+if [ -f "$PKG_JSON" ]; then
+  cp "$PKG_JSON" "$PKG_BAK"
+  trap 'mv "$PKG_BAK" "$PKG_JSON" >/dev/null 2>&1 || true' EXIT
+
+  node - <<'NODE'
+const fs = require('fs');
+const path = require('path');
+
+const pkgPath = path.join(process.cwd(), 'package.json');
+const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+
+pkg.devDependencies = pkg.devDependencies || {};
+pkg.dependencies = pkg.dependencies || {};
+
+for (const name of ['electron', 'electron-builder']) {
+  if (pkg.dependencies?.[name]) {
+    pkg.devDependencies[name] = pkg.dependencies[name];
+    delete pkg.dependencies[name];
+  }
+}
+
+fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
+NODE
+fi
+
 # Clean previous build
 echo "Cleaning previous builds..."
 rm -rf electron-dist

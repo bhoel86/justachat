@@ -1,5 +1,9 @@
-const { app, BrowserWindow, shell, Menu, Tray, nativeImage } = require('electron');
-const path = require('path');
+import { app, BrowserWindow, shell, Menu, Tray, nativeImage } from "electron";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 let mainWindow;
 let tray;
@@ -23,7 +27,9 @@ function createWindow() {
     height: 800,
     minWidth: 800,
     minHeight: 600,
-    icon: path.join(__dirname, '../public/jac-favicon.png'),
+    icon: app.isPackaged
+      ? path.join(process.resourcesPath, "icon.png")
+      : path.join(__dirname, "../public/jac-favicon.png"),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -77,7 +83,9 @@ function createWindow() {
 }
 
 function createTray() {
-  const iconPath = path.join(__dirname, '../public/jac-favicon.png');
+  const iconPath = app.isPackaged
+    ? path.join(process.resourcesPath, "icon.png")
+    : path.join(__dirname, "../public/jac-favicon.png");
   const icon = nativeImage.createFromPath(iconPath);
   tray = new Tray(icon.resize({ width: 16, height: 16 }));
   
