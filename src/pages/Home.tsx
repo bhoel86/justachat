@@ -658,10 +658,39 @@ const Home = () => {
                     : 'rounded-lg sm:rounded-xl border border-border bg-card/50 backdrop-blur-sm'
                 }`} style={isRetro ? { boxShadow: '4px 4px 0px black' } : undefined}>
                   <div className="mb-2 flex-shrink-0">
-                    <h2 className={`font-bold mb-0.5 ${isRetro ? 'text-xs uppercase tracking-wide' : 'text-sm sm:text-base'}`}>
-                      {isRetro ? '📁 Chat Rooms' : 'Chat Rooms'}
+                    <h2 className={`font-bold mb-0.5 flex items-center gap-1.5 ${isRetro ? 'text-xs uppercase tracking-wide' : 'text-sm sm:text-base'}`}>
+                      {isRetro ? (
+                        '📁 Chat Rooms'
+                      ) : isValentines ? (
+                        <>
+                          <Heart 
+                            className="w-4 h-4 text-pink-400" 
+                            fill="currentColor"
+                            style={{ 
+                              filter: 'drop-shadow(0 0 4px #ff69b4)',
+                              animation: 'valentinesHeartBounce 2s ease-in-out infinite'
+                            }}
+                          />
+                          <span className="bg-gradient-to-r from-pink-400 via-rose-300 to-pink-400 bg-clip-text text-transparent">
+                            Chat Rooms
+                          </span>
+                          <Heart 
+                            className="w-3 h-3 text-rose-400" 
+                            fill="currentColor"
+                            style={{ 
+                              filter: 'drop-shadow(0 0 3px #e91e63)',
+                              animation: 'valentinesHeartBounce 2.5s ease-in-out infinite',
+                              animationDelay: '0.3s'
+                            }}
+                          />
+                        </>
+                      ) : (
+                        'Chat Rooms'
+                      )}
                     </h2>
-                    <p className="text-muted-foreground text-[10px] sm:text-xs">Select a room to join</p>
+                    <p className={`text-[10px] sm:text-xs ${isValentines ? 'text-pink-300/80' : 'text-muted-foreground'}`}>
+                      {isValentines ? '💕 Find your chat match' : 'Select a room to join'}
+                    </p>
                   </div>
 
                   {loadingChannels ? (
