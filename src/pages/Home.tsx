@@ -118,6 +118,7 @@ const Home = () => {
   const { theme } = useTheme();
   const isRetro = theme === 'retro80s';
   const isValentines = theme === 'valentines';
+  const isStPatricks = theme === 'stpatricks';
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loadingChannels, setLoadingChannels] = useState(true);
   const [roomUserCounts, setRoomUserCounts] = useState<RoomUserCounts>({});

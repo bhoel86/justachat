@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { MessageCircle, Mail, Lock, User, ArrowRight, ShieldCheck, ArrowLeft, AlertTriangle, Calendar, Users, Heart } from "lucide-react";
+import { MessageCircle, Mail, Lock, User, ArrowRight, ShieldCheck, ArrowLeft, AlertTriangle, Calendar, Users, Heart, Clover } from "lucide-react";
 import { Browser } from '@capacitor/browser';
 
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { ThemeSelector } from "@/components/theme/ThemeSelector";
 import { ThemedMascot } from "@/components/theme/ThemedMascot";
 import { RetroFloatingIcons } from "@/components/theme/RetroFloatingIcons";
 import { ValentinesFloatingHearts } from "@/components/theme/ValentinesFloatingHearts";
+import { StPatricksFloatingIcons } from "@/components/theme/StPatricksFloatingIcons";
 import { useTheme } from "@/contexts/ThemeContext";
 import retroHeaderImg from '@/assets/retro-header.png';
 
@@ -633,6 +634,7 @@ const Auth = () => {
 
   const isRetro = theme === 'retro80s';
   const isValentines = theme === 'valentines';
+  const isStPatricks = theme === 'stpatricks';
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative">
@@ -648,6 +650,9 @@ const Auth = () => {
       
       {/* Valentine's floating hearts */}
       <ValentinesFloatingHearts />
+      
+      {/* St. Patrick's floating icons */}
+      <StPatricksFloatingIcons />
 
       {/* Full-width retro header banner */}
       {isRetro && (
@@ -677,6 +682,8 @@ const Auth = () => {
             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl jac-gradient-bg flex items-center justify-center mb-4 shadow-lg">
               {isValentines ? (
                 <Heart className="w-8 h-8 sm:w-10 sm:h-10 text-primary-foreground" fill="currentColor" />
+              ) : isStPatricks ? (
+                <Clover className="w-8 h-8 sm:w-10 sm:h-10 text-primary-foreground" />
               ) : (
                 <MessageCircle className="w-8 h-8 sm:w-10 sm:h-10 text-primary-foreground" />
               )}
@@ -685,17 +692,18 @@ const Auth = () => {
             <h1 className="text-3xl sm:text-4xl font-bold text-primary tracking-tight">
               {isValentines ? (
                 <>💕 Justachat<sup className="text-xs">™</sup> 💕</>
+              ) : isStPatricks ? (
+                <>☘️ Justachat<sup className="text-xs">™</sup> ☘️</>
               ) : (
                 <>Justachat<sup className="text-xs">™</sup></>
               )}
             </h1>
             {/* Tagline */}
             <p className="text-muted-foreground text-sm sm:text-base mt-2 tracking-wide">
-              {isValentines ? "Spread Love in Every Chat" : "Connect Instantly, Chat Freely"}
+              {isValentines ? "Spread Love in Every Chat" : isStPatricks ? "Luck of the Irish in Every Chat" : "Connect Instantly, Chat Freely"}
             </p>
           </div>
         )}
-
         {/* Form Card */}
         <div className="bg-card rounded-2xl p-6 border border-border shadow-xl">
           {/* Back button for forgot/reset modes */}
