@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { MessageSquare, ArrowLeft, Heart, Users, Zap, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SiteFooter from "@/components/layout/SiteFooter";
+import { useTheme } from "@/contexts/ThemeContext";
 
 // Background images
 import chatSilhouettes1 from "@/assets/ethos/chat-silhouettes-1.jpg";
@@ -13,6 +14,9 @@ import msnMessenger from "@/assets/ethos/msn-messenger.jpg";
 import ircText from "@/assets/ethos/irc-text.jpg";
 
 const Ethos = () => {
+  const { theme } = useTheme();
+  const isRetro = theme === 'retro80s';
+
   useEffect(() => {
     requestAnimationFrame(() => {
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -20,20 +24,51 @@ const Ethos = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`min-h-screen ${isRetro ? 'bg-black' : 'bg-background'}`}>
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+      <header 
+        className={`border-b backdrop-blur-sm sticky top-0 z-10 ${
+          isRetro ? 'bg-black/95 border-cyan-500/50' : 'border-border bg-card/50'
+        }`}
+        style={isRetro ? { boxShadow: '0 4px 20px rgba(34,211,238,0.2)' } : undefined}
+      >
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-            <div className="h-10 w-10 rounded-xl jac-gradient-bg flex items-center justify-center">
-              <MessageSquare className="w-5 h-5 text-primary-foreground" />
+            <div 
+              className={`h-10 w-10 flex items-center justify-center ${
+                isRetro ? 'rounded-none border-2 bg-black/80' : 'rounded-xl jac-gradient-bg'
+              }`}
+              style={isRetro ? { 
+                borderColor: '#00FFFF',
+                boxShadow: '0 0 15px rgba(34,211,238,0.5), 3px 3px 0 #000'
+              } : undefined}
+            >
+              <MessageSquare 
+                className="w-5 h-5" 
+                style={isRetro ? { color: '#00FFFF', filter: 'drop-shadow(0 0 4px #00FFFF)' } : undefined}
+              />
             </div>
-            <h1 className="text-2xl font-bold brand jac-gradient-text">Justachat<sup className="text-xs">™</sup></h1>
+            <h1 
+              className={`text-2xl font-bold brand ${isRetro ? 'font-mono uppercase tracking-wider' : 'jac-gradient-text'}`}
+              style={isRetro ? { color: '#00FFFF', textShadow: '0 0 10px rgba(34,211,238,0.6)' } : undefined}
+            >
+              {isRetro ? 'JUSTACHAT' : 'Justachat'}<sup className="text-xs">™</sup>
+            </h1>
           </Link>
-          <Button variant="ghost" size="sm" asChild>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            asChild
+            className={isRetro ? 'font-mono uppercase border-2 rounded-none hover:bg-cyan-500/20' : ''}
+            style={isRetro ? { 
+              borderColor: '#FF00FF',
+              color: '#FF00FF',
+              boxShadow: '0 0 10px rgba(255,0,255,0.3), 3px 3px 0 #000'
+            } : undefined}
+          >
             <Link to="/" className="gap-2">
               <ArrowLeft className="w-4 h-4" />
-              Back to Lobby
+              {isRetro ? '< BACK' : 'Back to Lobby'}
             </Link>
           </Button>
         </div>
