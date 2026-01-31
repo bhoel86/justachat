@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Hash, Plus, Lock, Home, MoreVertical, Trash2, EyeOff, Eye, Palette, Sparkles, Settings } from "lucide-react";
+import { Hash, Plus, Lock, Home, MoreVertical, Trash2, EyeOff, Eye, Palette, Sparkles, Settings, Heart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { supabaseUntyped, useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getRoomTheme } from "@/lib/roomConfig";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export interface Channel {
   id: string;
@@ -88,6 +89,9 @@ const ChannelList = ({ currentChannelId, onChannelSelect, autoSelectFirst = true
   const { user, isAdmin, isOwner } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isRetro = theme === 'retro80s';
+  const isValentines = theme === 'valentines';
 
   const fetchChannels = async () => {
     const { data } = await supabaseUntyped
@@ -476,7 +480,7 @@ const ChannelList = ({ currentChannelId, onChannelSelect, autoSelectFirst = true
 
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {channels.map((channel) => {
-          const theme = getRoomTheme(channel.name);
+          const roomTheme = getRoomTheme(channel.name);
           const hasCustomGradient = channel.name_gradient_from && channel.name_gradient_to;
           const hasCustomColor = channel.name_color;
           const isSelected = currentChannelId === channel.id;
@@ -507,40 +511,88 @@ const ChannelList = ({ currentChannelId, onChannelSelect, autoSelectFirst = true
             <div
               key={channel.id}
               className={cn(
-                "group flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-all",
-                isSelected
-                  ? "border border-current/20 shadow-sm"
-                  : "hover:bg-secondary/50",
+                "group relative flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-all duration-300 overflow-hidden",
+                isRetro 
+                  ? cn(
+                      "border-[2px] border-foreground",
+                      isSelected 
+                        ? "shadow-[0_0_8px_rgba(0,255,0,0.4),inset_0_0_8px_rgba(0,255,0,0.1)] border-primary" 
+                        : "hover:shadow-[0_0_6px_rgba(0,255,0,0.3)]"
+                    )
+                  : isValentines
+                    ? cn(
+                        "border border-pink-400/30",
+                        isSelected 
+                          ? "border-pink-400 shadow-md shadow-pink-500/20" 
+                          : "hover:border-pink-400/60 hover:shadow-sm hover:shadow-pink-500/10"
+                      )
+                    : cn(
+                        isSelected
+                          ? "border border-current/20 shadow-md"
+                          : "hover:bg-secondary/50 hover:shadow-sm"
+                      ),
                 channel.is_hidden && "opacity-50",
-                // Always show theme background color as bubble
-                !channel.bg_color && theme.bgColor
+                // Always show theme background color as bubble (when not using custom theme styles)
+                !isRetro && !isValentines && !channel.bg_color && roomTheme.bgColor
               )}
               style={channel.bg_color ? { backgroundColor: `${channel.bg_color}30` } : undefined}
               onClick={() => onChannelSelect(channel)}
             >
-              {channel.is_private ? (
-                <Lock 
-                  className={cn(
-                    "h-3.5 w-3.5 shrink-0",
-                    hasCustomColor ? undefined : theme.textColor
-                  )} 
-                  style={hasCustomColor ? { color: channel.name_color! } : {}}
-                />
-              ) : (
-                <Hash 
-                  className={cn(
-                    "h-3.5 w-3.5 shrink-0",
-                    hasCustomColor ? undefined : theme.textColor
-                  )} 
-                  style={hasCustomColor ? { color: channel.name_color! } : {}}
-                />
+              {/* Theme-specific background effects */}
+              {isRetro && (
+                <>
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-900/40 to-cyan-900/40 group-hover:from-green-800/50 group-hover:to-cyan-800/50 transition-all" />
+                  <div className="absolute inset-0 pointer-events-none opacity-10 bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(0,0,0,0.3)_2px,rgba(0,0,0,0.3)_4px)]" />
+                </>
               )}
+              {isValentines && (
+                <>
+                  <div className="absolute inset-0 bg-gradient-to-r from-pink-500/20 via-rose-400/20 to-pink-500/20 group-hover:from-pink-500/30 group-hover:via-rose-400/30 group-hover:to-pink-500/30 transition-all" />
+                  {isSelected && (
+                    <div className="absolute -right-0.5 -top-0.5 text-pink-300/60">
+                      <Heart className="w-2.5 h-2.5" fill="currentColor" />
+                    </div>
+                  )}
+                </>
+              )}
+              
+              {/* Channel icon */}
+              <div className="relative z-10">
+                {channel.is_private ? (
+                  <Lock 
+                    className={cn(
+                      "h-3.5 w-3.5 shrink-0",
+                      isRetro ? "text-primary" : isValentines ? "text-pink-400" : hasCustomColor ? undefined : roomTheme.textColor
+                    )} 
+                    style={!isRetro && !isValentines && hasCustomColor ? { color: channel.name_color! } : {}}
+                  />
+                ) : isValentines ? (
+                  <Heart 
+                    className="h-3.5 w-3.5 shrink-0 text-pink-400" 
+                    fill={isSelected ? "currentColor" : "none"}
+                  />
+                ) : (
+                  <Hash 
+                    className={cn(
+                      "h-3.5 w-3.5 shrink-0",
+                      isRetro ? "text-primary" : hasCustomColor ? undefined : roomTheme.textColor
+                    )} 
+                    style={!isRetro && hasCustomColor ? { color: channel.name_color! } : {}}
+                  />
+                )}
+              </div>
+              
+              {/* Channel name */}
               <span 
                 className={cn(
-                  "flex-1 truncate text-xs font-semibold uppercase",
-                  hasCustomColor || hasCustomGradient ? undefined : theme.textColor
+                  "relative z-10 flex-1 truncate text-xs font-semibold uppercase",
+                  isRetro 
+                    ? "font-mono text-primary tracking-wider" 
+                    : isValentines 
+                      ? "text-pink-300" 
+                      : hasCustomColor || hasCustomGradient ? undefined : roomTheme.textColor
                 )}
-                style={getChannelNameStyle()}
+                style={!isRetro && !isValentines ? getChannelNameStyle() : {}}
               >
                 {channel.name}
               </span>
