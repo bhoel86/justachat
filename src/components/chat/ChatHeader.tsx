@@ -76,7 +76,7 @@ const ChatHeader = ({ onlineCount, topic, channelName = 'general', onLanguageCli
   };
 
   return (
-    <header className="flex flex-col bg-card border-b border-border">
+    <header className="flex flex-col bg-card border-b border-border relative z-20">
       <div className="flex items-center justify-between px-3 py-2">
         <div className="flex items-center gap-2">
           <div className={cn(
