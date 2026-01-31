@@ -581,7 +581,7 @@ const Home = () => {
           {/* Welcome Banner - Clickable */}
           <div 
             onClick={() => navigate('/chat/general')}
-            className={`relative mx-3 mt-3 rounded-xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform ${
+            className={`relative mx-3 mt-3 rounded-xl overflow-hidden cursor-pointer active:scale-[0.98] transition-transform z-10 ${
               isRetro ? '' : 'border border-border'
             }`}
           >
@@ -613,7 +613,7 @@ const Home = () => {
           {/* Main Content */}
           <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
             {/* Welcome Banner - Full Width */}
-            <div className={`relative rounded-xl sm:rounded-2xl overflow-hidden mb-4 sm:mb-6 ${isRetro ? '' : 'border border-border'}`}>
+            <div className={`relative rounded-xl sm:rounded-2xl overflow-hidden mb-4 sm:mb-6 z-10 ${isRetro ? '' : 'border border-border'}`}>
               {isRetro ? (
                 <RetroWelcomeBanner 
                   variant="desktop" 
