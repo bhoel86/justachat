@@ -175,6 +175,61 @@
     --theme-window-shadow: 0 4px 20px hsl(340 82% 52% / 0.15);
   }
 
+  /* St. Patrick's Day Theme */
+  .theme-stpatricks {
+    --background: 140 35% 8%;
+    --foreground: 120 20% 95%;
+
+    --card: 140 40% 12%;
+    --card-foreground: 120 20% 95%;
+
+    --popover: 140 35% 14%;
+    --popover-foreground: 120 20% 95%;
+
+    --primary: 142 76% 36%;
+    --primary-foreground: 120 20% 98%;
+
+    --secondary: 140 40% 18%;
+    --secondary-foreground: 120 20% 95%;
+
+    --muted: 140 30% 16%;
+    --muted-foreground: 140 15% 55%;
+
+    --accent: 45 93% 47%;
+    --accent-foreground: 140 30% 10%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 140 40% 22%;
+    --input: 140 35% 15%;
+    --ring: 142 76% 36%;
+
+    --radius: 0.75rem;
+
+    /* Custom st patricks variables */
+    --jac-gradient: linear-gradient(135deg, hsl(142 76% 36%) 0%, hsl(120 60% 30%) 50%, hsl(45 93% 47%) 100%);
+    --jac-glow: 0 0 40px hsl(142 76% 36% / 0.4), 0 0 80px hsl(45 93% 47% / 0.2);
+    --jac-bubble-user: 142 60% 35%;
+    --jac-bubble-other: 140 40% 18%;
+
+    --sidebar-background: 140 40% 10%;
+    --sidebar-foreground: 120 20% 95%;
+    --sidebar-primary: 142 76% 36%;
+    --sidebar-primary-foreground: 120 20% 98%;
+    --sidebar-accent: 45 93% 47%;
+    --sidebar-accent-foreground: 140 30% 10%;
+    --sidebar-border: 140 40% 22%;
+    --sidebar-ring: 142 76% 36%;
+
+    /* Theme-specific */
+    --theme-font-body: 'Inter', sans-serif;
+    --theme-font-heading: 'Space Grotesk', sans-serif;
+    --theme-border-style: solid;
+    --theme-border-width: 1px;
+    --theme-window-shadow: 0 4px 20px hsl(142 76% 36% / 0.15);
+  }
+
   .dark {
     --background: 222 47% 6%;
     --foreground: 210 40% 98%;
@@ -457,4 +512,68 @@
 
 .theme-valentines .jac-glow {
   box-shadow: 0 0 30px hsl(340 82% 52% / 0.4), 0 0 60px hsl(340 90% 65% / 0.2);
+}
+
+/* St. Patrick's Day theme animations */
+@keyframes stpatricksFloat {
+  0%, 100% {
+    transform: translateY(0) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(3deg);
+  }
+}
+
+@keyframes stpatricksSparkle {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.2) rotate(15deg);
+    opacity: 0.9;
+  }
+}
+
+@keyframes stpatricksGoldShimmer {
+  0%, 100% {
+    opacity: 0.6;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.3);
+  }
+}
+
+@keyframes stpatricksRainbow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* St. Patrick's theme specific styles */
+.theme-stpatricks {
+  background-image: 
+    radial-gradient(ellipse 100% 60% at 50% 0%, hsl(142 76% 36% / 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 80% 40% at 0% 100%, hsl(120 60% 30% / 0.06) 0%, transparent 40%),
+    radial-gradient(ellipse 80% 40% at 100% 100%, hsl(45 93% 47% / 0.05) 0%, transparent 40%);
+}
+
+.theme-stpatricks .card,
+.theme-stpatricks .bg-card {
+  box-shadow: 0 0 20px hsl(142 76% 36% / 0.1), var(--theme-window-shadow);
+}
+
+.theme-stpatricks button:hover,
+.theme-stpatricks .hover\:shadow-lg:hover {
+  box-shadow: 0 0 25px hsl(142 76% 36% / 0.25);
+}
+
+.theme-stpatricks .jac-gradient-bg {
+  background: linear-gradient(135deg, hsl(142 76% 36%) 0%, hsl(120 60% 35%) 100%);
+}
+
+.theme-stpatricks .jac-glow {
+  box-shadow: 0 0 30px hsl(142 76% 36% / 0.4), 0 0 60px hsl(45 93% 47% / 0.2);
 }
