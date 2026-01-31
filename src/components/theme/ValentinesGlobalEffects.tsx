@@ -1,6 +1,6 @@
 import { useTheme } from "@/contexts/ThemeContext";
 import { Heart, Sparkles } from "lucide-react";
-import { ValentinesCupid } from "@/components/theme/ValentinesCupid";
+
 
 /**
  * Global Valentine's theme effects - floating hearts and glowing background
@@ -144,9 +144,6 @@ export const ValentinesGlobalEffects = () => {
           );
         })}
       </div>
-
-      {/* Cupid + arrows (portal renders to document.body) */}
-      <ValentinesCupid />
     </>
   );
 };
