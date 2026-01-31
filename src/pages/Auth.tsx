@@ -20,6 +20,8 @@ import { StPatricksFloatingIcons } from "@/components/theme/StPatricksFloatingIc
 import { MatrixFloatingCode } from "@/components/theme/MatrixFloatingCode";
 import { useTheme } from "@/contexts/ThemeContext";
 import retroHeaderImg from '@/assets/retro-header.png';
+import matrixRabbitImg from '@/assets/matrix/ascii-rabbit.png';
+import matrixFollowImg from '@/assets/matrix/follow-rabbit.jpg';
 
 const emailSchema = z.string().email("Please enter a valid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
@@ -708,7 +710,21 @@ const Auth = () => {
               {isValentines ? "Spread Love in Every Chat" : isStPatricks ? "Luck of the Irish in Every Chat" : isMatrix ? "Wake up. You're already inside." : "Connect Instantly, Chat Freely"}
             </p>
             {isMatrix && (
-              <p className="text-primary/50 text-xs font-mono mt-1">follow the white rabbit...</p>
+              <p className="text-primary/50 text-xs font-mono mt-1 animate-pulse">follow the white rabbit...</p>
+            )}
+            {/* Matrix ASCII Rabbit Image - hidden in plain sight */}
+            {isMatrix && (
+              <div className="mt-4 relative">
+                <img 
+                  src={matrixRabbitImg} 
+                  alt="" 
+                  className="w-32 h-32 sm:w-40 sm:h-40 object-contain opacity-60 mx-auto"
+                  style={{
+                    filter: 'drop-shadow(0 0 15px hsl(120 100% 50% / 0.4))',
+                    animation: 'matrixRabbitFloat 6s ease-in-out infinite',
+                  }}
+                />
+              </div>
             )}
           </div>
         )}
@@ -1032,29 +1048,91 @@ const Auth = () => {
                 </p>
               )}
 
-              <Button
-                type="submit"
-                variant="jac"
-                size="lg"
-                className="w-full"
-                disabled={
-                  isSubmitting ||
-                  (mode === "signup" && (!agreedToTerms || (captchaRequired && !captchaToken))) ||
-                  (mode === "login" && rateLimitInfo?.locked)
-                }
-              >
-                {isSubmitting ? (
-                  <span className="animate-pulse">Please wait...</span>
-                ) : (
-                  <>
-                    {mode === "login" && "Sign In"}
-                    {mode === "signup" && "Create Account"}
-                    {mode === "forgot" && "Send Reset Link"}
-                    {mode === "reset" && "Update Password"}
-                    <ArrowRight className="h-5 w-5 ml-1" />
-                  </>
-                )}
-              </Button>
+              {/* Matrix theme: Dual Red/Blue pill buttons */}
+              {isMatrix ? (
+                <div className="flex gap-2">
+                  {/* Red Pill - Sign In */}
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="flex-1 font-mono uppercase tracking-wider relative overflow-hidden"
+                    style={{
+                      background: 'linear-gradient(135deg, hsl(0 80% 45%) 0%, hsl(0 70% 35%) 100%)',
+                      border: '1px solid hsl(0 80% 60%)',
+                      boxShadow: '0 0 20px hsl(0 80% 50% / 0.5), inset 0 0 10px hsl(0 80% 60% / 0.3)',
+                      color: 'white',
+                    }}
+                    disabled={
+                      isSubmitting ||
+                      (mode === "signup" && (!agreedToTerms || (captchaRequired && !captchaToken))) ||
+                      (mode === "login" && rateLimitInfo?.locked)
+                    }
+                  >
+                    {isSubmitting ? (
+                      <span className="animate-pulse">...</span>
+                    ) : (
+                      <>
+                        {mode === "login" && "TRUTH"}
+                        {mode === "signup" && "CREATE"}
+                        {mode === "forgot" && "SEND"}
+                        {mode === "reset" && "UPDATE"}
+                      </>
+                    )}
+                  </Button>
+                  {/* Blue Pill - Also works (aesthetic) */}
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="flex-1 font-mono uppercase tracking-wider relative overflow-hidden"
+                    style={{
+                      background: 'linear-gradient(135deg, hsl(210 80% 45%) 0%, hsl(210 70% 35%) 100%)',
+                      border: '1px solid hsl(210 80% 60%)',
+                      boxShadow: '0 0 20px hsl(210 80% 50% / 0.5), inset 0 0 10px hsl(210 80% 60% / 0.3)',
+                      color: 'white',
+                    }}
+                    disabled={
+                      isSubmitting ||
+                      (mode === "signup" && (!agreedToTerms || (captchaRequired && !captchaToken))) ||
+                      (mode === "login" && rateLimitInfo?.locked)
+                    }
+                  >
+                    {isSubmitting ? (
+                      <span className="animate-pulse">...</span>
+                    ) : (
+                      <>
+                        {mode === "login" && "BLISS"}
+                        {mode === "signup" && "CREATE"}
+                        {mode === "forgot" && "SEND"}
+                        {mode === "reset" && "UPDATE"}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="submit"
+                  variant="jac"
+                  size="lg"
+                  className="w-full"
+                  disabled={
+                    isSubmitting ||
+                    (mode === "signup" && (!agreedToTerms || (captchaRequired && !captchaToken))) ||
+                    (mode === "login" && rateLimitInfo?.locked)
+                  }
+                >
+                  {isSubmitting ? (
+                    <span className="animate-pulse">Please wait...</span>
+                  ) : (
+                    <>
+                      {mode === "login" && "Sign In"}
+                      {mode === "signup" && "Create Account"}
+                      {mode === "forgot" && "Send Reset Link"}
+                      {mode === "reset" && "Update Password"}
+                      <ArrowRight className="h-5 w-5 ml-1" />
+                    </>
+                  )}
+                </Button>
+              )}
             </form>
           )}
 
@@ -1062,37 +1140,40 @@ const Auth = () => {
           {(mode === "login" || mode === "signup") && (
             <div className="mt-4">
               <div className="relative flex items-center justify-center my-4">
-                <div className="border-t border-border w-full" />
-                <span className="absolute bg-card px-3 text-xs text-muted-foreground">
-                  or continue with
+                <div className={`border-t w-full ${isMatrix ? 'border-primary/30' : 'border-border'}`} />
+                <span className={`absolute px-3 text-xs ${isMatrix ? 'bg-[hsl(120,100%,3%)] text-primary/70 font-mono' : 'bg-card text-muted-foreground'}`}>
+                  {isMatrix ? '[ OR ]' : 'or continue with'}
                 </span>
               </div>
               <Button
                 type="button"
                 variant="outline"
                 size="lg"
-                className="w-full gap-2"
+                className={`w-full gap-2 ${isMatrix ? 'font-mono border-primary/30 hover:border-primary/50 hover:bg-primary/10' : ''}`}
                 onClick={() => handleGoogleSignIn(false)}
+                style={isMatrix ? {
+                  boxShadow: '0 0 10px hsl(120 100% 50% / 0.2)',
+                } : undefined}
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path
-                    fill="#4285F4"
+                    fill={isMatrix ? "hsl(120 100% 50%)" : "#4285F4"}
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                   />
                   <path
-                    fill="#34A853"
+                    fill={isMatrix ? "hsl(120 100% 45%)" : "#34A853"}
                     d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
                   />
                   <path
-                    fill="#FBBC05"
+                    fill={isMatrix ? "hsl(120 100% 40%)" : "#FBBC05"}
                     d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
                   />
                   <path
-                    fill="#EA4335"
+                    fill={isMatrix ? "hsl(120 100% 35%)" : "#EA4335"}
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                   />
                 </svg>
-                Continue with Google
+                {isMatrix ? 'GOOGLE ACCESS' : 'Continue with Google'}
               </Button>
               
             </div>
