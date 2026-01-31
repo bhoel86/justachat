@@ -6,10 +6,28 @@
     "output": "electron-dist",
     "buildResources": "electron/resources"
   },
+  "extraMetadata": {
+    "main": "electron/main.js",
+    "name": "justachat",
+    "description": "Justachat Desktop - Connect Instantly, Chat Freely",
+    "author": "Justachat Team"
+  },
   "files": [
     "electron/**/*",
     "public/jac-favicon.png",
-    "public/jac-favicon-jac.png"
+    "public/jac-favicon-jac.png",
+    "!node_modules",
+    "!src",
+    "!dist",
+    "!*.md",
+    "!*.ts",
+    "!*.tsx"
+  ],
+  "extraResources": [
+    {
+      "from": "public/jac-favicon.png",
+      "to": "icon.png"
+    }
   ],
   "win": {
     "target": [
@@ -28,9 +46,6 @@
   "nsis": {
     "oneClick": false,
     "allowToChangeInstallationDirectory": true,
-    "installerIcon": "public/jac-favicon.png",
-    "uninstallerIcon": "public/jac-favicon.png",
-    "installerHeaderIcon": "public/jac-favicon.png",
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
     "shortcutName": "Justachat"
