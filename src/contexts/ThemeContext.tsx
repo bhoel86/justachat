@@ -11,7 +11,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 const THEMES = [
-  { id: 'jac' as ThemeName, name: 'JAC Modern', description: 'Clean, dark modern chat theme' },
+  { id: 'jac' as ThemeName, name: 'OG Theme', description: 'The original Justachat look' },
   { id: 'retro80s' as ThemeName, name: '80s Retro', description: 'Retro Windows 95/98 aesthetic' },
 ];
 
