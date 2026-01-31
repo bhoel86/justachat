@@ -648,13 +648,36 @@ const Auth = () => {
 
       {/* Full-width retro header banner */}
       {isRetro && (
-        <div className="absolute top-0 left-0 right-0 z-20 bg-accent border-b-[4px] border-foreground py-4 text-center" style={{ boxShadow: '0 6px 0px black' }}>
-          <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold text-accent-foreground tracking-tight">
+        <div 
+          className="absolute top-0 left-0 right-0 z-20 py-4 sm:py-6 text-center overflow-hidden"
+          style={{
+            background: 'linear-gradient(to right, #06b6d4, #9333ea, #ec4899)',
+            borderBottom: '3px solid black',
+          }}
+        >
+          {/* Scanline effect overlay */}
+          <div 
+            className="absolute inset-0 pointer-events-none opacity-30"
+            style={{
+              background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px)',
+            }}
+          />
+          <h1 
+            className="relative font-display text-4xl sm:text-5xl md:text-6xl font-black tracking-tight"
+            style={{
+              color: '#00FFFF',
+              textShadow: `
+                3px 3px 0 #FF00FF,
+                6px 6px 0 #000,
+                0 0 20px rgba(0, 255, 255, 0.8),
+                0 0 40px rgba(255, 0, 255, 0.6)
+              `,
+              fontFamily: "'VT323', monospace",
+              letterSpacing: '0.05em',
+            }}
+          >
             Justachat™
           </h1>
-          <p className="text-foreground text-sm sm:text-base font-bold mt-1">
-            Connect Instantly, Chat Freely
-          </p>
         </div>
       )}
 
