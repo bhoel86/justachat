@@ -692,8 +692,6 @@ const Auth = () => {
             <h1 className="text-3xl sm:text-4xl font-bold text-primary tracking-tight">
               {isValentines ? (
                 <>💕 Justachat<sup className="text-xs">™</sup> 💕</>
-              ) : isStPatricks ? (
-                <>☘️ Justachat<sup className="text-xs">™</sup> ☘️</>
               ) : (
                 <>Justachat<sup className="text-xs">™</sup></>
               )}
