@@ -4,7 +4,6 @@
   "productName": "Justachat",
   "directories": {
     "output": "electron-dist",
-    "app": "electron",
     "buildResources": "electron/resources"
   },
   "extraMetadata": {
@@ -16,7 +15,7 @@
   },
   "files": [
     "index.js",
-    "preload.js"
+    "electron/**"
   ],
   "extraResources": [
     {
