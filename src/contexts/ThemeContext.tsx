@@ -125,10 +125,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, []);
 
-  // Apply theme class whenever theme changes
-  useLayoutEffect(() => {
-    applyThemeClass(theme);
-  }, [theme]);
+  // Note: applyThemeClass is called directly in setThemeState callbacks,
+  // so no separate useLayoutEffect needed here.
 
   const setTheme = async (newTheme: ThemeName) => {
     console.log('[Theme] Owner setting theme to:', newTheme);
