@@ -224,6 +224,25 @@
     border-width: var(--theme-border-width) !important;
     box-shadow: var(--theme-window-shadow);
   }
+
+  /* Valentine's theme specific overrides */
+  .theme-valentines {
+    /* Subtle ambient glow on the whole page */
+    background-image: 
+      radial-gradient(ellipse 100% 60% at 50% 0%, hsl(340 82% 52% / 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse 80% 40% at 0% 100%, hsl(350 70% 60% / 0.05) 0%, transparent 40%),
+      radial-gradient(ellipse 80% 40% at 100% 100%, hsl(340 90% 65% / 0.05) 0%, transparent 40%);
+  }
+
+  .theme-valentines .card,
+  .theme-valentines .bg-card {
+    box-shadow: 0 0 20px hsl(340 82% 52% / 0.08), var(--theme-window-shadow);
+  }
+
+  .theme-valentines button:hover,
+  .theme-valentines .hover\:shadow-lg:hover {
+    box-shadow: 0 0 25px hsl(340 82% 52% / 0.2);
+  }
 }
 
 @layer components {
