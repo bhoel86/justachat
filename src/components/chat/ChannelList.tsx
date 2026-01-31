@@ -92,6 +92,7 @@ const ChannelList = ({ currentChannelId, onChannelSelect, autoSelectFirst = true
   const { theme } = useTheme();
   const isRetro = theme === 'retro80s';
   const isValentines = theme === 'valentines';
+  const isStPatricks = theme === 'stpatricks';
 
   const fetchChannels = async () => {
     const { data } = await supabaseUntyped
@@ -526,14 +527,21 @@ const ChannelList = ({ currentChannelId, onChannelSelect, autoSelectFirst = true
                           ? "border-pink-400 shadow-md shadow-pink-500/20" 
                           : "hover:border-pink-400/60 hover:shadow-sm hover:shadow-pink-500/10"
                       )
-                    : cn(
-                        isSelected
-                          ? "border border-current/20 shadow-md"
-                          : "hover:bg-secondary/50 hover:shadow-sm"
-                      ),
+                    : isStPatricks
+                      ? cn(
+                          "border border-emerald-500/30",
+                          isSelected 
+                            ? "border-emerald-400 shadow-md shadow-emerald-500/20" 
+                            : "hover:border-emerald-400/60 hover:shadow-sm hover:shadow-emerald-500/10"
+                        )
+                      : cn(
+                          isSelected
+                            ? "border border-current/20 shadow-md"
+                            : "hover:bg-secondary/50 hover:shadow-sm"
+                        ),
                 channel.is_hidden && "opacity-50",
                 // Always show theme background color as bubble (when not using custom theme styles)
-                !isRetro && !isValentines && !channel.bg_color && roomTheme.bgColor
+                !isRetro && !isValentines && !isStPatricks && !channel.bg_color && roomTheme.bgColor
               )}
               style={channel.bg_color ? { backgroundColor: `${channel.bg_color}30` } : undefined}
               onClick={() => onChannelSelect(channel)}
@@ -555,6 +563,16 @@ const ChannelList = ({ currentChannelId, onChannelSelect, autoSelectFirst = true
                   )}
                 </>
               )}
+              {isStPatricks && (
+                <>
+                  <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/20 via-green-500/20 to-emerald-600/20 group-hover:from-emerald-600/30 group-hover:via-green-500/30 group-hover:to-emerald-600/30 transition-all" />
+                  {isSelected && (
+                    <div className="absolute -right-0.5 -top-0.5 text-emerald-400/60 text-xs">
+                      ☘
+                    </div>
+                  )}
+                </>
+              )}
               
               {/* Channel icon */}
               <div className="relative z-10">
@@ -562,15 +580,17 @@ const ChannelList = ({ currentChannelId, onChannelSelect, autoSelectFirst = true
                   <Lock 
                     className={cn(
                       "h-3.5 w-3.5 shrink-0",
-                      isRetro ? "text-primary" : isValentines ? "text-pink-400" : hasCustomColor ? undefined : roomTheme.textColor
+                      isRetro ? "text-primary" : isValentines ? "text-pink-400" : isStPatricks ? "text-emerald-400" : hasCustomColor ? undefined : roomTheme.textColor
                     )} 
-                    style={!isRetro && !isValentines && hasCustomColor ? { color: channel.name_color! } : {}}
+                    style={!isRetro && !isValentines && !isStPatricks && hasCustomColor ? { color: channel.name_color! } : {}}
                   />
                 ) : isValentines ? (
                   <Heart 
                     className="h-3.5 w-3.5 shrink-0 text-pink-400" 
                     fill={isSelected ? "currentColor" : "none"}
                   />
+                ) : isStPatricks ? (
+                  <span className="text-emerald-400 text-sm leading-none">☘</span>
                 ) : (
                   <Hash 
                     className={cn(
@@ -590,9 +610,11 @@ const ChannelList = ({ currentChannelId, onChannelSelect, autoSelectFirst = true
                     ? "font-mono text-primary tracking-wider" 
                     : isValentines 
                       ? "text-pink-300" 
-                      : hasCustomColor || hasCustomGradient ? undefined : roomTheme.textColor
+                      : isStPatricks
+                        ? "text-emerald-300"
+                        : hasCustomColor || hasCustomGradient ? undefined : roomTheme.textColor
                 )}
-                style={!isRetro && !isValentines ? getChannelNameStyle() : {}}
+                style={!isRetro && !isValentines && !isStPatricks ? getChannelNameStyle() : {}}
               >
                 {channel.name}
               </span>

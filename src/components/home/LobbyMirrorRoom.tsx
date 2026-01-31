@@ -12,6 +12,7 @@ import { getBotsForChannel, CHAT_BOTS, getBotResponseDelay } from "@/lib/chatBot
 import { useTheme } from "@/contexts/ThemeContext";
 import { RetroWatermark } from "@/components/theme/RetroWatermark";
 import { ValentinesWatermark } from "@/components/theme/ValentinesWatermark";
+import { StPatricksWatermark } from "@/components/theme/StPatricksWatermark";
 
 interface MirrorMessage {
   id: string;
@@ -30,6 +31,7 @@ const LobbyMirrorRoom = () => {
   const isMobile = useIsMobile();
   const { theme } = useTheme();
   const isRetro = theme === 'retro80s';
+  const isStPatricks = theme === 'stpatricks';
   const [messages, setMessages] = useState<MirrorMessage[]>([]);
   const [showMemberSidebar, setShowMemberSidebar] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -218,6 +220,8 @@ const LobbyMirrorRoom = () => {
             <RetroWatermark />
           ) : theme === 'valentines' ? (
             <ValentinesWatermark />
+          ) : theme === 'stpatricks' ? (
+            <StPatricksWatermark />
           ) : (
             <div 
               className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"

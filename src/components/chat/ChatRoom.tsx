@@ -41,6 +41,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useTheme } from "@/contexts/ThemeContext";
 import { RetroWatermark } from "@/components/theme/RetroWatermark";
 import { ValentinesWatermark } from "@/components/theme/ValentinesWatermark";
+import { StPatricksWatermark } from "@/components/theme/StPatricksWatermark";
 import { ValentinesFloatingHearts } from "@/components/theme/ValentinesFloatingHearts";
 
 interface Message {
@@ -91,6 +92,7 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
   const isMobile = useIsMobile();
   const { theme } = useTheme();
   const isRetro = theme === 'retro80s';
+  const isStPatricks = theme === 'stpatricks';
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -1278,6 +1280,8 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
             <RetroWatermark />
           ) : theme === 'valentines' ? (
             <ValentinesWatermark />
+          ) : theme === 'stpatricks' ? (
+            <StPatricksWatermark />
           ) : (
             <div 
               className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
