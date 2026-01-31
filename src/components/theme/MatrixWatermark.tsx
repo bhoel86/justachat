@@ -1,4 +1,5 @@
 import { useTheme } from "@/contexts/ThemeContext";
+import matrixRabbitImg from '@/assets/matrix/ascii-rabbit.png';
 
 /**
  * Matrix watermark - ASCII rabbit hidden in matrix code
@@ -8,40 +9,31 @@ export const MatrixWatermark = () => {
   const { theme } = useTheme();
   
   if (theme !== 'matrix') return null;
-  
-  // ASCII art rabbit made of matrix characters
-  const asciiRabbit = `
-    (\\(\\
-    ( -.-)
-    o_(")(")
-  `;
 
   return (
     <div 
       className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden"
-      style={{ opacity: 0.06 }}
+      style={{ opacity: 0.08 }}
     >
       <div className="relative">
-        {/* Main rabbit silhouette */}
-        <div
-          className="text-center font-mono"
+        {/* Main rabbit image */}
+        <img
+          src={matrixRabbitImg}
+          alt=""
+          className="w-64 h-64 sm:w-80 sm:h-80 object-contain"
           style={{
-            fontSize: '150px',
-            color: 'hsl(120 100% 50%)',
-            filter: 'drop-shadow(0 0 20px hsl(120 100% 50% / 0.4))',
+            filter: 'drop-shadow(0 0 30px hsl(120 100% 50% / 0.3))',
             animation: 'matrixRabbitFloat 8s ease-in-out infinite',
           }}
-        >
-          🐰
-        </div>
+        />
         
         {/* Overlay text hint */}
         <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-mono text-xs whitespace-nowrap"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-mono text-sm whitespace-nowrap"
           style={{
             color: 'hsl(120 100% 60%)',
             textShadow: '0 0 10px hsl(120 100% 50%)',
-            opacity: 0.8,
+            opacity: 0.9,
           }}
         >
           Wake up, Neo...
