@@ -8,6 +8,7 @@ import { RadioProvider } from "@/contexts/RadioContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { RetroFloatingIcons } from "@/components/theme/RetroFloatingIcons";
 import { ValentinesGlobalEffects } from "@/components/theme/ValentinesGlobalEffects";
+import { StPatricksGlobalEffects } from "@/components/theme/StPatricksGlobalEffects";
 import Home from "./pages/Home";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -49,6 +50,7 @@ const App = () => (
           <TooltipProvider>
             <RetroFloatingIcons />
             <ValentinesGlobalEffects />
+            <StPatricksGlobalEffects />
             <Toaster />
             <Sonner />
             <BrowserRouter>

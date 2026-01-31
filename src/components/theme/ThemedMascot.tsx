@@ -1,8 +1,9 @@
 import React from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Heart, Gift } from 'lucide-react';
+import { Heart, Gift, Sparkles } from 'lucide-react';
 import mascotLeft from "@/assets/mascot-left.png";
 import mascotRight from "@/assets/mascot-right.png";
+import { StPatricksMascot } from './StPatricksMascot';
 
 interface ThemedMascotProps {
   side: 'left' | 'right';
@@ -141,6 +142,41 @@ export const ThemedMascot: React.FC<ThemedMascotProps> = ({ side, className = ''
                 <Heart className="w-4 h-4 text-[hsl(340,80%,85%)]" fill="currentColor" />
               </div>
             </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // For St. Patrick's theme, show Irish-themed mascots
+  if (theme === 'stpatricks') {
+    return (
+      <div className={`h-14 sm:h-16 flex items-center justify-center ${className}`}>
+        <div className="relative">
+          {side === 'left' ? (
+            // Left side: Pot of Gold
+            <div className="flex flex-col items-center">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                <ellipse cx="24" cy="38" rx="16" ry="6" fill="hsl(0 0% 20%)" />
+                <path d="M8 32c0 8 7 12 16 12s16-4 16-12V28H8v4z" fill="hsl(0 0% 25%)" />
+                <ellipse cx="24" cy="28" rx="16" ry="5" fill="hsl(0 0% 30%)" />
+                <circle cx="18" cy="26" r="4" fill="hsl(45 93% 50%)" stroke="hsl(35 90% 40%)" strokeWidth="0.5" />
+                <circle cx="24" cy="24" r="4" fill="hsl(45 93% 55%)" stroke="hsl(35 90% 40%)" strokeWidth="0.5" />
+                <circle cx="30" cy="26" r="4" fill="hsl(45 93% 50%)" stroke="hsl(35 90% 40%)" strokeWidth="0.5" />
+                <circle cx="21" cy="22" r="3.5" fill="hsl(45 93% 52%)" stroke="hsl(35 90% 40%)" strokeWidth="0.5" />
+                <circle cx="27" cy="22" r="3.5" fill="hsl(45 93% 52%)" stroke="hsl(35 90% 40%)" strokeWidth="0.5" />
+              </svg>
+            </div>
+          ) : (
+            // Right side: Leprechaun Hat
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+              <ellipse cx="24" cy="36" rx="20" ry="4" fill="hsl(142 50% 25%)" />
+              <path d="M12 36c0 0 2-20 12-20s12 20 12 20" fill="hsl(142 60% 30%)" />
+              <rect x="12" y="32" width="24" height="4" fill="hsl(142 50% 25%)" />
+              <rect x="12" y="28" width="24" height="5" fill="hsl(0 0% 15%)" />
+              <rect x="20" y="27" width="8" height="7" rx="1" fill="hsl(45 93% 50%)" stroke="hsl(35 90% 40%)" strokeWidth="0.5" />
+              <rect x="22" y="29" width="4" height="3" fill="hsl(0 0% 15%)" />
+            </svg>
           )}
         </div>
       </div>
