@@ -40,8 +40,8 @@ export const ThemedMascot: React.FC<ThemedMascotProps> = ({ side, className = ''
       <div className={`h-14 sm:h-16 flex items-center justify-center ${className}`}>
         <div className="relative">
           {side === 'left' ? (
-            // Left side: Neon CRT Monitor
-            <div className="flex flex-col items-center">
+            // Left side: Neon CRT Monitor - shifted left
+            <div className="flex flex-col items-center -ml-2 sm:-ml-3">
               <div 
                 className="w-12 h-10 sm:w-14 sm:h-12 bg-black/90 border-[3px] flex items-center justify-center relative"
                 style={{ 
@@ -87,9 +87,9 @@ export const ThemedMascot: React.FC<ThemedMascotProps> = ({ side, className = ''
               />
             </div>
           ) : (
-            // Right side: Neon Floppy disk
+            // Right side: Neon Floppy disk - sized relative to PC, shifted right
             <div 
-              className="w-12 h-14 sm:w-14 sm:h-16 bg-black/90 border-[3px] relative"
+              className="w-10 h-11 sm:w-12 sm:h-13 bg-black/90 border-[3px] relative -mr-2 sm:-mr-3"
               style={{ 
                 borderColor: '#FF00FF',
                 boxShadow: '0 0 15px rgba(255,0,255,0.5), 3px 3px 0px #000'
@@ -97,7 +97,7 @@ export const ThemedMascot: React.FC<ThemedMascotProps> = ({ side, className = ''
             >
               {/* Metal slider with glow */}
               <div 
-                className="absolute top-0 left-1/2 -translate-x-1/2 w-6 sm:w-7 h-3 sm:h-4 border-2"
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-5 sm:w-6 h-2.5 sm:h-3 border-2"
                 style={{ 
                   backgroundColor: 'rgba(34,211,238,0.3)',
                   borderColor: '#00FFFF',
@@ -106,7 +106,7 @@ export const ThemedMascot: React.FC<ThemedMascotProps> = ({ side, className = ''
               />
               {/* Label area */}
               <div 
-                className="absolute bottom-2 left-1/2 -translate-x-1/2 w-8 sm:w-10 h-5 sm:h-6 border-2 flex items-center justify-center"
+                className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-6 sm:w-8 h-4 sm:h-5 border-2 flex items-center justify-center"
                 style={{ 
                   backgroundColor: 'rgba(57,255,20,0.15)',
                   borderColor: '#39FF14',
@@ -114,7 +114,7 @@ export const ThemedMascot: React.FC<ThemedMascotProps> = ({ side, className = ''
                 }}
               >
                 <span 
-                  className="text-[6px] sm:text-[8px] font-bold font-mono"
+                  className="text-[5px] sm:text-[7px] font-bold font-mono"
                   style={{ 
                     color: '#39FF14',
                     textShadow: '0 0 4px #39FF14'
@@ -125,7 +125,7 @@ export const ThemedMascot: React.FC<ThemedMascotProps> = ({ side, className = ''
               </div>
               {/* Corner notch with glow */}
               <div 
-                className="absolute top-4 right-1 w-2 h-2 border border-r-0"
+                className="absolute top-3 right-0.5 w-1.5 h-1.5 border border-r-0"
                 style={{ 
                   borderColor: '#FFFF00',
                   boxShadow: '0 0 4px rgba(255,255,0,0.5)'
