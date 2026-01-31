@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { RadioProvider } from "@/contexts/RadioContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { RetroFloatingIcons } from "@/components/theme/RetroFloatingIcons";
+import { ValentinesGlobalEffects } from "@/components/theme/ValentinesGlobalEffects";
 import Home from "./pages/Home";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -47,6 +48,7 @@ const App = () => (
         <RadioProvider>
           <TooltipProvider>
             <RetroFloatingIcons />
+            <ValentinesGlobalEffects />
             <Toaster />
             <Sonner />
             <BrowserRouter>
