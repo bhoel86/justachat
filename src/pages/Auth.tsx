@@ -637,8 +637,10 @@ const Auth = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative">
       {/* Theme selector in top right */}
-      <div className="absolute top-4 right-4 z-20">
-        <ThemeSelector />
+      <div className="absolute top-4 right-4 z-30">
+        <div className="bg-card/80 backdrop-blur-sm rounded-lg border border-border p-1">
+          <ThemeSelector />
+        </div>
       </div>
 
       {/* Retro floating icons for 80s theme */}
