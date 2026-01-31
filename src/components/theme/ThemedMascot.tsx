@@ -34,35 +34,103 @@ export const ThemedMascot: React.FC<ThemedMascotProps> = ({ side, className = ''
     );
   }
 
-  // For 80s Retro theme, show retro computer icons
+  // For 80s Retro theme, show neon-styled retro computer icons
   if (theme === 'retro80s') {
     return (
       <div className={`h-14 sm:h-16 flex items-center justify-center ${className}`}>
         <div className="relative">
           {side === 'left' ? (
-            // Left side: Old CRT Monitor
+            // Left side: Neon CRT Monitor
             <div className="flex flex-col items-center">
-              <div className="w-12 h-10 sm:w-14 sm:h-12 bg-[hsl(50,80%,70%)] border-[3px] border-black flex items-center justify-center relative"
-                style={{ boxShadow: '3px 3px 0px black' }}>
-                {/* Screen */}
-                <div className="w-8 h-6 sm:w-10 sm:h-8 bg-[hsl(175,70%,50%)] border-2 border-black flex items-center justify-center">
-                  <span className="text-[8px] sm:text-[10px] font-bold text-black font-mono">JAC</span>
+              <div 
+                className="w-12 h-10 sm:w-14 sm:h-12 bg-black/90 border-[3px] flex items-center justify-center relative"
+                style={{ 
+                  borderColor: '#00FFFF',
+                  boxShadow: '0 0 15px rgba(34,211,238,0.5), 3px 3px 0px #000, inset 0 0 10px rgba(34,211,238,0.2)'
+                }}
+              >
+                {/* Screen with glow */}
+                <div 
+                  className="w-8 h-6 sm:w-10 sm:h-8 border-2 flex items-center justify-center"
+                  style={{ 
+                    backgroundColor: 'rgba(34,211,238,0.15)',
+                    borderColor: '#00FFFF',
+                    boxShadow: 'inset 0 0 8px rgba(34,211,238,0.4)'
+                  }}
+                >
+                  <span 
+                    className="text-[8px] sm:text-[10px] font-bold font-mono"
+                    style={{ 
+                      color: '#00FFFF',
+                      textShadow: '0 0 6px #00FFFF'
+                    }}
+                  >
+                    JAC
+                  </span>
                 </div>
+                {/* Scan line effect */}
+                <div 
+                  className="absolute inset-0 pointer-events-none opacity-30"
+                  style={{
+                    background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(34,211,238,0.1) 2px, rgba(34,211,238,0.1) 4px)'
+                  }}
+                />
               </div>
               {/* Monitor stand */}
-              <div className="w-6 h-2 bg-[hsl(50,80%,70%)] border-2 border-t-0 border-black" />
-              <div className="w-8 h-1 bg-[hsl(50,80%,70%)] border-2 border-t-0 border-black" />
+              <div 
+                className="w-6 h-2 bg-black/90 border-2 border-t-0"
+                style={{ borderColor: '#FF00FF', boxShadow: '0 0 8px rgba(255,0,255,0.4)' }}
+              />
+              <div 
+                className="w-8 h-1 bg-black/90 border-2 border-t-0"
+                style={{ borderColor: '#FF00FF', boxShadow: '0 0 8px rgba(255,0,255,0.4)' }}
+              />
             </div>
           ) : (
-            // Right side: Floppy disk
-            <div className="w-12 h-14 sm:w-14 sm:h-16 bg-[hsl(270,50%,65%)] border-[3px] border-black relative"
-              style={{ boxShadow: '3px 3px 0px black' }}>
-              {/* Metal slider */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-6 sm:w-7 h-3 sm:h-4 bg-gray-400 border-2 border-black" />
+            // Right side: Neon Floppy disk
+            <div 
+              className="w-12 h-14 sm:w-14 sm:h-16 bg-black/90 border-[3px] relative"
+              style={{ 
+                borderColor: '#FF00FF',
+                boxShadow: '0 0 15px rgba(255,0,255,0.5), 3px 3px 0px #000'
+              }}
+            >
+              {/* Metal slider with glow */}
+              <div 
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-6 sm:w-7 h-3 sm:h-4 border-2"
+                style={{ 
+                  backgroundColor: 'rgba(34,211,238,0.3)',
+                  borderColor: '#00FFFF',
+                  boxShadow: '0 0 8px rgba(34,211,238,0.5)'
+                }}
+              />
               {/* Label area */}
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-8 sm:w-10 h-5 sm:h-6 bg-white border-2 border-black flex items-center justify-center">
-                <span className="text-[6px] sm:text-[8px] font-bold text-black font-mono">3.5"</span>
+              <div 
+                className="absolute bottom-2 left-1/2 -translate-x-1/2 w-8 sm:w-10 h-5 sm:h-6 border-2 flex items-center justify-center"
+                style={{ 
+                  backgroundColor: 'rgba(57,255,20,0.15)',
+                  borderColor: '#39FF14',
+                  boxShadow: 'inset 0 0 6px rgba(57,255,20,0.3)'
+                }}
+              >
+                <span 
+                  className="text-[6px] sm:text-[8px] font-bold font-mono"
+                  style={{ 
+                    color: '#39FF14',
+                    textShadow: '0 0 4px #39FF14'
+                  }}
+                >
+                  3.5"
+                </span>
               </div>
+              {/* Corner notch with glow */}
+              <div 
+                className="absolute top-4 right-1 w-2 h-2 border border-r-0"
+                style={{ 
+                  borderColor: '#FFFF00',
+                  boxShadow: '0 0 4px rgba(255,255,0,0.5)'
+                }}
+              />
             </div>
           )}
         </div>

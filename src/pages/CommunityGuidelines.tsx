@@ -1,25 +1,47 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Shield, AlertTriangle, Ban, MessageSquareWarning, Heart, Users, Eye, Gavel } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const CommunityGuidelines = () => {
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const isRetro = theme === 'retro80s';
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className={`min-h-screen ${isRetro ? 'bg-black text-cyan-400' : 'bg-background text-foreground'}`}>
       {/* Header */}
-      <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+      <div 
+        className={`border-b backdrop-blur-sm sticky top-0 z-10 ${
+          isRetro ? 'bg-black/95 border-cyan-500/50' : 'border-border bg-card/50'
+        }`}
+        style={isRetro ? { boxShadow: '0 4px 20px rgba(34,211,238,0.2)' } : undefined}
+      >
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
           <Button 
             variant="ghost" 
             size="icon"
             onClick={() => navigate(-1)}
+            className={isRetro ? 'rounded-none border-2 hover:bg-cyan-500/20' : ''}
+            style={isRetro ? { 
+              borderColor: '#FF00FF',
+              color: '#FF00FF',
+              boxShadow: '0 0 10px rgba(255,0,255,0.3), 3px 3px 0 #000'
+            } : undefined}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-bold">Community Guidelines</h1>
+            <Shield 
+              className="h-6 w-6" 
+              style={isRetro ? { color: '#00FFFF', filter: 'drop-shadow(0 0 6px #00FFFF)' } : undefined}
+            />
+            <h1 
+              className={`text-xl font-bold ${isRetro ? 'font-mono uppercase tracking-wider' : ''}`}
+              style={isRetro ? { color: '#00FFFF', textShadow: '0 0 10px rgba(34,211,238,0.6)' } : undefined}
+            >
+              {isRetro ? '> COMMUNITY GUIDELINES' : 'Community Guidelines'}
+            </h1>
           </div>
         </div>
       </div>

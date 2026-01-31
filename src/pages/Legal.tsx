@@ -4,16 +4,31 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import SiteFooter from "@/components/layout/SiteFooter";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const Legal = () => {
+  const { theme } = useTheme();
+  const isRetro = theme === 'retro80s';
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className={`min-h-screen ${isRetro ? 'bg-black' : 'bg-background'}`}>
       {/* Header */}
-      <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header 
+        className={`border-b backdrop-blur sticky top-0 z-10 ${
+          isRetro ? 'bg-black/95 border-cyan-500/50' : 'border-border/40 bg-background/95 supports-[backdrop-filter]:bg-background/60'
+        }`}
+        style={isRetro ? { boxShadow: '0 4px 20px rgba(34,211,238,0.2)' } : undefined}
+      >
         <div className="container flex h-14 items-center px-4">
-          <Link to="/" className="flex items-center gap-2 text-primary hover:opacity-80 transition-opacity">
+          <Link 
+            to="/" 
+            className={`flex items-center gap-2 transition-opacity hover:opacity-80 ${
+              isRetro ? 'font-mono uppercase' : 'text-primary'
+            }`}
+            style={isRetro ? { color: '#00FFFF', textShadow: '0 0 8px rgba(34,211,238,0.6)' } : undefined}
+          >
             <ArrowLeft className="h-4 w-4" />
-            <span className="font-semibold">Back to Justachat™</span>
+            <span className="font-semibold">{isRetro ? '< BACK TO JUSTACHAT' : 'Back to Justachat™'}</span>
           </Link>
         </div>
       </header>
@@ -21,12 +36,28 @@ const Legal = () => {
       <main className="container max-w-4xl mx-auto px-4 py-8 space-y-8">
         {/* Hero Section */}
         <div className="text-center space-y-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
-            <Scale className="h-8 w-8 text-primary" />
+          <div 
+            className={`inline-flex items-center justify-center w-16 h-16 mb-4 ${
+              isRetro ? 'rounded-none border-2 bg-black/80' : 'rounded-full bg-primary/10'
+            }`}
+            style={isRetro ? { 
+              borderColor: '#00FFFF',
+              boxShadow: '0 0 20px rgba(34,211,238,0.5), 4px 4px 0 #000'
+            } : undefined}
+          >
+            <Scale className="h-8 w-8" style={isRetro ? { color: '#00FFFF', filter: 'drop-shadow(0 0 6px #00FFFF)' } : undefined} />
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold">Legal Notice & Terms of Use</h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Trademark, privacy, and terms of service information for Justachat™
+          <h1 
+            className={`text-3xl md:text-4xl font-bold ${isRetro ? 'font-mono uppercase tracking-wider' : ''}`}
+            style={isRetro ? { color: '#00FFFF', textShadow: '0 0 15px rgba(34,211,238,0.6)' } : undefined}
+          >
+            {isRetro ? '> LEGAL NOTICE & TERMS' : 'Legal Notice & Terms of Use'}
+          </h1>
+          <p 
+            className={`max-w-2xl mx-auto ${isRetro ? 'font-mono' : 'text-muted-foreground'}`}
+            style={isRetro ? { color: '#FF00FF', textShadow: '0 0 8px rgba(255,0,255,0.5)' } : undefined}
+          >
+            {isRetro ? '[ TRADEMARK, PRIVACY, AND TERMS OF SERVICE ]' : 'Trademark, privacy, and terms of service information for Justachat™'}
           </p>
         </div>
 
