@@ -23,7 +23,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import headerImg from '@/assets/justachat-header-80s.png';
 import matrixRabbitImg from '@/assets/matrix/ascii-rabbit.png';
 import matrixFollowImg from '@/assets/matrix/follow-rabbit.jpg';
-import jungleHeaderImg from '@/assets/themes/jungle-header-logo.png';
+import jungleHeaderImg from '@/assets/themes/jungle-header-logo-cutout.png';
 
 const emailSchema = z.string().email("Please enter a valid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
