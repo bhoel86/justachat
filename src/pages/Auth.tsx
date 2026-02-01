@@ -24,6 +24,7 @@ import headerImg from '@/assets/justachat-header-80s.png';
 import matrixRabbitImg from '@/assets/matrix/ascii-rabbit.png';
 import matrixFollowImg from '@/assets/matrix/follow-rabbit.jpg';
 import jungleHeaderImg from '@/assets/themes/jungle-header-logo-cutout.png';
+import { usePngCutout } from "@/hooks/usePngCutout";
 
 const emailSchema = z.string().email("Please enter a valid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
@@ -642,6 +643,9 @@ const Auth = () => {
   const isMatrix = theme === 'matrix';
   const isJungle = theme === 'jungle';
 
+  // The generated PNG sometimes bakes a checkerboard into the pixels; convert to true alpha cutout + trim.
+  const jungleHeaderCutout = usePngCutout(isJungle ? jungleHeaderImg : undefined);
+
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative">
       {/* Theme selector - only visible in Lovable preview */}
@@ -674,7 +678,7 @@ const Auth = () => {
         {isJungle ? (
           <div className="flex flex-col items-center mb-4">
             <img 
-              src={jungleHeaderImg} 
+              src={jungleHeaderCutout ?? jungleHeaderImg} 
               alt="Justachat Jungle" 
               className="w-full max-w-[320px] sm:max-w-[400px] h-auto object-contain"
               style={{
