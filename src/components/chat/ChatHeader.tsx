@@ -30,31 +30,38 @@ const ChatHeader = ({ onlineCount, topic, channelName = 'general', onLanguageCli
   const isStPatricks = siteTheme === 'stpatricks';
   const isValentines = siteTheme === 'valentines';
   const isMatrix = siteTheme === 'matrix';
+  const isJungle = siteTheme === 'jungle';
   
   // Override colors for special site themes
-  const effectiveGradient = isMatrix
-    ? 'from-green-500 to-green-700'
-    : isStPatricks 
-      ? 'from-emerald-500 to-green-600' 
-      : isValentines 
-        ? 'from-pink-500 to-rose-500'
-        : roomTheme.gradient;
+  const effectiveGradient = isJungle
+    ? 'from-green-600 to-emerald-700'
+    : isMatrix
+      ? 'from-green-500 to-green-700'
+      : isStPatricks 
+        ? 'from-emerald-500 to-green-600' 
+        : isValentines 
+          ? 'from-pink-500 to-rose-500'
+          : roomTheme.gradient;
   
-  const effectiveTextColor = isMatrix
-    ? 'text-green-400'
-    : isStPatricks 
-      ? 'text-emerald-400' 
-      : isValentines 
-        ? 'text-pink-400'
-        : roomTheme.textColor;
+  const effectiveTextColor = isJungle
+    ? 'text-green-500'
+    : isMatrix
+      ? 'text-green-400'
+      : isStPatricks 
+        ? 'text-emerald-400' 
+        : isValentines 
+          ? 'text-pink-400'
+          : roomTheme.textColor;
   
-  const effectiveBgColor = isMatrix
-    ? 'bg-green-500/20'
-    : isStPatricks 
-      ? 'bg-emerald-500/20' 
-      : isValentines 
-        ? 'bg-pink-500/20'
-        : roomTheme.bgColor;
+  const effectiveBgColor = isJungle
+    ? 'bg-green-600/20'
+    : isMatrix
+      ? 'bg-green-500/20'
+      : isStPatricks 
+        ? 'bg-emerald-500/20' 
+        : isValentines 
+          ? 'bg-pink-500/20'
+          : roomTheme.bgColor;
   const getRoleBadge = () => {
     if (role === 'owner') {
       return (
@@ -76,8 +83,12 @@ const ChatHeader = ({ onlineCount, topic, channelName = 'general', onLanguageCli
   };
 
   return (
-    <header className="flex flex-col bg-card border-b border-border">
-      <div className="flex items-center justify-between px-3 py-2">
+    <header className={cn(
+      "flex flex-col border-b border-border",
+      isJungle ? "bg-gradient-to-r from-green-900/90 to-emerald-900/90" : "bg-card"
+    )}>
+      <div className="flex items-center justify-between px-3 py-2 relative">
+        {/* Left section - channel info */}
         <div className="flex items-center gap-2">
           <div className={cn(
             "h-8 w-8 rounded-lg flex items-center justify-center bg-gradient-to-br",
@@ -93,9 +104,37 @@ const ChatHeader = ({ onlineCount, topic, channelName = 'general', onLanguageCli
               </div>
               {getRoleBadge()}
             </div>
-            <p className="text-[10px] text-muted-foreground">Justachat™</p>
+            <p className={cn("text-[10px]", isJungle ? "text-green-400/70" : "text-muted-foreground")}>
+              {isJungle ? "Jungle Expedition" : "Justachat™"}
+            </p>
           </div>
         </div>
+        
+        {/* Center section - Jungle branding (only for jungle theme) */}
+        {isJungle && (
+          <div className="absolute left-1/2 transform -translate-x-1/2 hidden md:flex items-center gap-2">
+            <span 
+              className="text-lg font-black tracking-tight"
+              style={{
+                background: 'linear-gradient(135deg, #22c55e 0%, #10b981 50%, #059669 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                textShadow: '0 2px 8px rgba(34, 197, 94, 0.3)',
+              }}
+            >
+              Justachat™
+            </span>
+            <span 
+              className="text-sm font-bold uppercase tracking-[0.15em] text-amber-400"
+              style={{
+                textShadow: '0 1px 4px rgba(251, 191, 36, 0.4)',
+              }}
+            >
+              Jungle
+            </span>
+          </div>
+        )}
+        
         
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-muted/50 text-xs text-muted-foreground">
