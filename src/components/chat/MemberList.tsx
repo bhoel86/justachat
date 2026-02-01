@@ -763,7 +763,7 @@ const BotMemberItem = ({ member, moderator, channelName, onPmClick, onBlockClick
 
           {/* Name and role */}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground break-words">
+            <p className="text-sm font-medium text-foreground whitespace-nowrap">
               {member.username.split(' ').slice(1).join(' ') || member.username}
             </p>
             <div className="flex items-center gap-1 overflow-hidden flex-wrap">
@@ -894,7 +894,7 @@ const MemberItem = ({ member, canManage, canModerate, canKline, availableRoles, 
           <button 
             onClick={onProfileClick}
             className={cn(
-              "text-sm font-medium text-left hover:text-primary transition-colors cursor-pointer block w-full break-words",
+              "text-sm font-medium text-left hover:text-primary transition-colors cursor-pointer whitespace-nowrap",
               member.isOnline ? "text-foreground" : "text-muted-foreground"
             )}
           >
@@ -905,7 +905,7 @@ const MemberItem = ({ member, canManage, canModerate, canKline, availableRoles, 
           <button 
             onClick={onProfileClick}
             className={cn(
-              "text-sm font-medium text-left hover:text-primary transition-colors cursor-pointer block w-full break-words",
+              "text-sm font-medium text-left hover:text-primary transition-colors cursor-pointer whitespace-nowrap",
               member.isOnline ? "text-foreground" : "text-muted-foreground"
             )}
           >
