@@ -30,8 +30,21 @@ const isValidTheme = (value: string): value is ThemeName => {
   return ['jac', 'retro80s', 'valentines', 'stpatricks', 'matrix', 'vapor', 'arcade', 'dieselpunk', 'cyberpunk', 'jungle'].includes(value);
 };
 
+// Session storage key for local preview mode (set by LoginThemeSelector)
+const LOCAL_PREVIEW_KEY = 'jac_local_theme_preview';
+
+const isLocalPreviewActive = () => {
+  if (typeof sessionStorage === 'undefined') return false;
+  return !!sessionStorage.getItem(LOCAL_PREVIEW_KEY);
+};
+
 const applyThemeClass = (theme: ThemeName) => {
   if (typeof document !== 'undefined') {
+    // Skip if local preview is active - let LoginThemeSelector control the class
+    if (isLocalPreviewActive()) {
+      console.log('[Theme] Skipping apply - local preview active');
+      return;
+    }
     document.documentElement.classList.remove('theme-jac', 'theme-retro80s', 'theme-valentines', 'theme-stpatricks', 'theme-matrix', 'theme-vapor', 'theme-arcade', 'theme-dieselpunk', 'theme-cyberpunk', 'theme-jungle');
     document.documentElement.classList.add(`theme-${theme}`);
     console.log('[Theme] Applied:', theme);

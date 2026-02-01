@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme, ThemeName } from '@/contexts/ThemeContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -8,6 +8,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Palette, Check, Circle } from 'lucide-react';
+
+// Session storage key to mark local preview mode
+const LOCAL_PREVIEW_KEY = 'jac_local_theme_preview';
 
 // Only show in Lovable preview environments
 const isLovablePreview = () => {
@@ -25,13 +28,27 @@ const applyLocalTheme = (theme: ThemeName) => {
       'theme-cyberpunk', 'theme-jungle'
     );
     document.documentElement.classList.add(`theme-${theme}`);
+    // Store in sessionStorage so ThemeContext knows not to overwrite
+    sessionStorage.setItem(LOCAL_PREVIEW_KEY, theme);
     console.log('[LoginThemeSelector] Applied local theme:', theme);
   }
 };
 
 export const LoginThemeSelector: React.FC = () => {
   const { theme: globalTheme, themes } = useTheme();
-  const [localTheme, setLocalTheme] = useState<ThemeName>(globalTheme);
+  const [localTheme, setLocalTheme] = useState<ThemeName>(() => {
+    // Check if there's already a local preview theme
+    const stored = sessionStorage.getItem(LOCAL_PREVIEW_KEY);
+    return (stored as ThemeName) || globalTheme;
+  });
+
+  // On mount, re-apply the local theme if one was set
+  useEffect(() => {
+    const stored = sessionStorage.getItem(LOCAL_PREVIEW_KEY);
+    if (stored && isLovablePreview()) {
+      applyLocalTheme(stored as ThemeName);
+    }
+  }, []);
 
   // Only render in Lovable preview
   if (!isLovablePreview()) {
@@ -42,7 +59,6 @@ export const LoginThemeSelector: React.FC = () => {
     console.log('[LoginThemeSelector] Preview-only theme:', themeId);
     setLocalTheme(themeId);
     applyLocalTheme(themeId);
-    // Note: Does NOT persist to database - preview only
   };
 
   return (
