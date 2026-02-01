@@ -937,25 +937,46 @@ const MemberItem = ({ member, canManage, canModerate, canKline, availableRoles, 
       </div>
 
       {/* Action & PM buttons */}
+      {/* User actions dropdown - always show for other users */}
       {!isCurrentUser && (
-        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          {/* Fun Actions Menu */}
-          {onAction && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button 
-                  className="p-1.5 rounded-lg hover:bg-primary/10 transition-all"
-                  title="Fun actions"
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button 
+              className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-secondary transition-opacity"
+              title="User options"
+            >
+              <MoreVertical className="h-4 w-4 text-muted-foreground" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent 
+            align="start" 
+            side="left"
+            alignOffset={-10}
+            sideOffset={8}
+            className="w-56 bg-popover border border-border shadow-xl z-[9999] max-h-[70vh] overflow-y-auto">
+            
+            {/* Private Message */}
+            {onPmClick && (
+              <>
+                <DropdownMenuItem 
+                  onClick={onPmClick}
+                  className="flex items-center gap-2 cursor-pointer"
                 >
-                  <Zap className="h-4 w-4 text-primary" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent 
-                align="end" 
-                side="left"
-                className="w-52 bg-popover border border-border shadow-xl z-[9999]"
-              >
+                  <MessageSquareLock className="h-4 w-4 text-primary" />
+                  <span>Private Message</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            
+            {/* Fun Actions */}
+            {onAction && (
+              <>
                 <DropdownMenuLabel className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Zap className="h-3 w-3" />
+                  Fun Actions
+                </DropdownMenuLabel>
+                <DropdownMenuLabel className="text-[10px] text-muted-foreground/70 py-0">
                   🤪 Funny
                 </DropdownMenuLabel>
                 {USER_ACTIONS.funny.map((action, idx) => (
@@ -967,14 +988,13 @@ const MemberItem = ({ member, canManage, canModerate, canKline, availableRoles, 
                         : `/me ${action.emoji} ${action.action} ${member.username}`;
                       onAction(msg);
                     }}
-                    className="cursor-pointer"
+                    className="cursor-pointer text-sm"
                   >
                     <span className="mr-2">{action.emoji}</span>
                     {action.action} {action.suffix ? `...` : ''}
                   </DropdownMenuItem>
                 ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs text-muted-foreground flex items-center gap-1">
+                <DropdownMenuLabel className="text-[10px] text-muted-foreground/70 py-0">
                   💖 Nice
                 </DropdownMenuLabel>
                 {USER_ACTIONS.nice.map((action, idx) => (
@@ -986,49 +1006,19 @@ const MemberItem = ({ member, canManage, canModerate, canKline, availableRoles, 
                         : `/me ${action.emoji} ${action.action} ${member.username}`;
                       onAction(msg);
                     }}
-                    className="cursor-pointer"
+                    className="cursor-pointer text-sm"
                   >
                     <span className="mr-2">{action.emoji}</span>
                     {action.action} {action.suffix ? `...` : ''}
                   </DropdownMenuItem>
                 ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-          
-          {/* PM button */}
-          {onPmClick && (
-            <button 
-              onClick={onPmClick}
-              className="p-1.5 rounded-lg hover:bg-primary/10 transition-all"
-              title="Send private message"
-            >
-              <MessageSquareLock className="h-4 w-4 text-primary" />
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Moderation & Role management dropdown */}
-      {!isCurrentUser && (canManage || canModerate || canKline) && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button 
-              className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-secondary transition-opacity"
-              title="Manage user"
-            >
-              <MoreVertical className="h-4 w-4 text-muted-foreground" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent 
-            align="start" 
-            side="left"
-            alignOffset={-10}
-            sideOffset={8}
-            className="w-56 bg-popover border border-border shadow-xl z-[9999] max-h-[70vh] overflow-y-auto">
+              </>
+            )}
+            
             {/* Moderation Actions */}
             {canModerate && (
               <>
+                <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs text-muted-foreground">
                   Moderation
                 </DropdownMenuLabel>
@@ -1089,7 +1079,7 @@ const MemberItem = ({ member, canManage, canModerate, canKline, availableRoles, 
             {/* K-Line (Network Ban) - Admin/Owner only */}
             {canKline && (
               <>
-                {canModerate && <DropdownMenuSeparator />}
+                <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   onClick={onKline}
                   className="flex items-center gap-2 cursor-pointer text-red-600 focus:text-red-600"
@@ -1106,7 +1096,7 @@ const MemberItem = ({ member, canManage, canModerate, canKline, availableRoles, 
             {/* Role Management */}
             {canManage && availableRoles.length > 0 && (
               <>
-                {canModerate && <DropdownMenuSeparator />}
+                <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs text-muted-foreground">
                   Change Role
                 </DropdownMenuLabel>
