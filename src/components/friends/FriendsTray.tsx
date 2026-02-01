@@ -11,10 +11,10 @@ interface FriendsTrayProps {
   onOpenPm: (userId: string, username: string) => void;
 }
 
-const MIN_WIDTH = 240;
-const MAX_WIDTH = 400;
-const MIN_HEIGHT = 300;
-const MAX_HEIGHT = 600;
+const MIN_WIDTH = 150;
+const MAX_WIDTH = 800;
+const MIN_HEIGHT = 150;
+const MAX_HEIGHT = 900;
 const DEFAULT_WIDTH = 288;
 const DEFAULT_HEIGHT = 400;
 
