@@ -640,6 +640,7 @@
     border-radius: 0 !important;
     background: hsl(0 0% 95%) !important;
     color: hsl(0 0% 10%) !important;
+    text-align: center !important;
   }
 
   .theme-retro80s input::placeholder {
@@ -647,6 +648,7 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: hsl(0 0% 50%) !important;
+    text-align: center !important;
   }
 
   .theme-retro80s button[type="submit"] {
