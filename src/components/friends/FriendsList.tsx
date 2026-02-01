@@ -41,6 +41,7 @@ const TEST_BLOCKED: BlockedUser[] = [
 // Check if we're in Lovable preview mode
 const isPreviewMode = () => {
   return window.location.hostname.includes('lovable.app') || 
+         window.location.hostname.includes('lovableproject.com') ||
          window.location.hostname.includes('localhost') ||
          window.location.hostname === '127.0.0.1';
 };
