@@ -15,6 +15,7 @@ import { ValentinesWatermark } from "@/components/theme/ValentinesWatermark";
 import { StPatricksWatermark } from "@/components/theme/StPatricksWatermark";
 import { MatrixWatermark } from "@/components/theme/MatrixWatermark";
 import { JungleWatermark } from "@/components/theme/JungleWatermark";
+import retroHeaderImg from "@/assets/retro-header-80s-cutout.png";
 
 interface MirrorMessage {
   id: string;
@@ -214,6 +215,18 @@ const LobbyMirrorRoom = () => {
             channelName="general"
           />
         </div>
+
+        {/* Retro 80s Banner - Centered in lobby header */}
+        {isRetro && (
+          <div className="flex items-center justify-center py-2 bg-secondary border-b-3 border-foreground">
+            <img 
+              src={retroHeaderImg} 
+              alt="Justachat™" 
+              className="h-10 sm:h-12 object-contain"
+              style={{ filter: 'drop-shadow(2px 2px 0px black)' }}
+            />
+          </div>
+        )}
         
         {/* Messages Area - No scrolling, shows latest messages only */}
         <div className="flex-1 overflow-hidden p-2 sm:p-4 flex flex-col relative isolate">
