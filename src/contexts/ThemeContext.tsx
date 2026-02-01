@@ -51,10 +51,35 @@ const applyThemeClass = (theme: ThemeName) => {
   }
 };
 
+// Get initial theme from local preview if active
+const getInitialTheme = (): ThemeName => {
+  if (typeof sessionStorage !== 'undefined') {
+    const localPreview = sessionStorage.getItem(LOCAL_PREVIEW_KEY);
+    if (localPreview && isValidTheme(localPreview)) {
+      return localPreview;
+    }
+  }
+  return 'jac';
+};
+
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setThemeState] = useState<ThemeName>('jac');
+  const [theme, setThemeState] = useState<ThemeName>(getInitialTheme);
   const [isLoading, setIsLoading] = useState(true);
   const lastUserChangeRef = React.useRef<number>(0);
+  
+  // Listen for local preview changes from LoginThemeSelector
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const localPreview = sessionStorage.getItem(LOCAL_PREVIEW_KEY);
+      if (localPreview && isValidTheme(localPreview)) {
+        setThemeState(localPreview);
+      }
+    };
+    
+    // Check periodically for sessionStorage changes (same-tab)
+    const interval = setInterval(handleStorageChange, 500);
+    return () => clearInterval(interval);
+  }, []);
 
   // Fetch global theme from database on mount
   useEffect(() => {
