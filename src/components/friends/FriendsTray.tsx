@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Users, X, Minus, GripHorizontal, ChevronUp } from "lucide-react";
+import { Users, X, Minus, GripHorizontal, ChevronUp, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -11,12 +11,7 @@ interface FriendsTrayProps {
   onOpenPm: (userId: string, username: string) => void;
 }
 
-const MIN_WIDTH = 150;
-const MAX_WIDTH = 800;
-const MIN_HEIGHT = 150;
-const MAX_HEIGHT = 900;
-const DEFAULT_WIDTH = 288;
-const DEFAULT_HEIGHT = 400;
+type SizeMode = 'normal' | 'mid' | 'full';
 
 const FriendsTray = ({ 
   currentUserId, 
@@ -25,13 +20,11 @@ const FriendsTray = ({
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(true);
+  const [sizeMode, setSizeMode] = useState<SizeMode>('normal');
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [size, setSize] = useState({ width: DEFAULT_WIDTH, height: DEFAULT_HEIGHT });
   const [isDragging, setIsDragging] = useState(false);
-  const [isResizing, setIsResizing] = useState<string | null>(null);
   const [counts, setCounts] = useState({ total: 0, online: 0, pending: 0 });
   const dragRef = useRef<{ startX: number; startY: number; initialX: number; initialY: number } | null>(null);
-  const resizeRef = useRef<{ startX: number; startY: number; initialWidth: number; initialHeight: number } | null>(null);
   const trayRef = useRef<HTMLDivElement>(null);
 
   const handleCountsChange = useCallback((newCounts: { total: number; online: number; pending: number }) => {
@@ -91,57 +84,9 @@ const FriendsTray = ({
     };
   }, [isDragging]);
 
-  // Handle resizing
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing || !resizeRef.current) return;
-      
-      const deltaX = e.clientX - resizeRef.current.startX;
-      const deltaY = e.clientY - resizeRef.current.startY;
-      
-      let newWidth = resizeRef.current.initialWidth;
-      let newHeight = resizeRef.current.initialHeight;
-      
-      // Resize from left edge (inverted because we're anchored to the right)
-      if (isResizing.includes('w')) {
-        newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, resizeRef.current.initialWidth - deltaX));
-      }
-      
-      // Resize from right edge
-      if (isResizing.includes('e')) {
-        newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, resizeRef.current.initialWidth + deltaX));
-      }
-      
-      // Resize from top edge (inverted because we're anchored to the bottom)
-      if (isResizing.includes('n')) {
-        newHeight = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, resizeRef.current.initialHeight - deltaY));
-      }
-      
-      // Resize from bottom edge
-      if (isResizing.includes('s')) {
-        newHeight = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, resizeRef.current.initialHeight + deltaY));
-      }
-      
-      setSize({ width: newWidth, height: newHeight });
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(null);
-      resizeRef.current = null;
-    };
-
-    if (isResizing) {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-    }
-
-    return () => {
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing]);
-
   const handleMouseDown = (e: React.MouseEvent) => {
+    // Don't allow dragging when maximized
+    if (sizeMode !== 'normal') return;
     e.preventDefault();
     setIsDragging(true);
     dragRef.current = {
@@ -149,18 +94,6 @@ const FriendsTray = ({
       startY: e.clientY,
       initialX: position.x,
       initialY: position.y,
-    };
-  };
-
-  const handleResizeStart = (e: React.MouseEvent, direction: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsResizing(direction);
-    resizeRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      initialWidth: size.width,
-      initialHeight: size.height,
     };
   };
 
@@ -176,14 +109,62 @@ const FriendsTray = ({
   const handleMinimize = () => {
     setIsOpen(false);
     setIsMinimized(true);
-    // Reset position when minimizing
     setPosition({ x: 0, y: 0 });
+    setSizeMode('normal');
   };
 
   const handleClose = () => {
     setIsOpen(false);
     setIsMinimized(true);
     setPosition({ x: 0, y: 0 });
+    setSizeMode('normal');
+  };
+
+  const handleToggleSize = () => {
+    // Cycle through: normal -> mid -> full -> normal
+    if (sizeMode === 'normal') {
+      setSizeMode('mid');
+      setPosition({ x: 0, y: 0 });
+    } else if (sizeMode === 'mid') {
+      setSizeMode('full');
+      setPosition({ x: 0, y: 0 });
+    } else {
+      setSizeMode('normal');
+    }
+  };
+
+  // Get size styles based on mode
+  const getSizeStyles = () => {
+    if (isMobile) return {};
+    
+    switch (sizeMode) {
+      case 'full':
+        return {
+          top: 16,
+          right: 16,
+          bottom: 16,
+          left: 'auto',
+          width: 'calc(100vw - 32px)',
+          maxWidth: 500,
+          height: 'calc(100vh - 32px)',
+        };
+      case 'mid':
+        return {
+          right: 16,
+          bottom: 16,
+          width: 320,
+          height: 'calc(50vh)',
+          minHeight: 300,
+        };
+      default:
+        return {
+          right: 16,
+          bottom: 16,
+          width: 288,
+          height: 400,
+          transform: `translate(${position.x}px, ${position.y}px)`,
+        };
+    }
   };
 
   // Minimized state - just the icon tab at the bottom
@@ -225,63 +206,17 @@ const FriendsTray = ({
         "bg-card/95 backdrop-blur-sm border border-border rounded-lg shadow-2xl",
         isMobile && "inset-x-2 bottom-2 max-h-[70vh]"
       )}
-      style={!isMobile ? { 
-        right: 16,
-        bottom: 16,
-        width: size.width,
-        height: size.height,
-        transform: `translate(${position.x}px, ${position.y}px)`,
-      } : undefined}
+      style={!isMobile ? getSizeStyles() : undefined}
     >
-      {/* Resize handles - desktop only */}
-      {!isMobile && (
-        <>
-          {/* Edge handles */}
-          <div 
-            className="absolute -top-1 left-3 right-3 h-2 cursor-n-resize z-10 hover:bg-primary/20 rounded"
-            onMouseDown={(e) => handleResizeStart(e, 'n')}
-          />
-          <div 
-            className="absolute -bottom-1 left-3 right-3 h-2 cursor-s-resize z-10 hover:bg-primary/20 rounded"
-            onMouseDown={(e) => handleResizeStart(e, 's')}
-          />
-          <div 
-            className="absolute top-3 -left-1 bottom-3 w-2 cursor-w-resize z-10 hover:bg-primary/20 rounded"
-            onMouseDown={(e) => handleResizeStart(e, 'w')}
-          />
-          <div 
-            className="absolute top-3 -right-1 bottom-3 w-2 cursor-e-resize z-10 hover:bg-primary/20 rounded"
-            onMouseDown={(e) => handleResizeStart(e, 'e')}
-          />
-          {/* Corner handles */}
-          <div 
-            className="absolute -top-1 -left-1 w-3 h-3 cursor-nw-resize z-20 hover:bg-primary/30 rounded"
-            onMouseDown={(e) => handleResizeStart(e, 'nw')}
-          />
-          <div 
-            className="absolute -top-1 -right-1 w-3 h-3 cursor-ne-resize z-20 hover:bg-primary/30 rounded"
-            onMouseDown={(e) => handleResizeStart(e, 'ne')}
-          />
-          <div 
-            className="absolute -bottom-1 -left-1 w-3 h-3 cursor-sw-resize z-20 hover:bg-primary/30 rounded"
-            onMouseDown={(e) => handleResizeStart(e, 'sw')}
-          />
-          <div 
-            className="absolute -bottom-1 -right-1 w-3 h-3 cursor-se-resize z-20 hover:bg-primary/30 rounded"
-            onMouseDown={(e) => handleResizeStart(e, 'se')}
-          />
-        </>
-      )}
-
       {/* Header */}
       <div 
         className={cn(
           "flex items-center gap-2 px-3 py-2 border-b border-border rounded-t-lg bg-muted/50",
-          !isMobile && "cursor-grab active:cursor-grabbing"
+          !isMobile && sizeMode === 'normal' && "cursor-grab active:cursor-grabbing"
         )}
         onMouseDown={!isMobile ? handleMouseDown : undefined}
       >
-        {!isMobile && (
+        {!isMobile && sizeMode === 'normal' && (
           <GripHorizontal className="h-4 w-4 text-muted-foreground shrink-0" />
         )}
         <Users className="h-4 w-4 text-primary shrink-0" />
@@ -290,6 +225,22 @@ const FriendsTray = ({
           <Badge variant="destructive" className="text-xs px-1.5 py-0">
             {counts.pending} new
           </Badge>
+        )}
+        {/* Size toggle button */}
+        {!isMobile && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 rounded hover:bg-muted shrink-0"
+            onClick={handleToggleSize}
+            title={sizeMode === 'normal' ? 'Expand' : sizeMode === 'mid' ? 'Fullscreen' : 'Restore'}
+          >
+            {sizeMode === 'full' ? (
+              <Minimize2 className="h-3 w-3" />
+            ) : (
+              <Maximize2 className="h-3 w-3" />
+            )}
+          </Button>
         )}
         <Button
           variant="ghost"
@@ -319,18 +270,6 @@ const FriendsTray = ({
           onCountsChange={handleCountsChange}
         />
       </div>
-
-      {/* Resize indicator in corner */}
-      {!isMobile && (
-        <div 
-          className="absolute top-0 left-0 w-3 h-3 cursor-nw-resize opacity-50 hover:opacity-100 transition-opacity"
-          onMouseDown={(e) => handleResizeStart(e, 'nw')}
-        >
-          <svg width="12" height="12" viewBox="0 0 12 12" className="text-muted-foreground rotate-180">
-            <path d="M11 1L1 11M7 1L1 7M11 5L5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
-        </div>
-      )}
     </div>
   );
 };
