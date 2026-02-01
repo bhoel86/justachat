@@ -7,6 +7,7 @@ interface RetroWelcomeBannerProps {
 }
 
 export const RetroWelcomeBanner: React.FC<RetroWelcomeBannerProps> = ({ onJoinClick, variant = 'desktop' }) => {
+  const isMobile = variant === 'mobile';
   return (
     <div 
       onClick={onJoinClick}
@@ -15,7 +16,7 @@ export const RetroWelcomeBanner: React.FC<RetroWelcomeBannerProps> = ({ onJoinCl
       <img 
         src={retroHeader} 
         alt="Justachat - Connect Instantly, Chat Freely" 
-        className="w-full max-w-2xl h-auto object-contain"
+        className={`w-full h-auto object-contain ${isMobile ? 'max-w-xs' : 'max-w-sm'}`}
       />
     </div>
   );
