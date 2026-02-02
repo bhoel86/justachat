@@ -4,6 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import ChatRoom from "@/components/chat/ChatRoom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useTheme } from "@/contexts/ThemeContext";
+import { SimulationPillSelector } from "@/components/theme/SimulationPillSelector";
 
 const LAST_CHANNEL_KEY = 'jac-last-channel';
 const GOOGLE_WELCOME_SHOWN_KEY = 'jac-google-welcome-shown';
@@ -13,6 +15,11 @@ const Index = () => {
   const navigate = useNavigate();
   const { channelName } = useParams<{ channelName: string }>();
   const googleWelcomeShownRef = useRef(false);
+  const { theme } = useTheme();
+  const isMatrix = theme === 'matrix';
+  
+  // Track if the pill transition is complete
+  const [pillTransitionComplete, setPillTransitionComplete] = useState(false);
 
   // OAuth callback processing guard (VPS)
   const [oauthProcessing, setOauthProcessing] = useState(() =>
@@ -120,6 +127,16 @@ const Index = () => {
     }
 
     return null;
+  }
+
+  // For Matrix theme: show pill transition first, then chat
+  if (isMatrix && !pillTransitionComplete) {
+    return (
+      <SimulationPillSelector 
+        showTransition={true} 
+        onComplete={() => setPillTransitionComplete(true)} 
+      />
+    );
   }
 
   return <ChatRoom initialChannelName={channelName} />;
