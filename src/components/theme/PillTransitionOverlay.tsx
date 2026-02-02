@@ -54,38 +54,34 @@ export const PillTransitionOverlay = ({ pill, show, onComplete }: PillTransition
 
   return (
     <div 
-      className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none"
+      className="fixed inset-0 z-[9999] flex items-center justify-center"
       style={{
         animation: fading ? 'pillOverlayFadeOut 0.5s ease-out forwards' : 'pillOverlayFadeIn 0.3s ease-out forwards',
       }}
     >
-      {/* Dark vignette background */}
-      <div className="absolute inset-0 bg-black/70" />
+      {/* Full black background */}
+      <div className="absolute inset-0 bg-black" />
       
-      {/* Pill choice image at reduced opacity */}
+      {/* Pill choice image - full screen, full opacity */}
       <img
         src={pill === 'red' ? redPillChoiceImg : bluePillChoiceImg}
         alt={pill === 'red' ? 'Red pill chosen' : 'Blue pill chosen'}
-        className="w-full h-full object-cover"
-        style={{
-          opacity: 0.4,
-          filter: 'saturate(1.2) contrast(1.1)',
-        }}
+        className="absolute inset-0 w-full h-full object-cover"
       />
       
       {/* CRT scanline effect overlay */}
       <div 
-        className="absolute inset-0 pointer-events-none opacity-15"
+        className="absolute inset-0 pointer-events-none opacity-20"
         style={{
-          background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.4) 2px, rgba(0,0,0,0.4) 4px)'
+          background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.5) 2px, rgba(0,0,0,0.5) 4px)'
         }}
       />
       
       {/* Subtle text hint */}
-      <div className="absolute bottom-16 left-1/2 -translate-x-1/2">
+      <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-10">
         <p 
-          className={`font-mono text-sm tracking-widest animate-pulse ${
-            pill === 'red' ? 'text-red-400/60' : 'text-blue-400/60'
+          className={`font-mono text-lg tracking-widest animate-pulse drop-shadow-lg ${
+            pill === 'red' ? 'text-red-400' : 'text-blue-400'
           }`}
         >
           {pill === 'red' ? 'THE REAL WORLD AWAITS...' : 'RETURNING TO THE SIMULATION...'}
