@@ -1071,13 +1071,57 @@
     color: hsl(0 0% 0%) !important;
   }
 
-  /* Main page background pattern */
+  /* Main page background pattern with scattered Memphis shapes */
   .theme-retro80s main {
     background: 
-      radial-gradient(circle at 10% 20%, hsl(330 90% 55% / 0.15) 0%, transparent 20%),
-      radial-gradient(circle at 90% 80%, hsl(185 90% 50% / 0.15) 0%, transparent 20%),
-      radial-gradient(circle at 50% 50%, hsl(270 50% 60% / 0.1) 0%, transparent 30%),
+      /* Scattered dots - cyan */
+      radial-gradient(circle at 5% 15%, hsl(185 90% 50% / 0.2) 4px, transparent 4px),
+      radial-gradient(circle at 25% 8%, hsl(185 90% 50% / 0.15) 3px, transparent 3px),
+      radial-gradient(circle at 78% 12%, hsl(185 90% 50% / 0.18) 5px, transparent 5px),
+      radial-gradient(circle at 95% 25%, hsl(185 90% 50% / 0.12) 3px, transparent 3px),
+      /* Scattered dots - pink */
+      radial-gradient(circle at 12% 45%, hsl(330 90% 55% / 0.18) 4px, transparent 4px),
+      radial-gradient(circle at 88% 55%, hsl(330 90% 55% / 0.15) 5px, transparent 5px),
+      radial-gradient(circle at 35% 92%, hsl(330 90% 55% / 0.2) 4px, transparent 4px),
+      radial-gradient(circle at 72% 88%, hsl(330 90% 55% / 0.12) 3px, transparent 3px),
+      /* Scattered dots - yellow */
+      radial-gradient(circle at 48% 18%, hsl(50 100% 60% / 0.2) 4px, transparent 4px),
+      radial-gradient(circle at 8% 78%, hsl(50 100% 60% / 0.18) 5px, transparent 5px),
+      radial-gradient(circle at 92% 72%, hsl(50 100% 60% / 0.15) 4px, transparent 4px),
+      /* Scattered dots - purple */
+      radial-gradient(circle at 62% 35%, hsl(270 50% 55% / 0.12) 3px, transparent 3px),
+      radial-gradient(circle at 18% 65%, hsl(270 50% 55% / 0.15) 4px, transparent 4px),
+      /* Larger ambient glows */
+      radial-gradient(circle at 10% 20%, hsl(330 90% 55% / 0.12) 0%, transparent 18%),
+      radial-gradient(circle at 90% 80%, hsl(185 90% 50% / 0.12) 0%, transparent 18%),
+      radial-gradient(circle at 50% 50%, hsl(270 50% 60% / 0.08) 0%, transparent 25%),
       hsl(330 70% 75%);
+  }
+
+  /* Fixed decorative Memphis shapes layer */
+  .theme-retro80s main::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      /* Triangles simulated with conic gradients */
+      conic-gradient(from 0deg at 3% 30%, hsl(330 90% 55% / 0.08) 0deg, hsl(330 90% 55% / 0.08) 120deg, transparent 120deg),
+      conic-gradient(from 180deg at 97% 70%, hsl(185 90% 50% / 0.08) 0deg, hsl(185 90% 50% / 0.08) 120deg, transparent 120deg),
+      /* Squares simulated */
+      linear-gradient(45deg, hsl(50 100% 60% / 0.06) 25%, transparent 25%) -10px 0,
+      linear-gradient(-45deg, hsl(50 100% 60% / 0.06) 25%, transparent 25%) -10px 0,
+      /* More scattered dots at fixed positions */
+      radial-gradient(circle at 15% 85%, hsl(185 90% 50% / 0.1) 6px, transparent 6px),
+      radial-gradient(circle at 85% 15%, hsl(330 90% 55% / 0.1) 6px, transparent 6px),
+      radial-gradient(circle at 45% 75%, hsl(50 100% 60% / 0.08) 5px, transparent 5px),
+      radial-gradient(circle at 75% 45%, hsl(270 50% 55% / 0.1) 5px, transparent 5px);
+  }
+
+  .theme-retro80s main > * {
+    position: relative;
+    z-index: 1;
   }
 
   /* Room cards in home page */
@@ -1099,6 +1143,22 @@
   .theme-retro80s .text-muted-foreground {
     color: hsl(0 0% 35%) !important;
     font-family: 'VT323', monospace !important;
+  }
+
+  /* Additional Memphis decorative shapes for chat area */
+  .theme-retro80s .flex-1.overflow-y-auto::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background:
+      /* Corner triangles */
+      conic-gradient(from 45deg at 2% 8%, hsl(185 90% 50% / 0.06) 0deg, hsl(185 90% 50% / 0.06) 90deg, transparent 90deg),
+      conic-gradient(from 225deg at 98% 92%, hsl(330 90% 55% / 0.06) 0deg, hsl(330 90% 55% / 0.06) 90deg, transparent 90deg),
+      /* Scattered squares effect */
+      linear-gradient(to right, hsl(50 100% 60% / 0.04) 2px, transparent 2px) 20px 0 / 80px 80px,
+      linear-gradient(to bottom, hsl(50 100% 60% / 0.04) 2px, transparent 2px) 0 20px / 80px 80px;
   }
 
   /* ============================================
