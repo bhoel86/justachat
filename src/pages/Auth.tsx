@@ -19,6 +19,8 @@ import { RetroFloatingIcons } from "@/components/theme/RetroFloatingIcons";
 import { ValentinesFloatingHearts } from "@/components/theme/ValentinesFloatingHearts";
 import { StPatricksFloatingIcons } from "@/components/theme/StPatricksFloatingIcons";
 import { MatrixFloatingCode } from "@/components/theme/MatrixFloatingCode";
+import { SimulationPillSelector } from "@/components/theme/SimulationPillSelector";
+import { useSimulationPill } from "@/hooks/useSimulationPill";
 import { useTheme } from "@/contexts/ThemeContext";
 import matrixRabbitImg from '@/assets/matrix/ascii-rabbit.png';
 import matrixFollowImg from '@/assets/matrix/follow-rabbit.jpg';
@@ -666,6 +668,9 @@ const Auth = () => {
       
       {/* Matrix falling code */}
       <MatrixFloatingCode />
+      
+      {/* Simulation theme pill selector */}
+      {isMatrix && <SimulationPillSelector />}
 
       {/* Retro banner removed - content below now visible */}
 
