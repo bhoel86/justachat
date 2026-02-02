@@ -3,6 +3,8 @@ import { useSimulationPill, PillChoice } from '@/hooks/useSimulationPill';
 import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
 import matrixPillsImg from '@/assets/matrix/matrix-pills.jpg';
+import redPillChoiceImg from '@/assets/matrix/red-pill-choice.png';
+import bluePillChoiceImg from '@/assets/matrix/blue-pill-choice.png';
 
 interface SimulationPillSelectorProps {
   onComplete?: () => void;
@@ -18,6 +20,7 @@ export const SimulationPillSelector = ({ onComplete }: SimulationPillSelectorPro
   const [hovering, setHovering] = useState<PillChoice>(null);
   const [selected, setSelected] = useState<PillChoice>(null);
   const [animating, setAnimating] = useState(false);
+  const [showChoiceImage, setShowChoiceImage] = useState(false);
 
   // Only show for Simulation theme and if no pill chosen yet
   if (theme !== 'matrix') return null;
@@ -28,12 +31,18 @@ export const SimulationPillSelector = ({ onComplete }: SimulationPillSelectorPro
     setSelected(choice);
     setAnimating(true);
     
-    // Animate then save
+    // First phase: fade out the selector
+    setTimeout(() => {
+      setShowChoiceImage(true);
+    }, 800);
+    
+    // Second phase: show the choice image, then complete
     setTimeout(() => {
       setPill(choice);
       setAnimating(false);
+      setShowChoiceImage(false);
       onComplete?.();
-    }, 1500);
+    }, 3500);
   };
 
   // If already has pill, show current choice indicator (can be clicked to change)
@@ -60,138 +69,175 @@ export const SimulationPillSelector = ({ onComplete }: SimulationPillSelectorPro
     );
   }
 
-  return (
-    <div className={cn(
-      "fixed inset-0 z-[100] flex items-center justify-center bg-black/95 transition-opacity duration-500",
-      animating && "opacity-0 pointer-events-none"
-    )}>
-      {/* CRT scanline effect */}
-      <div 
-        className="absolute inset-0 pointer-events-none opacity-10"
-        style={{
-          background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,0,0.03) 2px, rgba(0,255,0,0.03) 4px)'
-        }}
-      />
-      
-      <div className="text-center space-y-8 px-4">
-        {/* Morpheus quote */}
-        <div className="space-y-2">
-          <p className="text-green-400 font-mono text-sm md:text-base animate-pulse">
-            This is your last chance.
-          </p>
-          <p className="text-green-500/80 font-mono text-xs md:text-sm max-w-md mx-auto leading-relaxed">
-            After this, there is no turning back.
-          </p>
-        </div>
-
-        {/* Pills - using actual image */}
-        <div className="flex items-center justify-center gap-8 md:gap-16">
-          {/* Red Pill - left side of image */}
-          <button
-            onClick={() => handleSelect('red')}
-            onMouseEnter={() => setHovering('red')}
-            onMouseLeave={() => setHovering(null)}
-            className={cn(
-              "relative group transition-all duration-300",
-              selected === 'red' && "scale-125",
-              selected === 'blue' && "opacity-0 scale-75"
-            )}
-          >
-            <div 
-              className={cn(
-                "w-20 h-14 md:w-28 md:h-20 bg-cover bg-no-repeat rounded-lg transition-all duration-300",
-                "shadow-lg group-hover:shadow-red-500/50 group-hover:shadow-xl",
-                hovering === 'red' && "scale-110"
-              )}
-              style={{
-                backgroundImage: `url(${matrixPillsImg})`,
-                backgroundPosition: '0% 50%',
-                backgroundSize: '200% 100%',
-              }}
-            />
-            
-            {/* Glow effect */}
-            <div className={cn(
-              "absolute -inset-4 rounded-full bg-red-500/20 blur-xl transition-opacity",
-              hovering === 'red' ? "opacity-100" : "opacity-0"
-            )} />
-          </button>
-
-          {/* Divider */}
-          <div className="text-green-500/50 font-mono text-2xl">|</div>
-
-          {/* Blue Pill - right side of image */}
-          <button
-            onClick={() => handleSelect('blue')}
-            onMouseEnter={() => setHovering('blue')}
-            onMouseLeave={() => setHovering(null)}
-            className={cn(
-              "relative group transition-all duration-300",
-              selected === 'blue' && "scale-125",
-              selected === 'red' && "opacity-0 scale-75"
-            )}
-          >
-            <div 
-              className={cn(
-                "w-20 h-14 md:w-28 md:h-20 bg-cover bg-no-repeat rounded-lg transition-all duration-300",
-                "shadow-lg group-hover:shadow-blue-500/50 group-hover:shadow-xl",
-                hovering === 'blue' && "scale-110"
-              )}
-              style={{
-                backgroundImage: `url(${matrixPillsImg})`,
-                backgroundPosition: '100% 50%',
-                backgroundSize: '200% 100%',
-              }}
-            />
-            
-            {/* Glow effect */}
-            <div className={cn(
-              "absolute -inset-4 rounded-full bg-blue-500/20 blur-xl transition-opacity",
-              hovering === 'blue' ? "opacity-100" : "opacity-0"
-            )} />
-          </button>
-        </div>
-
-        {/* Description based on hover */}
-        <div className="h-16 flex items-center justify-center">
-          {hovering === 'blue' && (
-            <p className="text-blue-400 font-mono text-xs md:text-sm max-w-xs animate-fade-in">
-              The story ends. You wake up and believe whatever you want to believe.
-            </p>
-          )}
-          {hovering === 'red' && (
-            <p className="text-red-400 font-mono text-xs md:text-sm max-w-xs animate-fade-in">
-              You stay in Wonderland, and I show you how deep the rabbit hole goes.
-            </p>
-          )}
-          {!hovering && !selected && (
-            <p className="text-green-500/50 font-mono text-xs">
-              Choose wisely...
-            </p>
-          )}
-          {selected && (
-            <p className={cn(
-              "font-mono text-sm animate-pulse",
-              selected === 'red' ? "text-red-400" : "text-blue-400"
-            )}>
-              {selected === 'red' ? "Welcome to the real world..." : "Sweet dreams..."}
-            </p>
-          )}
-        </div>
-
-        {/* Skip option */}
-        {!selected && (
-          <button
-            onClick={() => {
-              setPill('blue'); // Default to blue if skipped
-              onComplete?.();
-            }}
-            className="text-green-500/30 hover:text-green-500/60 font-mono text-xs transition-colors"
-          >
-            [skip]
-          </button>
-        )}
+  // Show the full-screen choice image when pill is selected
+  if (showChoiceImage && selected) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black">
+        <img
+          src={selected === 'red' ? redPillChoiceImg : bluePillChoiceImg}
+          alt={selected === 'red' ? 'You chose the red pill' : 'You chose the blue pill'}
+          className="w-full h-full object-cover animate-fade-in"
+          style={{
+            animation: 'pillChoiceFadeIn 0.5s ease-out forwards, pillChoiceFadeOut 0.5s ease-in 2s forwards',
+          }}
+        />
+        {/* CRT scanline effect overlay */}
+        <div 
+          className="absolute inset-0 pointer-events-none opacity-20"
+          style={{
+            background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px)'
+          }}
+        />
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <>
+      {/* Add keyframes for pill choice animation */}
+      <style>{`
+        @keyframes pillChoiceFadeIn {
+          from { opacity: 0; transform: scale(1.1); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes pillChoiceFadeOut {
+          from { opacity: 1; }
+          to { opacity: 0; }
+        }
+      `}</style>
+      
+      <div className={cn(
+        "fixed inset-0 z-[100] flex items-center justify-center bg-black/95 transition-opacity duration-500",
+        animating && !showChoiceImage && "opacity-0 pointer-events-none"
+      )}>
+        {/* CRT scanline effect */}
+        <div 
+          className="absolute inset-0 pointer-events-none opacity-10"
+          style={{
+            background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,0,0.03) 2px, rgba(0,255,0,0.03) 4px)'
+          }}
+        />
+        
+        <div className="text-center space-y-8 px-4">
+          {/* Morpheus quote */}
+          <div className="space-y-2">
+            <p className="text-green-400 font-mono text-sm md:text-base animate-pulse">
+              This is your last chance.
+            </p>
+            <p className="text-green-500/80 font-mono text-xs md:text-sm max-w-md mx-auto leading-relaxed">
+              After this, there is no turning back.
+            </p>
+          </div>
+
+          {/* Pills - using actual image */}
+          <div className="flex items-center justify-center gap-8 md:gap-16">
+            {/* Red Pill - left side of image */}
+            <button
+              onClick={() => handleSelect('red')}
+              onMouseEnter={() => setHovering('red')}
+              onMouseLeave={() => setHovering(null)}
+              className={cn(
+                "relative group transition-all duration-300",
+                selected === 'red' && "scale-125",
+                selected === 'blue' && "opacity-0 scale-75"
+              )}
+            >
+              <div 
+                className={cn(
+                  "w-20 h-14 md:w-28 md:h-20 bg-cover bg-no-repeat rounded-lg transition-all duration-300",
+                  "shadow-lg group-hover:shadow-red-500/50 group-hover:shadow-xl",
+                  hovering === 'red' && "scale-110"
+                )}
+                style={{
+                  backgroundImage: `url(${matrixPillsImg})`,
+                  backgroundPosition: '0% 50%',
+                  backgroundSize: '200% 100%',
+                }}
+              />
+              
+              {/* Glow effect */}
+              <div className={cn(
+                "absolute -inset-4 rounded-full bg-red-500/20 blur-xl transition-opacity",
+                hovering === 'red' ? "opacity-100" : "opacity-0"
+              )} />
+            </button>
+
+            {/* Divider */}
+            <div className="text-green-500/50 font-mono text-2xl">|</div>
+
+            {/* Blue Pill - right side of image */}
+            <button
+              onClick={() => handleSelect('blue')}
+              onMouseEnter={() => setHovering('blue')}
+              onMouseLeave={() => setHovering(null)}
+              className={cn(
+                "relative group transition-all duration-300",
+                selected === 'blue' && "scale-125",
+                selected === 'red' && "opacity-0 scale-75"
+              )}
+            >
+              <div 
+                className={cn(
+                  "w-20 h-14 md:w-28 md:h-20 bg-cover bg-no-repeat rounded-lg transition-all duration-300",
+                  "shadow-lg group-hover:shadow-blue-500/50 group-hover:shadow-xl",
+                  hovering === 'blue' && "scale-110"
+                )}
+                style={{
+                  backgroundImage: `url(${matrixPillsImg})`,
+                  backgroundPosition: '100% 50%',
+                  backgroundSize: '200% 100%',
+                }}
+              />
+              
+              {/* Glow effect */}
+              <div className={cn(
+                "absolute -inset-4 rounded-full bg-blue-500/20 blur-xl transition-opacity",
+                hovering === 'blue' ? "opacity-100" : "opacity-0"
+              )} />
+            </button>
+          </div>
+
+          {/* Description based on hover */}
+          <div className="h-16 flex items-center justify-center">
+            {hovering === 'blue' && (
+              <p className="text-blue-400 font-mono text-xs md:text-sm max-w-xs animate-fade-in">
+                The story ends. You wake up and believe whatever you want to believe.
+              </p>
+            )}
+            {hovering === 'red' && (
+              <p className="text-red-400 font-mono text-xs md:text-sm max-w-xs animate-fade-in">
+                You stay in Wonderland, and I show you how deep the rabbit hole goes.
+              </p>
+            )}
+            {!hovering && !selected && (
+              <p className="text-green-500/50 font-mono text-xs">
+                Choose wisely...
+              </p>
+            )}
+            {selected && (
+              <p className={cn(
+                "font-mono text-sm animate-pulse",
+                selected === 'red' ? "text-red-400" : "text-blue-400"
+              )}>
+                {selected === 'red' ? "Welcome to the real world..." : "Sweet dreams..."}
+              </p>
+            )}
+          </div>
+
+          {/* Skip option */}
+          {!selected && (
+            <button
+              onClick={() => {
+                setPill('blue'); // Default to blue if skipped
+                onComplete?.();
+              }}
+              className="text-green-500/30 hover:text-green-500/60 font-mono text-xs transition-colors"
+            >
+              [skip]
+            </button>
+          )}
+        </div>
+      </div>
+    </>
   );
 };
