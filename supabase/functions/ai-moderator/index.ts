@@ -264,12 +264,10 @@ Deno.serve(async (req) => {
     const { channelName, userMessage, recentMessages, userId, isReturningUser, userTopics, lastMood } = await req.json();
     console.log(`AI Moderator request for channel: ${channelName}, returning: ${isReturningUser}`);
     
-    // Try Lovable AI gateway first, fall back to OpenAI for VPS
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     
-    if (!LOVABLE_API_KEY && !OPENAI_API_KEY) {
-      throw new Error('No AI API key configured (LOVABLE_API_KEY or OPENAI_API_KEY)');
+    if (!OPENAI_API_KEY) {
+      throw new Error('No AI API key configured (OPENAI_API_KEY)');
     }
 
     const persona = MODERATOR_PERSONAS[channelName] || MODERATOR_PERSONAS['general'];
@@ -318,23 +316,8 @@ You may occasionally mention this tip naturally in conversation if relevant.${me
       { role: 'user', content: userMessage }
     ];
 
-    const callLovableGateway = () =>
-      fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-3-flash-preview',
-          messages,
-          max_tokens: 150,
-          temperature: 0.9,
-        }),
-      });
-
     const callOpenAI = () => {
-      console.log('Using OpenAI fallback');
+      console.log('Using OpenAI');
       return fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -350,19 +333,7 @@ You may occasionally mention this tip naturally in conversation if relevant.${me
       });
     };
 
-    // Default: prefer gateway when present (Lovable Cloud), but if it fails and an OpenAI
-    // key is available (VPS), fall back automatically.
-    let response: Response;
-    if (LOVABLE_API_KEY) {
-      response = await callLovableGateway();
-      if (!response.ok && OPENAI_API_KEY) {
-        const gatewayErrorText = await response.text();
-        console.error('AI gateway error; falling back to OpenAI:', response.status, gatewayErrorText);
-        response = await callOpenAI();
-      }
-    } else {
-      response = await callOpenAI();
-    }
+    const response = await callOpenAI();
 
     if (!response.ok) {
       if (response.status === 429) {
@@ -378,8 +349,8 @@ You may occasionally mention this tip naturally in conversation if relevant.${me
         });
       }
       const errorText = await response.text();
-      console.error('AI Gateway error:', response.status, errorText);
-      throw new Error('AI Gateway error');
+      console.error('OpenAI error:', response.status, errorText);
+      throw new Error('OpenAI error');
     }
 
     const data = await response.json();
