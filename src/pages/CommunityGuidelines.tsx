@@ -29,12 +29,12 @@ const CommunityGuidelines = () => {
         {/* Introduction */}
         <section className="space-y-4">
           <p className="text-muted-foreground leading-relaxed">
-            Justachat™ is committed to fostering a safe, respectful, and inclusive community. These guidelines 
-            apply to all users across all chat rooms, private messages, video/voice chat, and dating features. 
-            By using our platform, you agree to follow these rules.
+            JustAChat is a place for adults who want real conversation without the noise and pressure of modern 
+            social platforms. These guidelines exist to protect that space. They apply to all users across all 
+            chat rooms, private messages, video/voice chat, and dating features.
           </p>
           <p className="text-sm text-muted-foreground">
-            <strong>Last Updated:</strong> January 27, 2026
+            <strong>Last Updated:</strong> February 2, 2026
           </p>
         </section>
 
@@ -42,13 +42,13 @@ const CommunityGuidelines = () => {
         <section className="space-y-4">
           <div className="flex items-center gap-2">
             <Heart className="h-5 w-5 text-pink-400" />
-            <h2 className="text-lg font-semibold">Our Core Values</h2>
+            <h2 className="text-lg font-semibold">What We Protect</h2>
           </div>
           <ul className="space-y-2 text-muted-foreground ml-7">
-            <li>• <strong>Respect:</strong> Treat all users with dignity regardless of background, identity, or beliefs</li>
-            <li>• <strong>Safety:</strong> Protect yourself and others from harm, both online and offline</li>
-            <li>• <strong>Authenticity:</strong> Be genuine in your interactions and representations</li>
-            <li>• <strong>Privacy:</strong> Respect others' personal information and boundaries</li>
+            <li>• <strong>Privacy:</strong> Your conversations are yours. We don't watch, measure, or sell your data.</li>
+            <li>• <strong>Presence:</strong> Real people, real time. No bots pretending to be users.</li>
+            <li>• <strong>Boundaries:</strong> You control your space. Block, mute, and report as needed.</li>
+            <li>• <strong>Adults talking like adults:</strong> No performance required. Just conversation.</li>
           </ul>
         </section>
 

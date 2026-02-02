@@ -393,10 +393,10 @@ const Help = () => {
           {/* Title Section */}
           <div className="text-center space-y-2">
             <h1 className="text-3xl sm:text-4xl font-bold jac-gradient-text">
-              How can we help you?
+              Need a hand?
             </h1>
             <p className="text-muted-foreground">
-              Select a category below or chat directly with our support team
+              We're here to help — not to sell you anything or collect your data.
             </p>
           </div>
 
