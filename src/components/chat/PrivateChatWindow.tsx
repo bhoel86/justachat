@@ -58,7 +58,11 @@ const PrivateChatWindow = ({
   const [messages, setMessages] = useState<PrivateMessage[]>([]);
   const [message, setMessage] = useState('');
   const [isConnected, setIsConnected] = useState(false);
-  const [position, setPosition] = useState(initialPosition);
+  // Clamp initial position to ensure window is fully visible
+  const [position, setPosition] = useState(() => ({
+    x: Math.max(0, Math.min(initialPosition.x, window.innerWidth - 320)),
+    y: Math.max(0, Math.min(initialPosition.y, window.innerHeight - 420))
+  }));
   const [size, setSize] = useState({ width: 320, height: 420 });
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -325,7 +329,22 @@ const PrivateChatWindow = ({
     };
   }, [isDragging, isResizing, dragOffset, resizeStart, position.x, position.y, size.width, size.height]);
 
-  // Image handling
+  // Ensure window stays within viewport on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setPosition(prev => ({
+        x: Math.max(0, Math.min(prev.x, window.innerWidth - size.width)),
+        y: Math.max(0, Math.min(prev.y, window.innerHeight - size.height))
+      }));
+    };
+    
+    window.addEventListener('resize', handleResize);
+    // Also run on mount to correct any invalid initial position
+    handleResize();
+    
+    return () => window.removeEventListener('resize', handleResize);
+  }, [size.width, size.height]);
+
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -529,8 +548,8 @@ const PrivateChatWindow = ({
         </div>
       )}
 
-      {/* Input */}
-      <div className="flex items-center gap-2 p-2 border-t border-border bg-muted/20 shrink-0">
+      {/* Input - always visible at bottom */}
+      <div className="flex items-center gap-2 p-3 border-t-2 border-primary/30 bg-card shrink-0">
         <EmojiPicker 
           onEmojiSelect={(emoji) => setMessage(prev => prev + emoji)}
           onGifSelect={(url) => {
@@ -550,11 +569,16 @@ const PrivateChatWindow = ({
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type a message..."
-          className="flex-1 bg-background border border-border rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+          className="flex-1 min-w-0 bg-background border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           disabled={!isConnected && !isBot}
         />
         
-        <Button size="sm" onClick={sendMessage} disabled={(!message.trim() && !attachedImage) || isUploading}>
+        <Button 
+          size="sm" 
+          onClick={sendMessage} 
+          disabled={(!message.trim() && !attachedImage) || isUploading}
+          className="shrink-0 px-3"
+        >
           <Send className="w-4 h-4" />
         </Button>
       </div>
