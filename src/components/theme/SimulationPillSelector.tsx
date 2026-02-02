@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSimulationPill, PillChoice } from '@/hooks/useSimulationPill';
 import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
@@ -8,13 +8,18 @@ import bluePillChoiceImg from '@/assets/matrix/blue-pill-choice.png';
 
 interface SimulationPillSelectorProps {
   onComplete?: () => void;
+  /** If true, show the transition image for existing pill selection (used after login) */
+  showTransition?: boolean;
 }
+
+// Session storage key to track if we've shown the pill transition this session
+const TRANSITION_SHOWN_KEY = 'simulation_pill_transition_shown';
 
 /**
  * Red pill / Blue pill selector shown on the login page when Simulation theme is active
  * "You take the blue pill... the story ends. You take the red pill... you stay in Wonderland."
  */
-export const SimulationPillSelector = ({ onComplete }: SimulationPillSelectorProps) => {
+export const SimulationPillSelector = ({ onComplete, showTransition = false }: SimulationPillSelectorProps) => {
   const { theme } = useTheme();
   const { pill, setPill, hasPill } = useSimulationPill();
   const [hovering, setHovering] = useState<PillChoice>(null);
@@ -22,6 +27,34 @@ export const SimulationPillSelector = ({ onComplete }: SimulationPillSelectorPro
   const [animating, setAnimating] = useState(false);
   const [showChoiceImage, setShowChoiceImage] = useState(false);
   const [completed, setCompleted] = useState(false);
+  
+  // Check if we should show the transition for an existing pill (after login)
+  const [showingExistingPillTransition, setShowingExistingPillTransition] = useState(false);
+  
+  useEffect(() => {
+    // If showTransition is true and user has a pill, show the transition once per session
+    if (showTransition && hasPill && pill && theme === 'matrix') {
+      const alreadyShown = sessionStorage.getItem(TRANSITION_SHOWN_KEY);
+      if (!alreadyShown) {
+        setShowingExistingPillTransition(true);
+        setShowChoiceImage(true);
+        setSelected(pill);
+        
+        // Mark as shown for this session
+        sessionStorage.setItem(TRANSITION_SHOWN_KEY, 'true');
+        
+        // After 3 seconds, hide and complete
+        const timer = setTimeout(() => {
+          setShowChoiceImage(false);
+          setShowingExistingPillTransition(false);
+          setCompleted(true);
+          onComplete?.();
+        }, 3000);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [showTransition, hasPill, pill, theme, onComplete]);
 
   // Only show for Simulation theme
   if (theme !== 'matrix') return null;
