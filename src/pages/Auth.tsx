@@ -270,12 +270,12 @@ const Auth = () => {
     setCaptchaToken(null);
   }, []);
 
-  // Redirect logged-in users ONLY if not in password reset flow
+  // Redirect logged-in users ONLY if not in password reset flow or showing pill transition
   useEffect(() => {
-    if (!loading && user && !isPasswordResetFlow) {
+    if (!loading && user && !isPasswordResetFlow && !showPillTransition) {
       navigate("/");
     }
-  }, [user, loading, navigate, isPasswordResetFlow]);
+  }, [user, loading, navigate, isPasswordResetFlow, showPillTransition]);
 
   // Countdown timer for resend button
   useEffect(() => {
