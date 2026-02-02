@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Crown, Shield, ShieldCheck, User, Users, MoreVertical, MessageSquareLock, Bot, Info, Ban, Flag, Camera, AtSign, Settings, FileText, VolumeX, LogOut, Music, Globe, Eye, EyeOff, Zap, Lock, ServerCrash } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -206,30 +206,60 @@ const MemberList = ({ onlineUserIds, listeningUsers, channelName = 'general', on
     setLoading(false);
   };
 
+  // Debounce fetchMembers to prevent rapid re-fetches when onlineUserIds changes frequently
+  const fetchMembersTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
   useEffect(() => {
-    fetchMembers();
+    // Debounce: only fetch after 300ms of no changes
+    if (fetchMembersTimeoutRef.current) {
+      clearTimeout(fetchMembersTimeoutRef.current);
+    }
+    fetchMembersTimeoutRef.current = setTimeout(() => {
+      fetchMembers();
+    }, 300);
+    
+    return () => {
+      if (fetchMembersTimeoutRef.current) {
+        clearTimeout(fetchMembersTimeoutRef.current);
+      }
+    };
   }, [onlineUserIds]);
 
-  // Subscribe to profile and role changes
+  // Subscribe to profile and role changes - NO dependency on onlineUserIds to prevent resubscription loops
   useEffect(() => {
     const channel = supabase
       .channel('member-changes')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'profiles' },
-        () => fetchMembers()
+        () => {
+          // Debounce profile changes too
+          if (fetchMembersTimeoutRef.current) {
+            clearTimeout(fetchMembersTimeoutRef.current);
+          }
+          fetchMembersTimeoutRef.current = setTimeout(() => {
+            fetchMembers();
+          }, 300);
+        }
       )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'user_roles' },
-        () => fetchMembers()
+        () => {
+          if (fetchMembersTimeoutRef.current) {
+            clearTimeout(fetchMembersTimeoutRef.current);
+          }
+          fetchMembersTimeoutRef.current = setTimeout(() => {
+            fetchMembers();
+          }, 300);
+        }
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [onlineUserIds]);
+  }, []); // Empty dependency - only subscribe once
 
   const handleRoleChange = async (memberId: string, newRole: Member['role']) => {
     try {
