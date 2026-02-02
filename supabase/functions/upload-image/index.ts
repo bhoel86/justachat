@@ -146,18 +146,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Use a user-scoped client ONLY for JWT verification / user identity.
+    // Use a user-scoped client for JWT verification / user identity.
+    // VPS uses getUser() instead of getClaims() for compatibility
     const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(token);
-    const userId = claimsData?.claims?.sub;
+    const { data: userData, error: userError } = await supabaseUser.auth.getUser();
+    const userId = userData?.user?.id;
 
-    if (claimsError || !userId) {
+    if (userError || !userId) {
+      console.error("Auth error:", userError?.message || "No user ID");
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
+        JSON.stringify({ error: "Unauthorized", details: userError?.message }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
