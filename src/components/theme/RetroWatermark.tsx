@@ -1,11 +1,11 @@
 import React from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
-import retroHeader from '@/assets/justachat-header-80s.png';
+import retroHeaderLogin from '@/assets/themes/retro-header-login-cutout.png';
 import { usePngCutout } from '@/hooks/usePngCutout';
 
 export const RetroWatermark: React.FC = () => {
   const { theme } = useTheme();
-  const cutoutSrc = usePngCutout(retroHeader);
+  const cutoutSrc = usePngCutout(retroHeaderLogin);
 
   // Only show retro watermark for retro80s theme
   if (theme !== 'retro80s') {
@@ -20,7 +20,7 @@ export const RetroWatermark: React.FC = () => {
         style={{ opacity: 0.15 }}
       >
         <img 
-          src={cutoutSrc ?? retroHeader} 
+          src={cutoutSrc ?? retroHeaderLogin} 
           alt="" 
           className="w-[300px] sm:w-[400px] md:w-[500px] h-auto"
           style={{
