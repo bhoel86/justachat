@@ -10,7 +10,7 @@ export const StPatricksWatermark = () => {
   
   return (
     <div 
-      className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden"
+      className="fixed inset-0 flex items-center justify-center pointer-events-none overflow-hidden z-0"
       style={{ opacity: 0.08 }}
     >
       <div className="relative">
