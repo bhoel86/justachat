@@ -825,7 +825,7 @@ const Auth = () => {
           {/* Matrix background with reduced opacity */}
           {isMatrix && (
             <div 
-              className="absolute inset-0 z-0"
+              className="absolute inset-0 z-0 pointer-events-none"
               style={{
                 backgroundImage: `url(${matrixLoginBg})`,
                 backgroundSize: 'cover',
