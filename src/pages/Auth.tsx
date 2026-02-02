@@ -19,11 +19,7 @@ import { RetroFloatingIcons } from "@/components/theme/RetroFloatingIcons";
 import { ValentinesFloatingHearts } from "@/components/theme/ValentinesFloatingHearts";
 import { StPatricksFloatingIcons } from "@/components/theme/StPatricksFloatingIcons";
 import { MatrixFloatingCode } from "@/components/theme/MatrixFloatingCode";
-import { SimulationPillSelector } from "@/components/theme/SimulationPillSelector";
-import { useSimulationPill } from "@/hooks/useSimulationPill";
 import { useTheme } from "@/contexts/ThemeContext";
-import matrixRabbitImg from '@/assets/matrix/ascii-rabbit.png';
-import matrixFollowImg from '@/assets/matrix/follow-rabbit.jpg';
 import jungleHeaderImg from '@/assets/themes/jungle-header-logo-cutout.png';
 import retroHeaderImg from '@/assets/themes/retro-header-login-cutout.png';
 import { usePngCutout } from "@/hooks/usePngCutout";
@@ -668,9 +664,6 @@ const Auth = () => {
       
       {/* Matrix falling code */}
       <MatrixFloatingCode />
-      
-      {/* Simulation theme pill selector */}
-      {isMatrix && <SimulationPillSelector />}
 
       {/* Retro banner removed - content below now visible */}
 
@@ -816,23 +809,6 @@ const Auth = () => {
             <p className={`text-muted-foreground mt-2 ${isMatrix ? 'text-base sm:text-lg font-mono tracking-wide' : 'text-sm sm:text-base tracking-wide'}`}>
               {isValentines ? "Spread Love in Every Chat" : isStPatricks ? "Luck of the Irish in Every Chat" : isMatrix ? "Wake up. You're already inside." : "Connect Instantly, Chat Freely"}
             </p>
-            {isMatrix && (
-              <p className="text-primary/60 text-sm font-mono mt-2 animate-pulse">follow the white rabbit...</p>
-            )}
-            {/* Matrix ASCII Rabbit Image - hidden in plain sight */}
-            {isMatrix && (
-              <div className="mt-4 relative">
-                <img 
-                  src={matrixRabbitImg} 
-                  alt="" 
-                  className="w-32 h-32 sm:w-40 sm:h-40 object-contain opacity-60 mx-auto"
-                  style={{
-                    filter: 'drop-shadow(0 0 15px hsl(120 100% 50% / 0.4))',
-                    animation: 'matrixRabbitFloat 6s ease-in-out infinite',
-                  }}
-                />
-              </div>
-            )}
           </div>
         )}
         {/* Form Card - Memphis style for retro, standard for others */}
@@ -1179,93 +1155,33 @@ const Auth = () => {
                 </p>
               )}
 
-              {/* Matrix theme: Dual Red/Blue pill buttons - transparent with glow */}
-              {isMatrix ? (
-                <div className="flex gap-2">
-                  {/* Red Pill - Sign In */}
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="flex-1 font-mono uppercase tracking-wider relative overflow-hidden transition-all hover:scale-105"
-                    style={{
-                      background: 'transparent',
-                      border: '1px solid hsl(0 80% 50% / 0.7)',
-                      boxShadow: '0 0 20px hsl(0 80% 50% / 0.4), inset 0 0 15px hsl(0 80% 50% / 0.15)',
-                      color: 'hsl(0 80% 60%)',
-                      textShadow: '0 0 10px hsl(0 80% 50% / 0.8)',
-                    }}
-                    disabled={
-                      isSubmitting ||
-                      (mode === "signup" && (!agreedToTerms || (captchaRequired && !captchaToken))) ||
-                      (mode === "login" && rateLimitInfo?.locked)
-                    }
-                  >
-                    {isSubmitting ? (
-                      <span className="animate-pulse">...</span>
-                    ) : (
-                      <>
-                        {mode === "login" && "TRUTH"}
-                        {mode === "signup" && "CREATE"}
-                        {mode === "forgot" && "SEND"}
-                        {mode === "reset" && "UPDATE"}
-                      </>
-                    )}
-                  </Button>
-                  {/* Blue Pill - Also works (aesthetic) */}
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="flex-1 font-mono uppercase tracking-wider relative overflow-hidden transition-all hover:scale-105"
-                    style={{
-                      background: 'transparent',
-                      border: '1px solid hsl(210 80% 50% / 0.7)',
-                      boxShadow: '0 0 20px hsl(210 80% 50% / 0.4), inset 0 0 15px hsl(210 80% 50% / 0.15)',
-                      color: 'hsl(210 80% 60%)',
-                      textShadow: '0 0 10px hsl(210 80% 50% / 0.8)',
-                    }}
-                    disabled={
-                      isSubmitting ||
-                      (mode === "signup" && (!agreedToTerms || (captchaRequired && !captchaToken))) ||
-                      (mode === "login" && rateLimitInfo?.locked)
-                    }
-                  >
-                    {isSubmitting ? (
-                      <span className="animate-pulse">...</span>
-                    ) : (
-                      <>
-                        {mode === "login" && "BLISS"}
-                        {mode === "signup" && "CREATE"}
-                        {mode === "forgot" && "SEND"}
-                        {mode === "reset" && "UPDATE"}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  type="submit"
-                  variant="jac"
-                  size="lg"
-                  className="w-full"
-                  disabled={
-                    isSubmitting ||
-                    (mode === "signup" && (!agreedToTerms || (captchaRequired && !captchaToken))) ||
-                    (mode === "login" && rateLimitInfo?.locked)
-                  }
-                >
-                  {isSubmitting ? (
-                    <span className="animate-pulse">Please wait...</span>
-                  ) : (
-                    <>
-                      {mode === "login" && "Sign In"}
-                      {mode === "signup" && "Create Account"}
-                      {mode === "forgot" && "Send Reset Link"}
-                      {mode === "reset" && "Update Password"}
-                      <ArrowRight className="h-5 w-5 ml-1" />
-                    </>
-                  )}
-                </Button>
-              )}
+              <Button
+                type="submit"
+                variant={isMatrix ? "outline" : "jac"}
+                size="lg"
+                className={`w-full ${isMatrix ? 'font-mono uppercase tracking-wider border-primary/50 hover:border-primary hover:bg-primary/10' : ''}`}
+                style={isMatrix ? {
+                  boxShadow: '0 0 20px hsl(120 100% 50% / 0.3)',
+                  textShadow: '0 0 10px hsl(120 100% 50% / 0.6)',
+                } : undefined}
+                disabled={
+                  isSubmitting ||
+                  (mode === "signup" && (!agreedToTerms || (captchaRequired && !captchaToken))) ||
+                  (mode === "login" && rateLimitInfo?.locked)
+                }
+              >
+                {isSubmitting ? (
+                  <span className="animate-pulse">{isMatrix ? '...' : 'Please wait...'}</span>
+                ) : (
+                  <>
+                    {mode === "login" && (isMatrix ? "ENTER" : "Sign In")}
+                    {mode === "signup" && (isMatrix ? "CREATE" : "Create Account")}
+                    {mode === "forgot" && (isMatrix ? "SEND" : "Send Reset Link")}
+                    {mode === "reset" && (isMatrix ? "UPDATE" : "Update Password")}
+                    {!isMatrix && <ArrowRight className="h-5 w-5 ml-1" />}
+                  </>
+                )}
+              </Button>
             </form>
           )}
 
