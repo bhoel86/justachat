@@ -5,6 +5,8 @@ import mascotLeft from "@/assets/mascot-left.png";
 import mascotRight from "@/assets/mascot-right.png";
 import retroMascotLeft from "@/assets/themes/retro-mascot-left.png";
 import retroMascotRight from "@/assets/themes/retro-mascot-right.png";
+import vaporMascotLeft from "@/assets/themes/vapor-mascot-left.png";
+import vaporMascotRight from "@/assets/themes/vapor-mascot-right.png";
 import { StPatricksMascot } from './StPatricksMascot';
 import { MatrixMascot } from './MatrixMascot';
 import { usePngCutout } from "@/hooks/usePngCutout";
@@ -20,6 +22,10 @@ export const ThemedMascot: React.FC<ThemedMascotProps> = ({ side, className = ''
   // Cutout processing for retro mascots (strip white background)
   const retroLeftCutout = usePngCutout(theme === 'retro80s' && side === 'left' ? retroMascotLeft : undefined);
   const retroRightCutout = usePngCutout(theme === 'retro80s' && side === 'right' ? retroMascotRight : undefined);
+  
+  // Cutout processing for vapor mascots
+  const vaporLeftCutout = usePngCutout(theme === 'vapor' && side === 'left' ? vaporMascotLeft : undefined);
+  const vaporRightCutout = usePngCutout(theme === 'vapor' && side === 'right' ? vaporMascotRight : undefined);
 
   // For Matrix theme, show rabbit mascots
   if (theme === 'matrix') {
@@ -46,6 +52,20 @@ export const ThemedMascot: React.FC<ThemedMascotProps> = ({ side, className = ''
       <img 
         src={side === 'left' ? leftSrc : rightSrc} 
         alt={side === 'left' ? 'Retro Boombox' : 'Retro VHS Tape'} 
+        className={`h-12 sm:h-14 w-auto object-contain ${className}`}
+      />
+    );
+  }
+
+  // For Vaporwave OS theme, show CRT monitor and floppy disk mascots
+  if (theme === 'vapor') {
+    const leftSrc = vaporLeftCutout ?? vaporMascotLeft;
+    const rightSrc = vaporRightCutout ?? vaporMascotRight;
+    
+    return (
+      <img 
+        src={side === 'left' ? leftSrc : rightSrc} 
+        alt={side === 'left' ? 'Retro CRT Monitor' : 'Floppy Disk'} 
         className={`h-12 sm:h-14 w-auto object-contain ${className}`}
       />
     );
