@@ -657,19 +657,17 @@ const Home = () => {
                             <button
                               key={channel.id}
                               onClick={() => handleJoinRoom(channel)}
-                              className={`group relative h-8 sm:h-9 overflow-hidden bg-card transition-all duration-300 active:scale-95 ${
+                              className={`group relative h-8 sm:h-9 overflow-hidden transition-all duration-300 active:scale-95 ${
                                 isRetro 
-                                  ? 'border-[2px] border-foreground hover:border-primary hover:shadow-[0_0_10px_rgba(0,255,0,0.5),inset_0_0_10px_rgba(0,255,0,0.1)]' 
+                                  ? 'bg-[hsl(185_90%_50%)] border-[3px] border-black hover:bg-[hsl(50_100%_70%)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_black]' 
                                   : isValentines
-                                    ? 'rounded-lg border-2 border-pink-400/50 hover:border-pink-400 hover:shadow-lg hover:shadow-pink-500/30 hover:-translate-y-0.5'
-                                    : 'rounded-md border border-border hover:border-primary/50 hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-1'
+                                    ? 'bg-card rounded-lg border-2 border-pink-400/50 hover:border-pink-400 hover:shadow-lg hover:shadow-pink-500/30 hover:-translate-y-0.5'
+                                    : 'bg-card rounded-md border border-border hover:border-primary/50 hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-1'
                               }`}
-                              style={isRetro ? { boxShadow: '2px 2px 0px black' } : undefined}
+                              style={isRetro ? { boxShadow: '3px 3px 0px black' } : undefined}
                             >
                               {/* Background - theme aware */}
-                              {isRetro ? (
-                                <div className="absolute inset-0 bg-gradient-to-r from-pink-600/50 to-cyan-500/50 group-hover:from-pink-500/60 group-hover:to-cyan-400/60 transition-all" />
-                              ) : isValentines ? (
+                              {isRetro ? null : isValentines ? (
                                 <>
                                   <div className="absolute inset-0 bg-gradient-to-r from-pink-500 via-rose-400 to-pink-500 opacity-40 group-hover:opacity-60 transition-opacity" />
                                   <div className="absolute inset-0 bg-black/30" />
@@ -691,7 +689,7 @@ const Home = () => {
                               <div className="relative h-full flex items-center justify-between px-2">
                                 <h3 className={`truncate ${
                                   isRetro 
-                                    ? 'font-mono font-bold text-xs sm:text-sm text-cyan-300 uppercase tracking-wider drop-shadow-[1px_1px_0px_rgba(0,0,0,0.8)]' 
+                                    ? 'font-["Press_Start_2P"] font-bold text-[7px] sm:text-[8px] text-black uppercase' 
                                     : isValentines
                                       ? 'font-semibold text-xs sm:text-sm text-white drop-shadow-[0_1px_2px_rgba(236,72,153,0.8)]'
                                       : 'font-semibold text-xs sm:text-sm text-white drop-shadow-lg'
@@ -700,7 +698,7 @@ const Home = () => {
                                 </h3>
                                 <span className={`text-xs font-medium shrink-0 ml-1 ${
                                   isRetro 
-                                    ? 'text-yellow-300 font-mono drop-shadow-[1px_1px_0px_rgba(0,0,0,0.8)]' 
+                                    ? 'text-[hsl(330_90%_45%)] font-["VT323"] text-sm' 
                                     : isValentines 
                                       ? 'text-pink-200'
                                       : 'text-white/90'
@@ -708,11 +706,6 @@ const Home = () => {
                                   {isRetro ? `[${userCount}]` : `(${userCount})`}
                                 </span>
                               </div>
-
-                              {/* Scan line effect for retro */}
-                              {isRetro && (
-                                <div className="absolute inset-0 pointer-events-none opacity-10 bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(0,0,0,0.3)_2px,rgba(0,0,0,0.3)_4px)]" />
-                              )}
                             </button>
                           );
                         })}
