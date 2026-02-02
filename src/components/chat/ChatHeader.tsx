@@ -1,5 +1,6 @@
-import { MessagesSquare, Users, LogOut, Crown, ShieldCheck, Info, Hash, Globe, Bell, BellOff } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useState, useEffect } from "react";
+import { MessagesSquare, Users, LogOut, Crown, ShieldCheck, Info, Hash, Globe, Bell, BellOff, Eye, EyeOff } from "lucide-react";
+import { useAuth, supabaseUntyped } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -9,6 +10,7 @@ import {
 import { getRoomTheme, getDefaultTopic } from "@/lib/roomConfig";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useToast } from "@/hooks/use-toast";
 import jungleHeaderLogo from "@/assets/themes/jungle-header-logo.png";
 
 interface ChatHeaderProps {
@@ -22,7 +24,57 @@ interface ChatHeaderProps {
 }
 
 const ChatHeader = ({ onlineCount, topic, channelName = 'general', onLanguageClick, currentLanguage = 'en', doNotDisturb, onToggleDND }: ChatHeaderProps) => {
-  const { logoutFromChat, role } = useAuth();
+  const { logoutFromChat, role, user, isAdmin, isOwner } = useAuth();
+  const { toast } = useToast();
+  const [ghostMode, setGhostMode] = useState(false);
+  const [togglingGhost, setTogglingGhost] = useState(false);
+
+  // Fetch current ghost mode status
+  useEffect(() => {
+    const fetchGhostMode = async () => {
+      if (!user) return;
+      const { data } = await supabaseUntyped
+        .from('profiles')
+        .select('ghost_mode')
+        .eq('user_id', user.id)
+        .single();
+      if (data) {
+        setGhostMode(data.ghost_mode || false);
+      }
+    };
+    fetchGhostMode();
+  }, [user]);
+
+  // Toggle ghost mode
+  const handleToggleGhostMode = async () => {
+    if (!user || togglingGhost) return;
+    setTogglingGhost(true);
+    try {
+      const newValue = !ghostMode;
+      const { error } = await supabaseUntyped
+        .from('profiles')
+        .update({ ghost_mode: newValue })
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      
+      setGhostMode(newValue);
+      toast({
+        title: newValue ? "Ghost Mode Enabled" : "Ghost Mode Disabled",
+        description: newValue 
+          ? "You are now invisible to regular users" 
+          : "You are now visible to everyone",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Failed to toggle ghost mode",
+        description: "Please try again",
+      });
+    } finally {
+      setTogglingGhost(false);
+    }
+  };
   const { theme: siteTheme } = useTheme();
   const roomTheme = getRoomTheme(channelName);
   const displayTopic = topic || getDefaultTopic(channelName);
@@ -170,6 +222,35 @@ const ChatHeader = ({ onlineCount, topic, channelName = 'general', onLanguageCli
               </Tooltip>
             )}
           </div>
+          
+          {/* Ghost Mode Toggle - Only for Owners/Admins */}
+          {(isOwner || isAdmin) && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleToggleGhostMode}
+                  disabled={togglingGhost}
+                  className={cn(
+                    "h-7 w-7",
+                    ghostMode 
+                      ? "text-primary bg-primary/10" 
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {ghostMode ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p>{ghostMode ? 'Ghost Mode: ON (invisible)' : 'Ghost Mode: OFF (visible)'}</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
           
           {onLanguageClick && (
             <Tooltip>
