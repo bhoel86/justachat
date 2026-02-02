@@ -515,6 +515,12 @@ const PrivateChatWindow = ({
     };
   }, [currentUserId, targetUserId, isTargetBot]);
 
+  // Ref to hold onNewMessage callback to avoid re-subscriptions
+  const onNewMessageRef = useRef(onNewMessage);
+  useEffect(() => {
+    onNewMessageRef.current = onNewMessage;
+  }, [onNewMessage]);
+
   // Subscribe to database changes for reliable message sync
   useEffect(() => {
     if (isTargetBot) return;
@@ -549,7 +555,7 @@ const PrivateChatWindow = ({
                 return prev;
               }
               console.log('[PM-DB] Adding message from DB:', newMsg.id);
-              onNewMessage?.();
+              onNewMessageRef.current?.();
               return [...prev, decrypted];
             });
           }
@@ -579,7 +585,7 @@ const PrivateChatWindow = ({
       isMounted = false;
       supabase.removeChannel(dbChannel);
     };
-  }, [currentUserId, targetUserId, isTargetBot, targetUsername, onNewMessage]);
+  }, [currentUserId, targetUserId, isTargetBot]);
 
   const monitorMessage = useCallback(async (content: string, senderId: string, senderName: string) => {
     try {
