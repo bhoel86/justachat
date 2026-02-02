@@ -1159,7 +1159,7 @@ const Auth = () => {
 
               {/* Matrix theme: Split Red/Blue pill button */}
               {isMatrix ? (
-                <div className="flex w-full overflow-hidden rounded-lg">
+                <div className="flex w-full overflow-hidden rounded-full">
                   {/* Red Pill Side */}
                   <button
                     type="submit"
@@ -1169,11 +1169,13 @@ const Auth = () => {
                       (mode === "signup" && (!agreedToTerms || (captchaRequired && !captchaToken))) ||
                       (mode === "login" && rateLimitInfo?.locked)
                     }
-                    className="flex-1 py-3 font-mono uppercase tracking-wider text-sm transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center gap-0.5"
+                    className="flex-1 py-2 font-mono uppercase tracking-wider text-sm transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center"
                     style={{
                       background: 'linear-gradient(135deg, hsl(0 70% 25% / 0.9), hsl(0 80% 35% / 0.7))',
                       border: '1px solid hsl(0 80% 50% / 0.5)',
                       borderRight: 'none',
+                      borderTopLeftRadius: '9999px',
+                      borderBottomLeftRadius: '9999px',
                       boxShadow: 'inset 0 0 20px hsl(0 80% 50% / 0.3), 0 0 15px hsl(0 80% 50% / 0.2)',
                       color: 'hsl(0 80% 70%)',
                       textShadow: '0 0 10px hsl(0 80% 50% / 0.8)',
@@ -1209,11 +1211,13 @@ const Auth = () => {
                       (mode === "signup" && (!agreedToTerms || (captchaRequired && !captchaToken))) ||
                       (mode === "login" && rateLimitInfo?.locked)
                     }
-                    className="flex-1 py-3 font-mono uppercase tracking-wider text-sm transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center gap-0.5"
+                    className="flex-1 py-2 font-mono uppercase tracking-wider text-sm transition-all hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed flex flex-col items-center justify-center"
                     style={{
                       background: 'linear-gradient(135deg, hsl(210 70% 25% / 0.9), hsl(210 80% 35% / 0.7))',
                       border: '1px solid hsl(210 80% 50% / 0.5)',
                       borderLeft: 'none',
+                      borderTopRightRadius: '9999px',
+                      borderBottomRightRadius: '9999px',
                       boxShadow: 'inset 0 0 20px hsl(210 80% 50% / 0.3), 0 0 15px hsl(210 80% 50% / 0.2)',
                       color: 'hsl(210 80% 70%)',
                       textShadow: '0 0 10px hsl(210 80% 50% / 0.8)',
