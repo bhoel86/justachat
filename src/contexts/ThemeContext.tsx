@@ -18,7 +18,7 @@ const THEMES = [
   { id: 'retro80s' as ThemeName, name: '80s Retro', description: 'Retro Windows 95/98 aesthetic' },
   { id: 'valentines' as ThemeName, name: "Valentine's", description: 'Romantic pink hearts theme' },
   { id: 'stpatricks' as ThemeName, name: "St. Patrick's", description: 'Irish shamrocks & gold' },
-  { id: 'matrix' as ThemeName, name: 'The Matrix', description: 'Follow the white rabbit' },
+  { id: 'matrix' as ThemeName, name: 'Simulation', description: 'Follow the white rabbit' },
   { id: 'vapor' as ThemeName, name: 'Vaporwave OS', description: '1990s cyber OS aesthetic' },
   { id: 'arcade' as ThemeName, name: 'Retro Arcade', description: 'Neon arcade cabinet vibes' },
   { id: 'dieselpunk' as ThemeName, name: 'Dieselpunk', description: 'Medieval steampunk brass' },
