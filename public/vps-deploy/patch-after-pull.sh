@@ -150,7 +150,19 @@ if [ -f "$THEME_FILE" ]; then
 fi
 
 # ============================================
-# 7. Clean build artifacts
+# 7. Ensure Simulation pill hook exists
+# ============================================
+log_info "Checking Simulation pill hook..."
+
+PILL_HOOK="src/hooks/useSimulationPill.ts"
+if [ -f "$PILL_HOOK" ]; then
+  log_success "useSimulationPill.ts exists"
+else
+  log_warn "useSimulationPill.ts missing - may need to pull latest code"
+fi
+
+# ============================================
+# 8. Clean build artifacts
 # ============================================
 log_info "Cleaning stale build artifacts..."
 

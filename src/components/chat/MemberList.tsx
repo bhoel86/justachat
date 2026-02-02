@@ -23,6 +23,7 @@ import ProfileEditModal from "@/components/profile/ProfileEditModal";
 import ProfileViewModal from "@/components/profile/ProfileViewModal";
 import { useRadioOptional } from "@/contexts/RadioContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { getSimulationPill, getPillEmoji } from "@/hooks/useSimulationPill";
 
 
 interface Member {

@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import UserAvatar from "@/components/avatar/UserAvatar";
 import FormattedText from "./FormattedText";
+import { useTheme } from "@/contexts/ThemeContext";
+import { getSimulationPill, getPillEmoji } from "@/hooks/useSimulationPill";
 
 interface MessageBubbleProps {
   id: string;
@@ -56,16 +58,27 @@ const MessageBubble = ({
 }: MessageBubbleProps) => {
   const [showOriginal, setShowOriginal] = useState(false);
   const displayMessage = translatedMessage && !showOriginal ? translatedMessage : message;
+  const { theme } = useTheme();
+  const isSimulation = theme === 'matrix';
+  
+  // Get pill choice for Simulation theme display
+  const pillEmoji = isSimulation ? getPillEmoji(getSimulationPill()) : '';
   
   // Username dropdown component with 3-dot menu
   const UsernameWithDropdown = ({ username, userId, isOwnMessage, avatarUrl }: { username: string; userId?: string; isOwnMessage: boolean; avatarUrl?: string | null }) => {
     const textColor = isOwnMessage ? "text-primary-foreground/90" : "text-primary";
     const iconColor = isOwnMessage ? "text-primary-foreground/70" : "text-muted-foreground";
     
-    if (!userId) return <span className={`text-xs font-medium ${textColor}`}>{username}</span>;
+    if (!userId) return <span className={`text-xs font-medium ${textColor}`}>{pillEmoji && <span className="mr-1">{pillEmoji}</span>}{username}</span>;
     
     return (
       <div className="flex items-center gap-0.5">
+        {/* Pill indicator for Simulation theme */}
+        {pillEmoji && isOwnMessage && (
+          <span className="text-xs mr-0.5" title={getSimulationPill() === 'red' ? 'Red Pill' : 'Blue Pill'}>
+            {pillEmoji}
+          </span>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className={`p-0.5 rounded hover:bg-accent/50 transition-colors cursor-pointer opacity-60 hover:opacity-100 ${iconColor}`}>
