@@ -83,31 +83,7 @@ export const SimulationPillSelector = ({ onComplete, showTransition = false }: S
     }, 4000);
   };
 
-  // If already has pill (from previous session) and not in the middle of animation, show indicator
-  if (hasPill && !animating && !showChoiceImage) {
-    return (
-      <button
-        onClick={() => setPill(null)} // Reset to allow re-selection
-        className="flex items-center gap-2 px-3 py-1.5 rounded border border-green-500/30 bg-black/50 hover:bg-green-900/20 transition-colors group"
-        title="Click to choose again"
-      >
-        {/* Cropped pill image */}
-        <div 
-          className="w-6 h-4 bg-cover bg-no-repeat rounded-sm"
-          style={{
-            backgroundImage: `url(${matrixPillsImg})`,
-            backgroundPosition: pill === 'red' ? '0% 50%' : '100% 50%',
-            backgroundSize: '200% 100%',
-          }}
-        />
-        <span className="text-xs text-green-400/70 font-mono group-hover:text-green-400">
-          {pill === 'red' ? 'RED PILL' : 'BLUE PILL'}
-        </span>
-      </button>
-    );
-  }
-
-  // Show the full-screen choice image when pill is selected
+  // Show the full-screen choice image when pill is selected (either new selection or transition)
   if (showChoiceImage && selected) {
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black">
@@ -137,7 +113,11 @@ export const SimulationPillSelector = ({ onComplete, showTransition = false }: S
     );
   }
   
-  // If hasPill is already set (returning user), don't show the selector
+  // If showing existing pill transition, we've already handled it above
+  if (showingExistingPillTransition) return null;
+  
+  // If user already has a pill (returning user), don't show the selector on login page
+  // They go straight to the login form
   if (hasPill) return null;
 
   return (
