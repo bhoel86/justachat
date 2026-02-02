@@ -307,8 +307,8 @@ const Home = () => {
                   <Link to="/ethos" className="flex items-center gap-2 cursor-pointer">
                     <BookOpen className="w-4 h-4 text-primary" />
                     <div>
-                      <span>Our Story</span>
-                      <p className="text-xs text-muted-foreground">Why Justachat exists</p>
+                      <span>Why This Exists</span>
+                      <p className="text-xs text-muted-foreground">A place for real conversation</p>
                     </div>
                   </Link>
                 </DropdownMenuItem>

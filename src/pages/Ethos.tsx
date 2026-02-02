@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { MessageSquare, ArrowLeft, Heart, Users, Zap, Shield } from "lucide-react";
+import { MessageSquare, ArrowLeft, Heart, Users, Zap, Shield, Lock, Eye, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SiteFooter from "@/components/layout/SiteFooter";
 
@@ -62,7 +62,7 @@ const Ethos = () => {
               Why This <span className="jac-gradient-text">Exists</span>
             </h1>
             <p className="text-xl text-muted-foreground">
-              A letter from someone who remembers what the internet used to feel like.
+              A place for adults who want real conversation without the noise.
             </p>
           </div>
         </div>
@@ -108,151 +108,59 @@ const Ethos = () => {
             
             <section className="mb-12 p-6 sm:p-8 rounded-2xl bg-card/50 border border-border">
               <p className="text-xl sm:text-2xl font-medium text-foreground leading-relaxed mb-6">
-                I came up on an internet that doesn't exist anymore.
+                JustAChat is a place for adults who want real conversation without the noise and pressure of modern social platforms.
               </p>
               <p className="text-muted-foreground leading-relaxed">
-                Before feeds. Before influencers. Before you logged in just to lurk and log out. 
-                Back when the internet was loud, messy, dangerous, and <em>human</em>.
+                No feeds. No followers. No performance metrics. Just people talking.
               </p>
             </section>
 
             <section className="mb-12 space-y-6">
               <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
                 <Zap className="w-6 h-6 text-primary" />
-                The Era That Shaped Me
+                Where We Came From
               </h2>
               
               <div className="space-y-4 text-muted-foreground leading-relaxed">
                 <p>
-                  <strong className="text-foreground">AIM profiles</strong> stacked with ASCII art and away messages 
-                  that told you more about a person than their real name ever did.
+                  We grew up in chat rooms when the internet felt smaller and more human.
                 </p>
                 
                 <p>
-                  <strong className="text-foreground">Yahoo chat rooms</strong> full of chaos, trolls, regulars, 
-                  and people who somehow showed up every single night.
+                  Before everything became a profile, a metric, or a brand.
                 </p>
                 
                 <p>
-                  <strong className="text-foreground">MSN nudges</strong> meant something.
-                </p>
-                
-                <p>
-                  <strong className="text-foreground">mIRC channels</strong> weren't "servers" — they were territories. 
-                  You earned your name or you got run out.
-                </p>
-                
-                <p>
-                  <strong className="text-foreground">JavaChat boxes</strong> embedded in sketchy sites that felt 
-                  more real than anything today.
+                  When you could log on, talk to strangers, and leave without a trace. 
+                  When conversations happened because people wanted to talk — not because they wanted to be seen.
                 </p>
               </div>
             </section>
 
             <section className="mb-12 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20">
               <p className="text-lg text-foreground leading-relaxed italic">
-                "I didn't just watch it — I lived in it."
+                "The internet used to be a place. Now it's a performance."
               </p>
             </section>
 
             <section className="mb-12 space-y-6">
               <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
-                <Shield className="w-6 h-6 text-primary" />
-                The Underground Years
+                <Clock className="w-6 h-6 text-primary" />
+                Where We Are Now
               </h2>
               
               <div className="space-y-4 text-muted-foreground leading-relaxed">
                 <p>
-                  I saw the underground too. Booters, tunnels, packet flooding, social engineering — 
-                  the Xbox Underground era where knowledge was currency and curiosity got you in trouble fast. 
-                  The Lizard Squad chaos years later felt like an echo of something that started way earlier.
+                  Today, most platforms are built around performance, promotion, and attention.
                 </p>
                 
                 <p>
-                  I hard-modded Xbox 360s when that meant solder smoke, burned fingers, and bricked consoles at 3am. 
-                  No tutorials. No Discord hand-holding. You learned or you failed.
+                  It's loud, crowded, and exhausting.
                 </p>
                 
                 <p>
-                  I've been in the background of damn near every major shift in computers and internet culture 
-                  over the last 20+ years. Not famous. Not a legend. Just <em>present</em> while it all evolved — 
-                  and slowly got sanitized, monetized, hollowed out.
-                </p>
-              </div>
-            </section>
-
-            <section className="mb-12 space-y-6">
-              <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
-                <Users className="w-6 h-6 text-destructive" />
-                What We Lost
-              </h2>
-              
-              <div className="p-6 rounded-xl bg-destructive/10 border border-destructive/20 space-y-4">
-                <p className="text-foreground leading-relaxed">
-                  Now the internet is quiet in the worst way.
-                </p>
-                <ul className="space-y-2 text-muted-foreground">
-                  <li>→ Rooms full of usernames doing nothing.</li>
-                  <li>→ Communities replaced by engagement metrics.</li>
-                  <li>→ Everyone connected, nobody talking.</li>
-                </ul>
-                <p className="text-foreground font-medium">
-                  I miss when logging on felt like entering a <em>place</em> — not being fed content.
-                </p>
-              </div>
-            </section>
-
-            {/* The Original Justachat Legacy */}
-            <section className="mb-12 space-y-6">
-              <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
-                <MessageSquare className="w-6 h-6 text-primary" />
-                The Original Justachat
-              </h2>
-              
-              <div className="space-y-4 text-muted-foreground leading-relaxed">
-                <p>
-                  Back in the early 2000s, there was a site called <strong className="text-foreground">justachat.com</strong>. 
-                  Run by <strong className="text-foreground">Cloyd Enterprises</strong>, it wasn't trying to be the next big thing. 
-                  It was exactly what the name said — just a chat. A place where people showed up, talked, and kept coming back.
-                </p>
-                
-                {/* Nostalgic details box */}
-                <div className="p-5 rounded-xl bg-gradient-to-br from-indigo-950/50 to-purple-950/30 border border-indigo-500/20 space-y-4">
-                  <p className="text-sm text-indigo-300 font-medium uppercase tracking-wider">The Rooms We Knew</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
-                    <span className="text-foreground/80">☕ The Cafe</span>
-                    <span className="text-foreground/80">🎮 Games</span>
-                    <span className="text-foreground/80">🏰 The Palace</span>
-                    <span className="text-foreground/80">🧠 Trivia</span>
-                    <span className="text-foreground/80">🏖️ The Beach</span>
-                    <span className="text-foreground/80">🎭 Freestyle</span>
-                    <span className="text-foreground/80">⚔️ RPG Chat</span>
-                    <span className="text-foreground/80">🎵 Music</span>
-                    <span className="text-foreground/80">💬 Teen Chat</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground italic">
-                    Teen Chat alone had nearly 700,000 visits. Trivia had 70,000 questions. 
-                    They crowned a "Top Chatter" every week. It was a whole world.
-                  </p>
-                </div>
-
-                <p>
-                  Run by people like <strong className="text-foreground">Brent</strong> and moderated by regulars 
-                  like <strong className="text-foreground">Bethany</strong> who actually gave a damn about the community. 
-                  Real staff who knew the regulars by name. Room drama that felt important because you were invested. 
-                  Late nights that turned into friendships.
-                </p>
-                
-                <p>
-                  There was KewlChat for the bold. Frogger and VooDoo Football in the games section. 
-                  Message boards where beef carried over from chat. A newsletter. A site map with symbols 
-                  and pictures lists — things that made a community feel like a <em>place</em> you could explore.
-                </p>
-                
-                <p>
-                  That site eventually went dark around 2003, like so many others. But the spirit of what it was? 
-                  That rainbow gradient logo, the blue interface, the cramped sidebar full of rooms — 
-                  that's what I'm trying to bring back.
+                  Every interaction is designed to keep you scrolling. Every feature is built to make you perform. 
+                  You're not a person — you're engagement.
                 </p>
               </div>
             </section>
@@ -260,26 +168,82 @@ const Ethos = () => {
             <section className="mb-12 space-y-6">
               <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
                 <Heart className="w-6 h-6 text-pink-500" />
-                Why I Built This
+                Why We Built This
               </h2>
               
               <div className="space-y-4 text-muted-foreground leading-relaxed">
                 <p>
-                  So I'm trying to bring a piece of that back.
+                  We wanted a place to talk without being watched, measured, or sold to.
                 </p>
                 
                 <p>
-                  Not the illegal shit. Not the ego.
+                  A place that feels present, not performative.
                 </p>
                 
                 <p className="text-foreground font-medium text-lg">
-                  The conversation. The late nights. The strangers who turned into long-term friends 
-                  because you talked for hours about nothing and everything.
+                  Somewhere you can show up, have a conversation, and leave without wondering who saw it or what it did to your numbers.
                 </p>
+              </div>
+            </section>
+
+            {/* What We Protect */}
+            <section className="mb-12 space-y-6">
+              <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
+                <Shield className="w-6 h-6 text-primary" />
+                What We Protect
+              </h2>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-5 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 space-y-2">
+                  <Lock className="w-6 h-6 text-primary" />
+                  <p className="font-medium text-foreground">Privacy</p>
+                  <p className="text-sm text-muted-foreground">Your conversations stay yours</p>
+                </div>
+                <div className="p-5 rounded-xl bg-gradient-to-br from-green-500/10 to-green-500/5 border border-green-500/20 space-y-2">
+                  <Eye className="w-6 h-6 text-green-500" />
+                  <p className="font-medium text-foreground">Presence</p>
+                  <p className="text-sm text-muted-foreground">Real people, real time</p>
+                </div>
+                <div className="p-5 rounded-xl bg-gradient-to-br from-amber-500/10 to-amber-500/5 border border-amber-500/20 space-y-2">
+                  <Shield className="w-6 h-6 text-amber-500" />
+                  <p className="font-medium text-foreground">Boundaries</p>
+                  <p className="text-sm text-muted-foreground">You control your space</p>
+                </div>
+                <div className="p-5 rounded-xl bg-gradient-to-br from-pink-500/10 to-pink-500/5 border border-pink-500/20 space-y-2">
+                  <Users className="w-6 h-6 text-pink-500" />
+                  <p className="font-medium text-foreground">Adults talking like adults</p>
+                  <p className="text-sm text-muted-foreground">No performance required</p>
+                </div>
+              </div>
+            </section>
+
+            <section className="mb-12 space-y-6">
+              <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
+                <Users className="w-6 h-6 text-destructive" />
+                What We Are Not
+              </h2>
+              
+              <div className="p-6 rounded-xl bg-destructive/10 border border-destructive/20 space-y-4">
+                <p className="text-foreground leading-relaxed font-medium">
+                  We are not:
+                </p>
+                <ul className="space-y-2 text-muted-foreground">
+                  <li>→ A social media platform</li>
+                  <li>→ A content network</li>
+                  <li>→ A place to build an audience</li>
+                  <li>→ A marketing channel</li>
+                </ul>
                 
-                <p>
-                  That's why I built <strong className="jac-gradient-text">justachat.net</strong>.
-                </p>
+                <div className="pt-4 border-t border-destructive/20">
+                  <p className="text-foreground leading-relaxed font-medium">
+                    We will not:
+                  </p>
+                  <ul className="space-y-2 text-muted-foreground">
+                    <li>→ Turn people into numbers</li>
+                    <li>→ Push people to promote themselves</li>
+                    <li>→ Design for addiction or attention loops</li>
+                  </ul>
+                </div>
               </div>
             </section>
 
@@ -289,21 +253,18 @@ const Ethos = () => {
                   No feeds. No likes. No clout farming.
                 </p>
                 <p className="text-2xl font-bold jac-gradient-text">
-                  Just people showing up and speaking again.
+                  Just people showing up and talking.
                 </p>
               </div>
             </section>
 
             <section className="text-center space-y-6">
               <div className="p-8 rounded-2xl bg-gradient-to-br from-primary/20 via-accent/10 to-primary/5 border border-primary/30">
-                <p className="text-lg text-muted-foreground mb-4">
-                  If you were there, you'll feel this.
-                </p>
                 <p className="text-lg text-muted-foreground mb-6">
-                  If you weren't, maybe you'll finally see what's missing.
+                  If you're tired of the noise, you'll feel at home here.
                 </p>
                 <p className="text-2xl font-bold text-foreground mb-8">
-                  Either way — the door's open.
+                  The door's open.
                 </p>
                 
                 <Button size="lg" className="jac-gradient-bg text-primary-foreground font-semibold" asChild>
