@@ -13,7 +13,7 @@ export const JungleWatermark = () => {
   }
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden">
+    <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden">
       {/* Jungle styled Justachat watermark */}
       <div 
         className="text-center select-none"
