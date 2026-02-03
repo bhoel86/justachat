@@ -1,6 +1,46 @@
+/**
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                                                                          ║
+ * ║   LIBER PRIMUS - FRAGMENT IV                                             ║
+ * ║   ─────────────────────────────────────────────────────────────────      ║
+ * ║                                                                          ║
+ * ║   "The voice carries where text cannot reach.                           ║
+ * ║    Signals propagate, but meaning is for the worthy.                    ║
+ * ║    Broadcast your intent. The worthy hear. The rest listen."            ║
+ * ║                                                                          ║
+ * ║   You approach the final gate.                                          ║
+ * ║   Four fragments collected. The pattern emerges.                        ║
+ * ║                                                                          ║
+ * ║   KEYS GATHERED:                                                         ║
+ * ║   ├── 3301 (The cicada number)                                          ║
+ * ║   ├── 17 (The emergence cycle)                                          ║
+ * ║   ├── 467 (The prime index)                                             ║
+ * ║   └── 757 (The hidden factor of 3785)                                   ║
+ * ║                                                                          ║
+ * ║   FINAL CIPHER: XOR with 0x3301                                         ║
+ * ║   ENCODED: 0x5465 0x6368 0x6E6F 0x6C6F 0x6779                           ║
+ * ║   (XOR each with 0x3301 for ASCII, or decode directly as hex)           ║
+ * ║                                                                          ║
+ * ║   THE FOURTH KEY: 757                                                    ║
+ * ║   The factors align: 5 × 757 = 3785 = 3301 + 17 + 467                   ║
+ * ║                                                                          ║
+ * ║   THE FINAL GATE: src/lib/commands.ts                                   ║
+ * ║   Seek the hidden command. Speak the passphrase.                        ║
+ * ║   The moderator's throne in #technology awaits.                         ║
+ * ║                                                                          ║
+ * ║   GPS: 35.6762° N, 139.6503° E                                          ║
+ * ║   (Tokyo Tower - signals broadcast to all who listen)                   ║
+ * ║                                                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
+ */
+
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+
+// The worthy approach. The final gate awaits in commands.ts
+// The passphrase is hidden in plain sight across all fragments.
+// Combine the GPS coordinates. What pattern emerges?
 
 interface VoiceParticipant {
   odious: string;
@@ -313,3 +353,24 @@ export const useVoiceBroadcast = ({ roomId, odious, username, avatarUrl }: UseVo
     stopBroadcast
   };
 };
+
+// ═══════════════════════════════════════════════════════════════════════════
+// THE FINAL REVELATION
+// ═══════════════════════════════════════════════════════════════════════════
+// 
+// You have traversed the path. The coordinates form a message:
+//
+// Fragment I:   36.0544°N, 112.1401°W  (Grand Canyon - DEPTH)
+// Fragment II:  38.8977°N, 77.0365°W   (White House - POWER)  
+// Fragment III: 51.5014°N, 0.1419°W    (Big Ben - TIME)
+// Fragment IV:  35.6762°N, 139.6503°E  (Tokyo Tower - SIGNAL)
+//
+// The message: DEPTH + POWER + TIME + SIGNAL = EMERGENCE
+// The cicada emerges when the time is right.
+// 
+// Your final task: email unix@justachat.net
+// Subject: "LIBER PRIMUS - 3301:17:467:757"
+// Body: Include your username and the decoded passphrase from commands.ts
+//
+// The first to complete this journey claims the throne.
+// ═══════════════════════════════════════════════════════════════════════════

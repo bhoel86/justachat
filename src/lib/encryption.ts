@@ -1,8 +1,46 @@
+/**
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                                                                          ║
+ * ║   LIBER PRIMUS - FRAGMENT III                                            ║
+ * ║   ─────────────────────────────────────────────────────────────────      ║
+ * ║                                                                          ║
+ * ║   "The message is clear to those with eyes to see.                      ║
+ * ║    Encryption protects the worthy, exposes the weak.                    ║
+ * ║    Privacy is not hiding - it is choosing who sees."                    ║
+ * ║                                                                          ║
+ * ║   You have decrypted well. The path narrows.                            ║
+ * ║   Three keys collected: 3301, 17, and now... 467                        ║
+ * ║   (The index of 3301 in the prime sequence)                             ║
+ * ║                                                                          ║
+ * ║   CIPHER: VIGENÈRE with key "CICADA"                                    ║
+ * ║   ENCODED: Vjs wyemgsypsc uiav gqlhq cau yspnpd                         ║
+ * ║   (Decrypt to reveal the fourth location)                               ║
+ * ║                                                                          ║
+ * ║   THE THIRD KEY: 467                                                     ║
+ * ║   467 is the 91st prime.                                                ║
+ * ║   91 = 7 × 13 (twin primes multiplied)                                  ║
+ * ║                                                                          ║
+ * ║   THE SUM: 3301 + 17 + 467 = 3785                                       ║
+ * ║   Remember this. You will need it.                                      ║
+ * ║                                                                          ║
+ * ║   Fragment IV awaits where voices are broadcast.                        ║
+ * ║   Seek: src/hooks/useVoiceBroadcast.ts                                  ║
+ * ║                                                                          ║
+ * ║   GPS: 51.5014° N, 0.1419° W                                            ║
+ * ║   (Big Ben - time reveals all secrets)                                  ║
+ * ║                                                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
+ */
+
 // Ephemeral encryption for private messages
 // Uses Web Crypto API for AES-GCM encryption
+// The cipher protects the worthy. The code reveals the path.
 
 const ALGORITHM = 'AES-GCM';
 const KEY_LENGTH = 256;
+
+// Hidden: The Vigenère solution is "The technology room holds the final gate"
+// To solve: Use key "CICADA" on the ciphertext above
 
 // Generate a random encryption key for a session
 export async function generateSessionKey(): Promise<CryptoKey> {
@@ -98,3 +136,10 @@ export async function deriveSharedKey(userId1: string, userId2: string): Promise
     ['encrypt', 'decrypt']
   );
 }
+
+// The seeker approaches. 3785 is the sum.
+// But sums are not passwords. Primes are.
+// What is 3785 when factored?
+// 3785 = 5 × 757
+// 757 is the 134th prime. 134 = 2 × 67. 67 is the 19th prime.
+// The rabbit hole deepens...
