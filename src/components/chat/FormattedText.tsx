@@ -113,16 +113,45 @@ const extractImage = (text: string): { hasImage: boolean; imageUrl: string | nul
 
 const ImagePreview = ({ url }: { url: string }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  if (hasError) {
+    return (
+      <div className="max-w-[200px] p-2 bg-destructive/10 border border-destructive/20 rounded-lg text-xs text-destructive mt-1">
+        <span className="font-medium">Image failed to load</span>
+        <a 
+          href={url} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="block truncate text-muted-foreground hover:underline mt-1"
+        >
+          {url.substring(0, 50)}...
+        </a>
+      </div>
+    );
+  }
   
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <img
-          src={url}
-          alt="Chat image"
-          className="max-w-[150px] sm:max-w-[200px] max-h-24 sm:max-h-32 rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-contain mt-1"
-          onClick={() => setIsOpen(true)}
-        />
+        <div className="relative inline-block mt-1">
+          {isLoading && (
+            <div className="absolute inset-0 bg-muted animate-pulse rounded-lg" />
+          )}
+          <img
+            src={url}
+            alt="Chat image"
+            className="max-w-[150px] sm:max-w-[200px] max-h-24 sm:max-h-32 rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-contain"
+            onClick={() => setIsOpen(true)}
+            onLoad={() => setIsLoading(false)}
+            onError={() => {
+              console.error("Image failed to load:", url);
+              setHasError(true);
+              setIsLoading(false);
+            }}
+          />
+        </div>
       </DialogTrigger>
       <DialogContent className="max-w-4xl p-0 bg-transparent border-none">
         <img
