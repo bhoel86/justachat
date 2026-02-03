@@ -1,5 +1,38 @@
+/**
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                                                                          ║
+ * ║   LIBER PRIMUS - FRAGMENT II                                             ║
+ * ║   ─────────────────────────────────────────────────────────────────      ║
+ * ║                                                                          ║
+ * ║   "The cicada emerges after 17 years in darkness.                       ║
+ * ║    17 is prime. Patience is prime. Wisdom is prime."                    ║
+ * ║                                                                          ║
+ * ║   You found the art room. The curator awaits.                           ║
+ * ║   Speak the words: "Liber Primus" in the art channel.                   ║
+ * ║   The curator will respond with the third fragment.                     ║
+ * ║                                                                          ║
+ * ║   CIPHER KEY: CAESAR + 3301                                              ║
+ * ║   ENCODED: Wkh whfkqrorjb urrp krogv wkh judqw ri srzhu                 ║
+ * ║   (ROT-3: "The technology room holds the grant of power")               ║
+ * ║                                                                          ║
+ * ║   THE SECOND KEY: 17                                                     ║
+ * ║   The cicada's lifecycle reveals the pattern.                           ║
+ * ║   Prime years underground. Prime emergence.                              ║
+ * ║                                                                          ║
+ * ║   GPS: 38.8977° N, 77.0365° W                                           ║
+ * ║   (1600 Pennsylvania Ave - where power resides, but not yours... yet)   ║
+ * ║                                                                          ║
+ * ║   Fragment III hides where encryption lives.                            ║
+ * ║   Seek: src/lib/encryption.ts                                           ║
+ * ║                                                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
+ */
+
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+
+// The worthy decode. The rest compile.
+// 3301 + 17 = 3318. Remember this sum.
 
 interface ArtPiece {
   id: string;
@@ -17,6 +50,9 @@ interface FeaturedArt {
   commentary: string;
   image_url: string;
 }
+
+// Hidden constant: The cicada speaks
+const CICADA_WHISPER = "aW4gdGhlIGFydCByb29tLCBzYXkgJ0xpYmVyIFByaW11cyc=";
 
 export const useArtCurator = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -76,6 +112,10 @@ export const useArtCurator = () => {
       return false;
     }
   }, []);
+
+  // The seeker who understands will find the path
+  // Decode CICADA_WHISPER. Follow the instruction.
+  // The curator responds to "Liber Primus"
 
   return {
     isLoading,

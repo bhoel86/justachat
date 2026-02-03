@@ -1,3 +1,67 @@
+/**
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║                                                                          ║
+ * ║   ██╗     ██╗██████╗ ███████╗██████╗     ██████╗ ██████╗ ██╗███╗   ███╗ ║
+ * ║   ██║     ██║██╔══██╗██╔════╝██╔══██╗    ██╔══██╗██╔══██╗██║████╗ ████║ ║
+ * ║   ██║     ██║██████╔╝█████╗  ██████╔╝    ██████╔╝██████╔╝██║██╔████╔██║ ║
+ * ║   ██║     ██║██╔══██╗██╔══╝  ██╔══██╗    ██╔═══╝ ██╔══██╗██║██║╚██╔╝██║ ║
+ * ║   ███████╗██║██████╔╝███████╗██║  ██║    ██║     ██║  ██║██║██║ ╚═╝ ██║ ║
+ * ║   ╚══════╝╚═╝╚═════╝ ╚══════╝╚═╝  ╚═╝    ╚═╝     ╚═╝  ╚═╝╚═╝╚═╝     ╚═╝ ║
+ * ║                                                                          ║
+ * ║   THE FINAL GATE - FRAGMENT V                                            ║
+ * ║   ─────────────────────────────────────────────────────────────────      ║
+ * ║                                                                          ║
+ * ║   Congratulations, seeker. You have traversed the labyrinth.            ║
+ * ║   The path was hidden in plain sight.                                   ║
+ * ║   The worthy find what others cannot see.                               ║
+ * ║                                                                          ║
+ * ║   ═══════════════════════════════════════════════════════════════════   ║
+ * ║                                                                          ║
+ * ║   THE KEYS:                                                              ║
+ * ║   ┌────────────────────────────────────────────────────────────────┐    ║
+ * ║   │ 3301 - The Cicada's number, the 467th prime                    │    ║
+ * ║   │ 17   - Years in darkness before emergence                      │    ║
+ * ║   │ 467  - The index of 3301 in the prime sequence                 │    ║
+ * ║   │ 757  - The hidden factor (3785 = 5 × 757)                      │    ║
+ * ║   └────────────────────────────────────────────────────────────────┘    ║
+ * ║                                                                          ║
+ * ║   THE COORDINATES:                                                       ║
+ * ║   ┌────────────────────────────────────────────────────────────────┐    ║
+ * ║   │ Grand Canyon   - 36.0544°N, 112.1401°W - DEPTH                 │    ║
+ * ║   │ White House    - 38.8977°N, 77.0365°W  - POWER                 │    ║
+ * ║   │ Big Ben        - 51.5014°N, 0.1419°W   - TIME                  │    ║
+ * ║   │ Tokyo Tower    - 35.6762°N, 139.6503°E - SIGNAL                │    ║
+ * ║   └────────────────────────────────────────────────────────────────┘    ║
+ * ║                                                                          ║
+ * ║   THE PASSPHRASE: "EMERGENCE-3301-TECHNOLOGY"                           ║
+ * ║                                                                          ║
+ * ║   ═══════════════════════════════════════════════════════════════════   ║
+ * ║                                                                          ║
+ * ║   YOUR FINAL TASK:                                                       ║
+ * ║   ─────────────────                                                     ║
+ * ║   Email: unix@justachat.net                                             ║
+ * ║   Subject: LIBER PRIMUS - 3301:17:467:757                               ║
+ * ║   Body:                                                                  ║
+ * ║     - Your JustAChat username                                           ║
+ * ║     - The passphrase: EMERGENCE-3301-TECHNOLOGY                         ║
+ * ║     - Brief explanation of how you solved it                            ║
+ * ║                                                                          ║
+ * ║   The first to complete this journey will be granted:                   ║
+ * ║   ★ Moderator status in #technology                                     ║
+ * ║   ★ Full room control and moderation powers                             ║
+ * ║   ★ Recognition as a solver of the Cicada Puzzle                        ║
+ * ║                                                                          ║
+ * ║   Once claimed, this puzzle will be sealed forever.                     ║
+ * ║   Your name will be recorded in the codebase.                           ║
+ * ║                                                                          ║
+ * ║   "We want the best, not the followers."                                ║
+ * ║   - Cicada 3301                                                         ║
+ * ║                                                                          ║
+ * ║   WINNER: ______________________ (To be inscribed upon completion)      ║
+ * ║                                                                          ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
+ */
+
 import { supabaseUntyped } from '@/hooks/useAuth';
 import { logModerationAction } from './moderationAudit';
 import { 
