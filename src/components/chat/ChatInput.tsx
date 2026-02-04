@@ -317,7 +317,7 @@ const ChatInput = ({ onSend, isMuted = false, canControlRadio = false, onlineUse
 
     try {
       const safeName = attachedImage.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const suggestedPath = `chat-images/${Date.now()}-${safeName}`;
+      const suggestedPath = `${Date.now()}-${safeName}`;
 
       // Use a direct request to the backend upload endpoint.
       // This avoids inconsistent multipart handling in some environments AND gives real upload progress.

@@ -190,7 +190,7 @@ const VideoChatBar = ({ roomId, odious, username, avatarUrl, currentUserRole, on
 
     try {
       const safeName = attachedImage.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const suggestedPath = `chat-images/${Date.now()}-${safeName}`;
+      const suggestedPath = `${Date.now()}-${safeName}`;
 
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData.session?.access_token;
