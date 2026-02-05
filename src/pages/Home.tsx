@@ -645,159 +645,118 @@ const Home = () => {
 
       {/* MOBILE SIMPLIFIED VIEW */}
       {isMobile ? (
-        <main className="flex flex-col min-h-[calc(100vh-56px)] pb-4">
-          {/* Compact Welcome Banner */}
-          <div 
-            onClick={() => navigate('/chat/general')}
-            className={`relative mx-2 mt-2 rounded-lg overflow-hidden cursor-pointer active:scale-[0.98] transition-transform ${
-              isRetro ? '' : 'border border-border'
-            }`}
-          >
-            {isRetro ? (
-              <RetroWelcomeBanner variant="mobile" />
-            ) : isValentines ? (
-              <ValentinesWelcomeBanner variant="mobile" />
-            ) : isStPatricks ? (
-              <StPatricksWelcomeBanner />
-            ) : isMatrix ? (
-              <MatrixWelcomeBanner variant="mobile" />
-            ) : (
-              <OGWelcomeBanner variant="mobile" onJoinClick={() => navigate('/chat/general')} />
-            )}
+        <main className="flex flex-col h-[calc(100vh-56px)] overflow-hidden">
+          {/* Live Chat Mirror - Takes most of the screen */}
+          <div className="flex-1 min-h-0 mx-2 mt-2 rounded-lg overflow-hidden border border-border">
+            <LobbyMirrorRoom />
           </div>
           
-          {/* Quick Actions Row */}
-          <div className="flex gap-2 mx-2 mt-2">
-            {/* Friends Button */}
-            {user && (
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex-1 gap-2 relative h-10">
-                    <Users className="h-4 w-4 text-primary" />
-                    <span className="text-xs font-medium">Friends</span>
-                    {friendsCounts.pending > 0 && (
-                      <span className="absolute -top-1 -right-1 h-4 w-4 text-[10px] flex items-center justify-center font-bold rounded-full bg-destructive text-destructive-foreground animate-pulse">
-                        {friendsCounts.pending}
-                      </span>
-                    )}
-                    {friendsCounts.online > 0 && friendsCounts.pending === 0 && (
-                      <span className="text-[10px] text-muted-foreground">({friendsCounts.online})</span>
-                    )}
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="right" className="w-[300px] p-0">
-                  <SheetHeader className="px-4 py-3 border-b">
-                    <SheetTitle className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-primary" />
-                      Friends
-                    </SheetTitle>
-                  </SheetHeader>
-                  <div className="h-[calc(100vh-80px)] overflow-hidden">
-                    <FriendsList
-                      currentUserId={user.id}
-                      onOpenPm={(userId, username) => navigate(`/chat/general`)}
-                      onCountsChange={setFriendsCounts}
-                    />
-                  </div>
-                </SheetContent>
-              </Sheet>
-            )}
-            
-            {/* Voice Chat Button */}
-            <Link to="/voice-chat" className="flex-1">
-              <Button variant="outline" size="sm" className="w-full gap-2 h-10 border-violet-500/50 hover:border-violet-500 hover:bg-violet-500/10">
-                <Radio className="h-4 w-4 text-violet-500" />
-                <span className="text-xs font-medium">Voice</span>
-              </Button>
-            </Link>
-            
-            {/* Video Chat Button */}
-            <Link to="/video-chat" className="flex-1">
-              <Button variant="outline" size="sm" className="w-full gap-2 h-10 border-green-500/50 hover:border-green-500 hover:bg-green-500/10">
-                <Camera className="h-4 w-4 text-green-500" />
-                <span className="text-xs font-medium">Cams</span>
-              </Button>
-            </Link>
-          </div>
-          
-          {/* Room Cards Grid */}
-          <div className="mx-2 mt-3">
-            <h2 className={`text-sm font-semibold mb-2 flex items-center gap-1.5 ${
-              isRetro ? "font-['VT323'] text-base" : ''
-            }`}>
-              {isRetro ? '📁 CHAT ROOMS' : isValentines ? '💕 Chat Rooms' : '💬 Chat Rooms'}
-            </h2>
-            
-            {loadingChannels ? (
-              <div className="grid grid-cols-3 gap-2">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="h-14 bg-card animate-pulse rounded-lg" />
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
-                {channels.map((channel) => {
+          {/* Bottom Bar: Horizontal Rooms + Quick Actions */}
+          <div className="shrink-0 px-2 py-2 border-t border-border bg-card/50">
+            {/* Room Cards - Horizontal Scroll */}
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none -mx-2 px-2">
+              {loadingChannels ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="shrink-0 w-20 h-14 bg-muted animate-pulse rounded-lg" />
+                ))
+              ) : (
+                channels.map((channel) => {
                   const botsEnabledForChannel = botsGloballyEnabled && botsAllowedChannels.includes(channel.name);
                   const userCount = (roomUserCounts[channel.id] || 0) + (botsEnabledForChannel ? getRoomBotCount(channel.name) : 0);
                   return (
                     <button
                       key={channel.id}
                       onClick={() => handleJoinRoom(channel)}
-                      className={`group relative h-14 overflow-hidden transition-all duration-200 active:scale-95 ${
+                      className={`shrink-0 w-20 h-14 relative overflow-hidden transition-all active:scale-95 ${
                         isRetro 
                           ? 'retro-room-card' 
                           : isValentines
-                            ? 'bg-card rounded-lg border border-pink-400/50 hover:border-pink-400'
-                            : 'bg-card rounded-lg border border-border hover:border-primary/50'
+                            ? 'bg-card rounded-lg border border-pink-400/50'
+                            : 'bg-card rounded-lg border border-border'
                       }`}
                     >
                       {/* Background gradient */}
                       {!isRetro && (
                         <>
-                          <div className={`absolute inset-0 bg-gradient-to-br ${roomColors[channel.name] || 'from-primary to-accent'} opacity-30`} />
+                          <div className={`absolute inset-0 bg-gradient-to-br ${roomColors[channel.name] || 'from-primary to-accent'} opacity-40`} />
                           <div className="absolute inset-0 bg-black/40" />
                         </>
                       )}
                       
                       {/* Content */}
-                      <div className="relative h-full flex flex-col items-center justify-center px-1 py-1">
-                        <span className="text-white/80 text-lg mb-0.5">
+                      <div className="relative h-full flex flex-col items-center justify-center px-1">
+                        <span className="text-white/90 mb-0.5">
                           {roomIcons[channel.name] || <Hash className="w-4 h-4" />}
                         </span>
-                        <h3 className="text-[10px] font-semibold text-white text-center leading-tight truncate w-full px-0.5">
+                        <h3 className="text-[9px] font-semibold text-white text-center leading-tight truncate w-full">
                           {formatRoomName(channel.name).replace(' 21+', '').replace('Movies Tv', 'Movies')}
                         </h3>
-                        <span className="text-[9px] text-white/70 mt-0.5">
-                          {userCount} online
-                        </span>
+                        <span className="text-[8px] text-white/70">{userCount}</span>
                       </div>
                     </button>
                   );
-                })}
-              </div>
-            )}
-          </div>
-          
-          {/* Live Chat Preview */}
-          <div className="mx-2 mt-3">
-            <h2 className={`text-sm font-semibold mb-2 flex items-center gap-1.5 ${
-              isRetro ? "font-['VT323'] text-base" : ''
-            }`}>
-              {isRetro ? '📺 LIVE CHAT' : '📺 Live Preview'}
-            </h2>
-            <div className="h-[280px] rounded-lg overflow-hidden border border-border">
-              <LobbyMirrorRoom />
+                })
+              )}
             </div>
-          </div>
-          
-          {/* Games Link */}
-          <div className="mx-2 mt-3">
-            <Link to="/games">
-              <Button variant="outline" className="w-full h-11 gap-2 border-orange-500/50 hover:border-orange-500 hover:bg-orange-500/10">
-                <Gamepad2 className="h-5 w-5 text-orange-500" />
-                <span className="font-medium">Games & Dating</span>
-              </Button>
-            </Link>
+            
+            {/* Quick Action Buttons */}
+            <div className="flex gap-2">
+              {/* Friends */}
+              {user && (
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="sm" className="flex-1 h-9 gap-1.5 relative text-xs">
+                      <Users className="h-3.5 w-3.5 text-primary" />
+                      Friends
+                      {friendsCounts.pending > 0 && (
+                        <span className="absolute -top-1 -right-1 h-4 w-4 text-[9px] flex items-center justify-center font-bold rounded-full bg-destructive text-destructive-foreground">
+                          {friendsCounts.pending}
+                        </span>
+                      )}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-[300px] p-0">
+                    <SheetHeader className="px-4 py-3 border-b">
+                      <SheetTitle className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-primary" />
+                        Friends
+                      </SheetTitle>
+                    </SheetHeader>
+                    <div className="h-[calc(100vh-80px)] overflow-hidden">
+                      <FriendsList
+                        currentUserId={user.id}
+                        onOpenPm={(userId, username) => navigate(`/chat/general`)}
+                        onCountsChange={setFriendsCounts}
+                      />
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              )}
+              
+              {/* Voice */}
+              <Link to="/voice-chat" className="flex-1">
+                <Button variant="outline" size="sm" className="w-full h-9 gap-1.5 text-xs border-violet-500/40">
+                  <Radio className="h-3.5 w-3.5 text-violet-500" />
+                  Voice
+                </Button>
+              </Link>
+              
+              {/* Cams */}
+              <Link to="/video-chat" className="flex-1">
+                <Button variant="outline" size="sm" className="w-full h-9 gap-1.5 text-xs border-green-500/40">
+                  <Camera className="h-3.5 w-3.5 text-green-500" />
+                  Cams
+                </Button>
+              </Link>
+              
+              {/* Games */}
+              <Link to="/games" className="flex-1">
+                <Button variant="outline" size="sm" className="w-full h-9 gap-1.5 text-xs border-orange-500/40">
+                  <Gamepad2 className="h-3.5 w-3.5 text-orange-500" />
+                  Games
+                </Button>
+              </Link>
+            </div>
           </div>
         </main>
       ) : (
