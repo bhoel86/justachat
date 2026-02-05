@@ -1548,7 +1548,7 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
       />
 
       {/* Friends Tray - floating minimizable friends list */}
-      {user && (
+      {user && !isMobile && (
         <FriendsTray
           currentUserId={user.id}
           onOpenPm={handleOpenPm}
