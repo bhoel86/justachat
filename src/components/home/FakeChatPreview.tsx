@@ -3,6 +3,7 @@ import UserAvatar from "@/components/avatar/UserAvatar";
 import { Shield, Crown } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { RetroWatermark } from "@/components/theme/RetroWatermark";
+ import { OGWatermark } from "@/components/theme/OGWatermark";
 
 interface FakeMessage {
   id: number;
@@ -404,16 +405,7 @@ const FakeChatPreview = () => {
           {isRetro ? (
             <RetroWatermark />
           ) : (
-            <div 
-              className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
-              style={{
-                backgroundImage: 'url(/justachat-logo-google-ads.png)',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-                backgroundSize: '200px',
-                opacity: 0.15
-              }}
-            />
+             <OGWatermark />
           )}
           {messages.map((msg) => {
             const userData = getUserData(msg.username);

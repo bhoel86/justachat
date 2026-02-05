@@ -51,6 +51,7 @@ import { ValentinesWatermark } from "@/components/theme/ValentinesWatermark";
 import { StPatricksWatermark } from "@/components/theme/StPatricksWatermark";
 import { MatrixWatermark } from "@/components/theme/MatrixWatermark";
 import { JungleWatermark } from "@/components/theme/JungleWatermark";
+ import { OGWatermark } from "@/components/theme/OGWatermark";
 import { ValentinesFloatingHearts } from "@/components/theme/ValentinesFloatingHearts";
 import { StPatricksFloatingIcons } from "@/components/theme/StPatricksFloatingIcons";
 
@@ -1359,16 +1360,7 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
             // 2026 expansion themes suppress default watermark - each has its own background styling
             null
           ) : (
-            <div 
-              className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
-              style={{
-                backgroundImage: 'url(/justachat-logo-google-ads.png)',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-                backgroundSize: '300px',
-                opacity: 0.15
-              }}
-            />
+             <OGWatermark />
           )}
           {loading ? (
             <div className="flex items-center justify-center flex-1">
