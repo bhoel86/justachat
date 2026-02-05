@@ -26,12 +26,12 @@
  log_error() { echo -e "${RED}[✗]${NC} $1"; }
  log_step() { echo -e "\n${MAGENTA}${BOLD}═══ $1 ═══${NC}\n"; }
  
- echo ""
- echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
- echo -e "${CYAN}║${NC}  ${BOLD}JUSTACHAT VPS MASTER UPDATE${NC}                                 ${CYAN}║${NC}"
- echo -e "${CYAN}║${NC}  $(date '+%Y-%m-%d %H:%M:%S')                                       ${CYAN}║${NC}"
- echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
- echo ""
+echo -e ""
+echo -e "${CYAN}╔══════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${CYAN}║${NC}  ${BOLD}JUSTACHAT VPS MASTER UPDATE${NC}                                 ${CYAN}║${NC}"
+echo -e "${CYAN}║${NC}  $(date '+%Y-%m-%d %H:%M:%S')                                       ${CYAN}║${NC}"
+echo -e "${CYAN}╚══════════════════════════════════════════════════════════════╝${NC}"
+echo -e ""
  
  cd "$PROJECT_DIR"
  
@@ -54,10 +54,8 @@
  log_step "STAGE 2: Protect VPS Environment"
  
  log_info "Writing VPS-specific .env..."
- cat > .env << 'VPSENV'
- VITE_SUPABASE_URL=https://justachat.net
- VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzA0MDY3MjAwLCJleHAiOjE4NjE5MjAwMDB9.ApWkSEYJ7yzNQ_H7yfVE2zyUp--eWrR-h9pj-rUSQEU
- VPSENV
+echo 'VITE_SUPABASE_URL=https://justachat.net' > .env
+echo 'VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzA0MDY3MjAwLCJleHAiOjE4NjE5MjAwMDB9.ApWkSEYJ7yzNQ_H7yfVE2zyUp--eWrR-h9pj-rUSQEU' >> .env
  
  log_success "VPS .env protected (justachat.net)"
  
