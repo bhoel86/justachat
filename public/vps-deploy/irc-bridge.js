@@ -319,27 +319,31 @@ async function processIRCLine(socket, state, line) {
         }
         
         const fullArgs = trailing ? `${args} :${trailing}`.trim() : args;
+        console.log(`[${state.id}] >> Calling edge function: ${command} ${fullArgs}`);
         const response = await callEdgeFunction(command, fullArgs, state.authToken, state.sessionId);
         
-        // Send response lines back to client
-        if (response.lines) {
-          for (const ircLine of response.lines) {
-            if (ircLine.trim()) {
-              sendToClient(socket, ircLine);
-            }
-          }
-        } else if (response.raw) {
-          const rawLines = response.raw.split('\r\n').filter(l => l.trim());
-          for (const ircLine of rawLines) {
-            sendToClient(socket, ircLine);
-          }
+        // Collect all IRC lines from whatever response format we get
+        let ircLines = [];
+        if (response.lines && Array.isArray(response.lines)) {
+          ircLines = response.lines;
         } else if (response.response) {
-          // Edge function returns { response: "..." }
-          const respLines = response.response.split('\r\n').filter(l => l.trim());
-          for (const ircLine of respLines) {
-            sendToClient(socket, ircLine);
+          ircLines = response.response.split('\r\n');
+        } else if (response.raw) {
+          ircLines = response.raw.split('\r\n');
+        }
+        
+        console.log(`[${state.id}] << Edge returned ${ircLines.length} lines for ${command}`);
+        
+        // Send each line, stripping any embedded \r\n first
+        let sentCount = 0;
+        for (const rawLine of ircLines) {
+          const cleaned = rawLine.replace(/\r?\n/g, '').trim();
+          if (cleaned) {
+            sendToClient(socket, cleaned);
+            sentCount++;
           }
         }
+        console.log(`[${state.id}] >> Sent ${sentCount} lines to client for ${command}`);
         break;
     }
   } catch (err) {
