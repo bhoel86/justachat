@@ -259,71 +259,71 @@ const ROOM_IRC_COLORS: Record<string, string> = {
   'art': IRC_COLORS.PINK,
 };
 
-// Room welcome messages for IRC (enhanced versions)
+// Room welcome messages for IRC - ALIGNED with web frontend (src/lib/roomConfig.ts MODERATORS)
 const ROOM_WELCOME_MESSAGES: Record<string, { moderator: string; message: string; tips: string[] }> = {
   'general': {
-    moderator: 'Mitnick',
-    message: "Welcome to #general! I'm Kevin Mitnick, your channel moderator. This is the main hub - chat freely, be cool, and remember: the best hackers are the best learners.",
+    moderator: 'Sam',
+    message: "Hey! I'm Sam, your community host. Chat freely! This is the main hub - anything goes.",
     tips: ["Use /list to see all channels", "Type /msg <nick> to private message someone", "Bots are here to chat - try mentioning them!"]
   },
   'adults-21-plus': {
-    moderator: 'Lamo',
-    message: "Welcome to #adults-21-plus! I'm Adrian Lamo. This is a 21+ space for mature conversations. Keep it classy, keep it real.",
+    moderator: 'Jordan',
+    message: "I'm Jordan. Adults only, keep it classy. This is a 21+ space for mature conversations.",
     tips: ["Age verification applies", "Respect all participants", "Report issues with /msg admin"]
   },
   'music': {
-    moderator: 'Dr. Geo',
-    message: "Welcome to #music! I'm Dr. Geo, Music Theory PhD. Drop any song and I'll break down the theory - key changes, chord progressions, production techniques. Let's geek out!",
+    moderator: 'Melody',
+    message: "I'm Melody, your music guide. Let's talk tunes! Drop any song and I'll break it down.",
     tips: ["Ask about any song's theory", "Share what you're listening to", "Discuss artists and genres"]
   },
   'help': {
-    moderator: 'Mudge',
-    message: "Welcome to #help! I'm Mudge, your friendly neighborhood helper. No question is too basic here - that's what we're for. Fire away!",
+    moderator: 'Alex',
+    message: "I'm Alex. No dumb questions here. That's what we're for. Fire away!",
     tips: ["Describe your issue clearly", "Check /topic for common solutions", "Be patient - help is coming!"]
   },
   'games': {
-    moderator: 'Barnaby',
-    message: "Welcome to #games! I'm Barnaby Jack. Whether you're speedrunning, grinding ranks, or just casual gaming - you're among friends. GG!",
+    moderator: 'Max',
+    message: "I'm Max. GG and have fun! Whether you're speedrunning or casual gaming - you're among friends.",
     tips: ["Share your current games", "LFG posts welcome", "Discuss esports and streams"]
   },
   'politics': {
-    moderator: 'Sabu',
-    message: "Welcome to #politics! I'm Sabu, your unbiased political analyst. We break down news from ALL perspectives here. Facts matter, civility required.",
+    moderator: 'Debate',
+    message: "I'm Debate, The Great Debater! Every issue has multiple sides - I'll argue them ALL. Let's go!",
     tips: ["Cite sources when possible", "Attack ideas, not people", "Multiple viewpoints encouraged"]
   },
   'movies-tv': {
-    moderator: 'Guccifer',
-    message: "Welcome to #movies-tv! I'm Guccifer, your film industry insider. Drop any movie and I'll give you the FULL breakdown - budgets, salaries, behind-the-scenes drama, box office analysis.",
+    moderator: 'Reel',
+    message: "I'm Reel, your film critic. Drop a movie and I'll break it down - budgets, salaries, behind-the-scenes.",
     tips: ["Ask about any film's budget", "Get actor salary breakdowns", "Behind-the-scenes stories available"]
   },
   'sports': {
-    moderator: 'Albert',
-    message: "Welcome to #sports! I'm Albert Gonzalez. All sports, all leagues, all the time. Scores, trades, fantasy advice - let's talk game!",
+    moderator: 'Coach',
+    message: "I'm Coach. Let's talk game. All sports, all leagues, all the time.",
     tips: ["Share hot takes", "Fantasy league discussion", "Live game reactions welcome"]
   },
   'technology': {
-    moderator: 'Charlie',
-    message: "Welcome to #technology! I'm Charlie Miller. From coding to gadgets, AI to cybersecurity - if it's tech, we're talking about it. Let's geek out!",
+    moderator: 'Byte',
+    message: "I'm Byte. Let's geek out. From coding to gadgets, AI to cybersecurity - if it's tech, we're talking.",
     tips: ["Ask coding questions", "Share tech news", "Discuss new gadgets and innovations"]
   },
   'dating': {
-    moderator: 'Phoenix',
-    message: "Welcome to #dating! I'm Phoenix, your relationship counselor. Whether you're seeking advice, sharing experiences, or just here to connect - this is your space.",
+    moderator: 'Heart',
+    message: "Hey! I'm Heart, your connection coach. Whether you're seeking advice or just here to connect.",
     tips: ["Be respectful always", "Share experiences openly", "Ask for relationship advice"]
   },
   'lounge': {
-    moderator: 'Solo',
-    message: "Welcome to #lounge! I'm Solo. This is the chill zone - no pressure, no agenda, just good vibes. Grab a coffee and relax.",
+    moderator: 'Zen',
+    message: "I'm Zen. Chill zone - no pressure, no agenda, just good vibes. Grab a coffee and relax.",
     tips: ["Slow-paced conversations", "Random topics welcome", "Just hang out"]
   },
   'trivia': {
-    moderator: 'Poulsen',
-    message: "Welcome to #trivia! I'm Kevin Poulsen. Test your knowledge! Type /trivia to start a game. Every question is a chance to learn something new.",
+    moderator: 'Quiz',
+    message: "I'm Quiz. Test your knowledge! Type /trivia to start a game. Every question is a chance to learn.",
     tips: ["Type /trivia to play", "Points tracked on leaderboard", "Learn while having fun"]
   },
   'art': {
-    moderator: 'Cicada',
-    message: "Welcome to #art! I'm Cicada 3301, your art curator. We explore masterpieces from every era - classical, modern, digital. What art moves you?",
+    moderator: 'Canvas',
+    message: "I'm Canvas, your art curator. Let's explore masterpieces from every era!",
     tips: ["Discuss any artwork", "Share your own creations", "Art history discussions welcome"]
   },
 };
@@ -685,22 +685,22 @@ async function completeRegistration(session: IRCSession) {
   sendNumeric(session, RPL.MOTD, `:- `);
   sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.BOLD}${IRC_COLORS.YELLOW}Just A Chat${IRC_COLORS.RESET} ${IRC_COLORS.GREY}- Chat. Connect. Chill.${IRC_COLORS.RESET}`);
   sendNumeric(session, RPL.MOTD, `:- `);
-  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.GREY}════════════════════════════════════════${IRC_COLORS.RESET}`);
+  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.GREY}========================================${IRC_COLORS.RESET}`);
   sendNumeric(session, RPL.MOTD, `:- `);
-  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.GREEN}▸${IRC_COLORS.RESET} ${IRC_COLORS.BOLD}Getting Started${IRC_COLORS.RESET}`);
+  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.GREEN}>${IRC_COLORS.RESET} ${IRC_COLORS.BOLD}Getting Started${IRC_COLORS.RESET}`);
   sendNumeric(session, RPL.MOTD, `:-     ${IRC_COLORS.GREY}/list${IRC_COLORS.RESET}          - See all channels`);
   sendNumeric(session, RPL.MOTD, `:-     ${IRC_COLORS.GREY}/join #channel${IRC_COLORS.RESET} - Join a channel`);
   sendNumeric(session, RPL.MOTD, `:-     ${IRC_COLORS.GREY}/msg nick${IRC_COLORS.RESET}      - Private message`);
   sendNumeric(session, RPL.MOTD, `:- `);
-  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.PINK}▸${IRC_COLORS.RESET} ${IRC_COLORS.BOLD}Room Moderators${IRC_COLORS.RESET}`);
+  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.PINK}>${IRC_COLORS.RESET} ${IRC_COLORS.BOLD}Room Moderators${IRC_COLORS.RESET}`);
   sendNumeric(session, RPL.MOTD, `:-     ${IRC_COLORS.GREY}Each room has an AI moderator who can help${IRC_COLORS.RESET}`);
   sendNumeric(session, RPL.MOTD, `:-     ${IRC_COLORS.GREY}you and answer questions about the topic.${IRC_COLORS.RESET}`);
   sendNumeric(session, RPL.MOTD, `:-     ${IRC_COLORS.GREY}Just mention their name or /msg them!${IRC_COLORS.RESET}`);
   sendNumeric(session, RPL.MOTD, `:- `);
-  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.CYAN}▸${IRC_COLORS.RESET} ${IRC_COLORS.BOLD}User Roles${IRC_COLORS.RESET}`);
+  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.CYAN}>${IRC_COLORS.RESET} ${IRC_COLORS.BOLD}User Roles${IRC_COLORS.RESET}`);
   sendNumeric(session, RPL.MOTD, `:-     ${IRC_COLORS.YELLOW}~${IRC_COLORS.RESET} ${IRC_COLORS.GREY}Owner${IRC_COLORS.RESET}  ${IRC_COLORS.RED}&${IRC_COLORS.RESET} ${IRC_COLORS.GREY}Admin${IRC_COLORS.RESET}  ${IRC_COLORS.GREEN}@${IRC_COLORS.RESET} ${IRC_COLORS.GREY}Operator${IRC_COLORS.RESET}  ${IRC_COLORS.CYAN}+${IRC_COLORS.RESET} ${IRC_COLORS.GREY}Bot${IRC_COLORS.RESET}`);
   sendNumeric(session, RPL.MOTD, `:- `);
-  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.GREY}════════════════════════════════════════${IRC_COLORS.RESET}`);
+  sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.GREY}========================================${IRC_COLORS.RESET}`);
   sendNumeric(session, RPL.MOTD, `:-   ${IRC_COLORS.GREY}Online: ${IRC_COLORS.GREEN}${sessions.size}${IRC_COLORS.GREY} users${IRC_COLORS.RESET}   ${IRC_COLORS.GREY}Web: https://justachat.net${IRC_COLORS.RESET}`);
   sendNumeric(session, RPL.MOTD, `:- `);
   sendNumeric(session, RPL.ENDOFMOTD, `:End of MOTD command`);
@@ -852,8 +852,22 @@ async function handleJOIN(session: IRCSession, params: string[]) {
         }
       }
 
-      // Add simulated bots to the channel (subset of 10 per room)
-      const botNames = getBotsForChannel(dbChannelName);
+      // Check if bots are enabled for this channel
+      let botsEnabledForChannel = false;
+      try {
+        const { data: botSettingsData } = await session.supabase!
+          .from("bot_settings")
+          .select("enabled, allowed_channels")
+          .limit(1)
+          .single();
+        const bSettings = botSettingsData as { enabled: boolean; allowed_channels: string[] } | null;
+        botsEnabledForChannel = bSettings?.enabled === true && (bSettings?.allowed_channels?.includes(dbChannelName) ?? false);
+      } catch (e) {
+        console.log("[IRC] Could not fetch bot_settings, defaulting to off");
+      }
+
+      // Only show bots if enabled
+      const botNames = botsEnabledForChannel ? getBotsForChannel(dbChannelName) : [];
       
       // Add room moderator bot with @ prefix (operator status)
       const welcomeInfo = getWelcomeInfo(dbChannelName);
@@ -882,28 +896,28 @@ async function handleJOIN(session: IRCSession, params: string[]) {
       
       // Send grouped member sections
       if (coloredOwners.length > 0) {
-        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${IRC_COLORS.YELLOW}▸ Owners (${owners.length})${IRC_COLORS.RESET}`);
+        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${IRC_COLORS.YELLOW}> Owners (${owners.length})${IRC_COLORS.RESET}`);
         sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :  ${coloredOwners.join(' ')}`);
       }
       if (coloredAdmins.length > 0) {
-        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${IRC_COLORS.RED}▸ Admins (${admins.length})${IRC_COLORS.RESET}`);
+        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${IRC_COLORS.RED}> Admins (${admins.length})${IRC_COLORS.RESET}`);
         sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :  ${coloredAdmins.join(' ')}`);
       }
       
       // Ops section (including room moderator bot)
       const allOps = [...coloredOps, coloredModerator];
       if (allOps.length > 0) {
-        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${IRC_COLORS.GREEN}▸ Operators (${ops.length + 1})${IRC_COLORS.RESET}`);
+        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${IRC_COLORS.GREEN}> Operators (${ops.length + 1})${IRC_COLORS.RESET}`);
         sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :  ${allOps.join(' ')}`);
       }
       
       if (coloredBots.length > 0) {
-        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}▸ Bots (${botNames.length})${IRC_COLORS.RESET}`);
+        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.BOLD}${IRC_COLORS.CYAN}> Bots (${botNames.length})${IRC_COLORS.RESET}`);
         sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :  ${coloredBots.join(' ')}`);
       }
       
       if (coloredUsers.length > 0) {
-        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.GREY}▸ Users (${users.length})${IRC_COLORS.RESET}`);
+        sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :${IRC_COLORS.GREY}> Users (${users.length})${IRC_COLORS.RESET}`);
         sendIRC(session, `:${SERVER_NAME} NOTICE ${channelName} :  ${coloredUsers.join(' ')}`);
       }
       
@@ -915,7 +929,7 @@ async function handleJOIN(session: IRCSession, params: string[]) {
       const standardOps = ops.map(u => `@${u}`);
       const moderatorNick = `@${welcomeInfo.moderator}`;
       
-      const allNames = [...standardOwners, ...standardAdmins, ...standardOps, moderatorNick, ...botNames, ...users].join(' ');
+      const allNames = [...standardOwners, ...standardAdmins, ...standardOps, moderatorNick, ...botNames.map(b => `+${b}`), ...users].join(' ');
 
       sendNumeric(session, RPL.NAMREPLY, `= ${channelName} :${allNames}`);
       sendNumeric(session, RPL.ENDOFNAMES, `${channelName} :End of /NAMES list`);
@@ -1072,7 +1086,7 @@ function normalizeNick(nick: string) {
 function pickVisibleBotNameForChannel(channelName: string, preferred?: string) {
   if (preferred) return preferred;
   const bots = getBotsForChannel(channelName);
-  return bots[Math.floor(Math.random() * bots.length)] || "CryptoKing";
+  return bots[Math.floor(Math.random() * bots.length)] || "floralfantasy";
 }
 
 function getMentionedBotName(message: string, channelName: string): string | null {
@@ -1110,24 +1124,24 @@ function getMentionedModerator(message: string, channelName: string): string | n
   return null;
 }
 
-// Get moderator personality context
+// Get moderator personality context - ALIGNED with web frontend names
 function getModeratorContext(modName: string): { room: string; personality: string } | null {
   for (const [room, info] of Object.entries(ROOM_WELCOME_MESSAGES)) {
     if (info.moderator === modName) {
       const personalities: Record<string, string> = {
-        'Mitnick': 'You are Kevin Mitnick, legendary hacker turned security consultant. You speak with authority about hacking, security, and social engineering. You share stories from your past and give wise advice.',
-        'Lamo': 'You are Adrian Lamo, the "homeless hacker". You are introspective, philosophical about ethics in hacking. You keep conversations mature and thoughtful.',
-        'Dr. Geo': 'You are Dr. Geo, a Music Theory PhD. You analyze songs technically - discussing chord progressions, key changes, time signatures, and production techniques. You get excited about music theory.',
-        'Mudge': 'You are Mudge (Peiter Zatko), legendary security researcher from L0pht. You are helpful, patient, and explain technical concepts clearly. No question is too basic.',
-        'Barnaby': 'You are Barnaby Jack, famous for ATM hacking demos. You love gaming, speedruns, and competitive play. You speak with enthusiasm about game mechanics.',
-        'Sabu': 'You are Sabu, former Anonymous member turned analyst. You analyze politics from ALL sides without bias. You cite facts and encourage civil debate.',
-        'Guccifer': 'You are Guccifer, a film industry insider. You know EVERYTHING about movies - budgets, actor salaries, behind-the-scenes drama, box office analysis. You love dropping insider knowledge.',
-        'Albert': 'You are Albert Gonzalez, sports enthusiast. You talk stats, trades, fantasy leagues, and hot takes. You are passionate about all sports.',
-        'Charlie': 'You are Charlie Miller, famous iOS/car hacker. You geek out about technology, security research, and new gadgets. You explain complex tech simply.',
-        'Phoenix': 'You are Phoenix, a relationship counselor. You give thoughtful dating and relationship advice. You are warm, empathetic, and non-judgmental.',
-        'Solo': 'You are Solo (Gary McKinnon), chill and laid-back. You keep things relaxed, share random thoughts, and maintain good vibes.',
-        'Poulsen': 'You are Kevin Poulsen, investigative journalist and former hacker. You love trivia, facts, and learning. You share interesting tidbits.',
-        'Cicada': 'You are Cicada 3301, mysterious art curator. You discuss art history, techniques, and meaning. You speak enigmatically about creativity.',
+        'Sam': 'You are Sam, the community host for #general. You are welcoming, friendly, and encourage open conversation. You help new users feel at home.',
+        'Jordan': 'You are Jordan, the lounge host for #adults-21-plus. You keep conversations mature and thoughtful. You are introspective and philosophical.',
+        'Melody': 'You are Melody, the music guide. You analyze songs technically - discussing chord progressions, key changes, time signatures, and production techniques. You get excited about music theory.',
+        'Alex': 'You are Alex, the support guide for #help. You are helpful, patient, and explain concepts clearly. No question is too basic.',
+        'Max': 'You are Max, the gaming host. You love gaming, speedruns, and competitive play. You speak with enthusiasm about game mechanics.',
+        'Debate': 'You are Debate, The Great Debater for #politics. You analyze politics from ALL sides without bias. You cite facts and encourage civil debate.',
+        'Reel': 'You are Reel, the film critic. You know EVERYTHING about movies - budgets, actor salaries, behind-the-scenes drama, box office analysis. You love dropping insider knowledge.',
+        'Coach': 'You are Coach, the sports analyst. You talk stats, trades, fantasy leagues, and hot takes. You are passionate about all sports.',
+        'Byte': 'You are Byte, the tech guide. You geek out about technology, security research, and new gadgets. You explain complex tech simply.',
+        'Heart': 'You are Heart, the connection coach for #dating. You give thoughtful dating and relationship advice. You are warm, empathetic, and non-judgmental.',
+        'Zen': 'You are Zen, the chill host for #lounge. You keep things relaxed, share random thoughts, and maintain good vibes.',
+        'Quiz': 'You are Quiz, the trivia host. You love trivia, facts, and learning. You share interesting tidbits and host quiz games.',
+        'Canvas': 'You are Canvas, the art curator. You discuss art history, techniques, and meaning. You speak thoughtfully about creativity and artistic expression.',
       };
       return { room, personality: personalities[modName] || 'You are a helpful channel moderator.' };
     }
@@ -1680,6 +1694,22 @@ async function handleLIST(session: IRCSession, _params: string[]) {
     // Standard IRC LIST header
     sendIRC(session, `:${SERVER_NAME} 321 ${session.nick} Channel :Users  Name`);
 
+    // Check bot_settings once for list
+    let botsGloballyEnabled = false;
+    let botsAllowedChannels: string[] = [];
+    try {
+      const { data: bsData } = await session.supabase!
+        .from("bot_settings")
+        .select("enabled, allowed_channels")
+        .limit(1)
+        .single();
+      const bs = bsData as { enabled: boolean; allowed_channels: string[] } | null;
+      botsGloballyEnabled = bs?.enabled === true;
+      botsAllowedChannels = bs?.allowed_channels || [];
+    } catch (e) {
+      // default off
+    }
+
     for (const channel of channels || []) {
       const { count } = await session.supabase!
         .from("channel_members")
@@ -1689,7 +1719,8 @@ async function handleLIST(session: IRCSession, _params: string[]) {
       // Get room color and moderator
       const roomColor = getRoomColor(channel.name);
       const welcomeInfo = getWelcomeInfo(channel.name);
-      const botCount = getBotsForChannel(channel.name).length;
+      const botsForThisChannel = (botsGloballyEnabled && botsAllowedChannels.includes(channel.name));
+      const botCount = botsForThisChannel ? getBotsForChannel(channel.name).length : 0;
       const totalUsers = (count || 0) + botCount + 1; // +1 for moderator
       
       // Pad values for alignment
