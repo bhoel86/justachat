@@ -186,23 +186,15 @@ function handleConnection(socket) {
     
     state.buffer += data;
     
-    // Process complete lines
-    let lines = state.buffer.split('\r\n');
+    // Process complete lines - handle both \r\n and \n line endings
+    // Split on \n first, then strip any trailing \r
+    let lines = state.buffer.split('\n');
     state.buffer = lines.pop() || ''; // Keep incomplete line in buffer
     
-    // Also handle \n only (some clients)
-    const extraLines = [];
     for (const line of lines) {
-      if (line.includes('\n')) {
-        extraLines.push(...line.split('\n'));
-      } else {
-        extraLines.push(line);
-      }
-    }
-    
-    for (const line of extraLines) {
-      if (line.trim()) {
-        processIRCLine(socket, state, line.trim());
+      const cleaned = line.replace(/\r$/, '').trim();
+      if (cleaned) {
+        processIRCLine(socket, state, cleaned);
       }
     }
   });
