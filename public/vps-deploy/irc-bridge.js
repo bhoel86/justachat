@@ -28,8 +28,9 @@ function loadEnv() {
   
   // Try multiple locations for .env
   const envPaths = [
-    path.join(__dirname, '../../.env'),           // /var/www/justachat/.env
-    '/root/supabase/docker/.env',                  // Docker .env
+    '/home/unix/supabase/docker/.env',             // VPS Docker .env (unix user)
+    '/root/supabase/docker/.env',                  // VPS Docker .env (root user)
+    path.join(__dirname, '../../.env'),             // /var/www/justachat/.env (fallback)
     path.join(process.cwd(), '.env'),
   ];
   
