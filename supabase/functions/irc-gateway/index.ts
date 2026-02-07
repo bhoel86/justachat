@@ -2946,6 +2946,137 @@ Deno.serve(async (req) => {
 
   // Check for WebSocket upgrade
   const upgrade = req.headers.get("upgrade");
+  
+  // Handle HTTP POST from IRC bridge (non-WebSocket)
+  if (upgrade?.toLowerCase() !== "websocket" && req.method === "POST") {
+    try {
+      const body = await req.json();
+      const { command, args, sessionId } = body;
+      
+      if (!command) {
+        return new Response(JSON.stringify({ error: "Missing command" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        });
+      }
+      
+      console.log(`[IRC HTTP] Command: ${command}, Args: ${args}, Session: ${sessionId}`);
+      
+      // Collect output lines instead of sending via WebSocket
+      const outputLines: string[] = [];
+      
+      // Create a temporary session for this HTTP request
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+      
+      // Check for auth token from Authorization header
+      const authHeader = req.headers.get("authorization") || "";
+      const token = authHeader.replace(/^Bearer\s+/i, "");
+      
+      // Create a fake WebSocket that captures output
+      const fakeWs = {
+        send: (data: string) => { outputLines.push(data); },
+        readyState: 1, // OPEN
+      } as unknown as WebSocket;
+      
+      const tempSession: IRCSession = {
+        ws: fakeWs,
+        nick: body.nick || "bridge-user",
+        user: body.user || "bridge",
+        realname: body.realname || "IRC Bridge User",
+        registered: false,
+        authenticated: false,
+        userId: null,
+        channels: new Set(),
+        lastPing: Date.now(),
+        supabase: null,
+        sessionId: sessionId || `http-${Date.now()}`,
+      };
+      
+      // Handle PASS command (authentication)
+      if (command === "PASS") {
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        const raw = (args || "").replace(/^:/, "");
+        
+        const delimiter = raw.includes(":") ? ":" : raw.includes("|") ? "|" : raw.includes(";") ? ";" : raw.includes(",") ? "," : null;
+        
+        if (delimiter) {
+          const idx = raw.indexOf(delimiter);
+          const email = raw.substring(0, idx);
+          const pass = raw.substring(idx + 1);
+          
+          const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+          
+          if (error || !data.session) {
+            return new Response(JSON.stringify({ error: error?.message || "Auth failed" }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          
+          return new Response(JSON.stringify({ token: data.session.access_token, userId: data.user.id }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        } else {
+          // Token-based auth
+          const { data, error } = await supabase.auth.getUser(raw);
+          if (error || !data.user) {
+            return new Response(JSON.stringify({ error: "Invalid token" }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          return new Response(JSON.stringify({ token: raw, userId: data.user.id }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
+      
+      // For other commands, set up authenticated session
+      if (token && token !== supabaseAnonKey) {
+        const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+          global: { headers: { Authorization: `Bearer ${token}` } },
+        });
+        const { data: userData } = await supabase.auth.getUser(token);
+        if (userData?.user) {
+          tempSession.authenticated = true;
+          tempSession.userId = userData.user.id;
+          tempSession.supabase = supabase;
+          tempSession.registered = true;
+          
+          // Get username from profile
+          const { data: profile } = await supabase.from("profiles").select("username").eq("user_id", userData.user.id).single();
+          if (profile) {
+            tempSession.nick = (profile as { username: string }).username;
+          }
+        }
+      }
+      
+      // For unauthenticated commands that don't need auth (like LIST), use anon client
+      if (!tempSession.supabase) {
+        tempSession.supabase = createClient(supabaseUrl, supabaseAnonKey);
+        tempSession.registered = true; // Allow LIST etc. to work
+      }
+      
+      // Route the command
+      const fullLine = args ? `${command} ${args}` : command;
+      await handleIRCCommand(tempSession, fullLine);
+      
+      return new Response(JSON.stringify({ 
+        lines: outputLines,
+        response: outputLines.join("\r\n"),
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      
+    } catch (e) {
+      console.error("[IRC HTTP] Error:", e);
+      return new Response(JSON.stringify({ error: String(e) }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500,
+      });
+    }
+  }
+  
+  // Non-POST, non-WebSocket: return info
   if (upgrade?.toLowerCase() !== "websocket") {
     return new Response(JSON.stringify({
       server: SERVER_NAME,
