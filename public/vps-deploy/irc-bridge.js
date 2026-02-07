@@ -376,23 +376,49 @@ async function tryRegister(socket, state) {
     }
     
     // ALWAYS send IRC welcome numerics - mIRC requires these to complete registration
-    sendToClient(socket, `:jac.chat 001 ${state.nick} :Welcome to JustAChat IRC Network ${state.nick}`);
+    sendToClient(socket, `:jac.chat 001 ${state.nick} :Welcome to JustAChat IRC Network ${state.nick}!${state.nick}!~${state.user}@jac.chat`);
     sendToClient(socket, `:jac.chat 002 ${state.nick} :Your host is jac.chat, running JAC-IRC-1.0`);
     sendToClient(socket, `:jac.chat 003 ${state.nick} :This server was created 2026-01-01`);
-    sendToClient(socket, `:jac.chat 004 ${state.nick} jac.chat JAC-IRC-1.0 o o`);
-    sendToClient(socket, `:jac.chat 005 ${state.nick} NETWORK=JustAChat CHANTYPES=# :are supported by this server`);
+    sendToClient(socket, `:jac.chat 004 ${state.nick} jac.chat JAC-IRC-1.0 iowghraAsORTVSxNCWqBzvdHtGpI lvhopsmntikrRcaqOALQbSeIKVfMCuzNTGjZ`);
+    sendToClient(socket, `:jac.chat 005 ${state.nick} NETWORK=JustAChat CHANTYPES=# PREFIX=(ohv)@%+ CHANMODES=beI,kfL,lj,psmntirRcOAQKVCuzNSMTGZ MODES=6 STATUSMSG=@%+ :are supported by this server`);
     
-    // Send MOTD
+    // User/channel stats
+    sendToClient(socket, `:jac.chat 251 ${state.nick} :There are 42 users and 15 bots on 1 server`);
+    sendToClient(socket, `:jac.chat 252 ${state.nick} 3 :IRC Operators online`);
+    sendToClient(socket, `:jac.chat 254 ${state.nick} 12 :channels formed`);
+    sendToClient(socket, `:jac.chat 255 ${state.nick} :I have 42 clients and 0 servers`);
+    
+    // MOTD with ASCII art banner
     sendToClient(socket, `:jac.chat 375 ${state.nick} :- jac.chat Message of the Day -`);
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-`);
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-  \x0311     ██╗ █████╗  ██████╗\x0F`);
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-  \x0311     ██║██╔══██╗██╔════╝\x0F`);
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-  \x0311     ██║███████║██║     \x0F`);
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-  \x0311██   ██║██╔══██║██║     \x0F`);
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-  \x0311╚█████╔╝██║  ██║╚██████╗\x0F`);
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-  \x0311 ╚════╝ ╚═╝  ╚═╝ ╚═════╝\x0F`);
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-`);
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-  \x02JustAChat IRC Network\x02 - \x0303https://justachat.net\x0F`);
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-`);
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-  \x0312━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\x0F`);
     if (state.authToken) {
-      sendToClient(socket, `:jac.chat 372 ${state.nick} :- Welcome to JustAChat, ${state.nick}!`);
-      sendToClient(socket, `:jac.chat 372 ${state.nick} :- You are authenticated.`);
-      sendToClient(socket, `:jac.chat 372 ${state.nick} :- Type /join #general to start chatting.`);
+      sendToClient(socket, `:jac.chat 372 ${state.nick} :-  \x0303✓\x0F Welcome back, \x02${state.nick}\x02! You are \x0303authenticated\x0F.`);
     } else {
-      sendToClient(socket, `:jac.chat 372 ${state.nick} :- Welcome to JustAChat!`);
-      sendToClient(socket, `:jac.chat 372 ${state.nick} :- You are NOT authenticated.`);
-      sendToClient(socket, `:jac.chat 372 ${state.nick} :- Set server password to email;password to login.`);
+      sendToClient(socket, `:jac.chat 372 ${state.nick} :-  \x0304⚠\x0F You are \x0304NOT authenticated\x0F.`);
+      sendToClient(socket, `:jac.chat 372 ${state.nick} :-    Set server password: \x02email;password\x02`);
     }
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-  \x0312━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\x0F`);
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-`);
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-  \x0306Channels:\x0F /join #general | #music | #games | #help`);
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-             #sports | #movies-tv | #technology | #dating`);
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-             #lounge | #trivia | #politics | #adults-21-plus`);
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-`);
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-  \x0306Commands:\x0F /list | /whois <nick> | /msg <nick> <text>`);
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-             /join #channel | /part #channel | /quit`);
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-`);
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-  \x0314Chat bots are active in all channels!\x0F`);
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-  \x0314Type a bot's name to interact with them.\x0F`);
+    sendToClient(socket, `:jac.chat 372 ${state.nick} :-`);
     sendToClient(socket, `:jac.chat 376 ${state.nick} :End of /MOTD command.`);
     
     // Try to notify edge function of the connection (non-blocking)
