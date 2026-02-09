@@ -9,7 +9,7 @@ const corsHeaders = {
 // IRC Server configuration
 const SERVER_NAME = "jac.chat";
 const SERVER_VERSION = "JAC-IRC-2.1";
-const GATEWAY_DEPLOY_ID = "2026-02-09-relay-fix";
+const GATEWAY_DEPLOY_ID = "2026-02-09-bridge-poll";
 const NETWORK_NAME = "JACNet";
 const LOCAL_HOST_NAME = "Unix";
 
@@ -66,6 +66,8 @@ interface IRCSession {
   lastPing: number;
   supabase: ReturnType<typeof createClient> | null;
   sessionId: string;
+  isBridge: boolean;
+  pendingMessages: string[];
 }
 
 // IRC numeric replies
@@ -462,6 +464,11 @@ function getWelcomeInfo(channelName: string): { moderator: string; message: stri
 
 function sendIRC(session: IRCSession, message: string) {
   try {
+    if (session.isBridge) {
+      // Queue message for HTTP bridge sessions - retrieved via POLL
+      session.pendingMessages.push(message);
+      return;
+    }
     if (session.ws.readyState === WebSocket.OPEN) {
       console.log(`[IRC OUT] ${message}`);
       session.ws.send(message + "\r\n");
@@ -2675,7 +2682,13 @@ function handleQUIT(session: IRCSession, params: string[]) {
     }
   }
   
-  session.ws.close();
+  // Remove from sessions map
+  sessions.delete(session.sessionId);
+  
+  // Only close WebSocket for non-bridge sessions
+  if (!session.isBridge) {
+    try { session.ws.close(); } catch (_e) { /* ignore */ }
+  }
 }
 
 // ========== NAMES COMMAND ==========
@@ -3002,6 +3015,22 @@ Deno.serve(async (req) => {
       
       console.log(`[IRC HTTP] Command: ${command}, Args: ${args}, Session: ${sessionId}`);
       
+      // POLL command - return and clear pending messages for this bridge session
+      if (command === "POLL") {
+        const existingSession = sessionId ? sessions.get(sessionId) : null;
+        if (existingSession && existingSession.isBridge) {
+          const messages = [...existingSession.pendingMessages];
+          existingSession.pendingMessages = [];
+          existingSession.lastPing = Date.now();
+          return new Response(JSON.stringify({ lines: messages }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        return new Response(JSON.stringify({ lines: [] }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      
       // Collect output lines instead of sending via WebSocket
       const outputLines: string[] = [];
       
@@ -3019,18 +3048,23 @@ Deno.serve(async (req) => {
         readyState: 1, // OPEN
       } as unknown as WebSocket;
       
+      // Check if we have a persisted bridge session
+      let existingBridgeSession = sessionId ? sessions.get(sessionId) : null;
+      
       const tempSession: IRCSession = {
         ws: fakeWs,
-        nick: body.nick || "bridge-user",
-        user: body.user || "bridge",
-        realname: body.realname || "IRC Bridge User",
-        registered: false,
-        authenticated: false,
-        userId: null,
-        channels: new Set(),
+        nick: body.nick || (existingBridgeSession?.nick) || "bridge-user",
+        user: body.user || (existingBridgeSession?.user) || "bridge",
+        realname: body.realname || (existingBridgeSession?.realname) || "IRC Bridge User",
+        registered: existingBridgeSession?.registered || false,
+        authenticated: existingBridgeSession?.authenticated || false,
+        userId: existingBridgeSession?.userId || null,
+        channels: existingBridgeSession?.channels || new Set(),
         lastPing: Date.now(),
-        supabase: null,
+        supabase: existingBridgeSession?.supabase || null,
         sessionId: sessionId || `http-${Date.now()}`,
+        isBridge: false, // temp session uses fakeWs for this request's output
+        pendingMessages: existingBridgeSession?.pendingMessages || [],
       };
       
       // Handle PASS command (authentication)
@@ -3071,7 +3105,7 @@ Deno.serve(async (req) => {
       }
       
       // For other commands, set up authenticated session
-      if (token && token !== supabaseAnonKey) {
+      if (!tempSession.authenticated && token && token !== supabaseAnonKey) {
         const supabase = createClient(supabaseUrl, supabaseAnonKey, {
           global: { headers: { Authorization: `Bearer ${token}` } },
         });
@@ -3099,6 +3133,18 @@ Deno.serve(async (req) => {
       // Route the command
       const fullLine = args ? `${command} ${args}` : command;
       await handleIRCCommand(tempSession, fullLine);
+      
+      // Persist bridge session in sessions map so Realtime relay can find it
+      if (sessionId && tempSession.authenticated) {
+        // Store as a persistent bridge session
+        const bridgeSession: IRCSession = {
+          ...tempSession,
+          ws: { send: () => {}, readyState: 1 } as unknown as WebSocket,
+          isBridge: true,
+        };
+        sessions.set(sessionId, bridgeSession);
+        console.log(`[IRC HTTP] Persisted bridge session ${sessionId} (nick=${bridgeSession.nick}, channels=${bridgeSession.channels.size})`);
+      }
       
       return new Response(JSON.stringify({ 
         lines: outputLines,
@@ -3152,6 +3198,8 @@ Deno.serve(async (req) => {
     lastPing: Date.now(),
     supabase: null,
     sessionId,
+    isBridge: false,
+    pendingMessages: [],
   };
 
   sessions.set(sessionId, session);
