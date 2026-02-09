@@ -131,8 +131,8 @@ echo 'VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2x
   log_step "STAGE 5.5: Sync Nginx Config"
 
    NGINX_SRC="$PROJECT_DIR/dist/nginx-justachat.conf"
-   # Active config is 'justachat' (not 'justachat.net') - symlinked from sites-enabled
-   NGINX_DEST="/etc/nginx/sites-available/justachat"
+   # Active config is a regular file in sites-enabled (NOT a symlink)
+   NGINX_DEST="/etc/nginx/sites-enabled/justachat"
 
   if [ -f "$NGINX_SRC" ]; then
     if [ -f "$NGINX_DEST" ]; then
