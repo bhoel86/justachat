@@ -223,6 +223,12 @@ function handleConnection(socket) {
     console.log(`[${connId}] Connection closed (${state.nick || 'unregistered'})`);
     connections.delete(connId);
     
+    // Stop polling
+    if (state.pollInterval) {
+      clearInterval(state.pollInterval);
+      state.pollInterval = null;
+    }
+    
     // Notify edge function of disconnect
     if (state.authToken) {
       callEdgeFunction('QUIT', 'Connection closed', state.authToken, state.sessionId).catch(() => {});
@@ -231,6 +237,10 @@ function handleConnection(socket) {
   
   socket.on('error', (err) => {
     console.error(`[${connId}] Socket error: ${err.message}`);
+    if (state.pollInterval) {
+      clearInterval(state.pollInterval);
+      state.pollInterval = null;
+    }
     connections.delete(connId);
   });
 }
@@ -446,6 +456,26 @@ async function tryRegister(socket, state) {
     
     state.registered = true;
     console.log(`[${state.id}] Registration complete for ${state.nick} (auth: ${!!state.authToken})`);
+    
+    // Start polling for relayed messages (web→IRC)
+    if (state.authToken) {
+      state.pollInterval = setInterval(async () => {
+        try {
+          const pollResponse = await callEdgeFunction('POLL', '', state.authToken, state.sessionId);
+          if (pollResponse.lines && pollResponse.lines.length > 0) {
+            console.log(`[${state.id}] POLL returned ${pollResponse.lines.length} messages`);
+            for (const line of pollResponse.lines) {
+              const cleaned = line.replace(/\r?\n/g, '').trim();
+              if (cleaned) {
+                sendToClient(socket, cleaned);
+              }
+            }
+          }
+        } catch (e) {
+          // Silently ignore poll errors
+        }
+      }, 2000); // Poll every 2 seconds
+    }
     
   } catch (err) {
     console.error(`[${state.id}] Registration failed: ${err.message}`);
