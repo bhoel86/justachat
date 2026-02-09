@@ -16,16 +16,43 @@ NC='\033[0m'
 FULL_MODE="${1:-}"
 DB_CMD="docker exec -i supabase-db psql -U postgres --no-align -t"
 
-# Detect messages table join column (user_id or sender_id)
-MSG_USER_COL=$(docker exec -i supabase-db psql -U postgres --no-align -t -c "
-  SELECT column_name FROM information_schema.columns 
-  WHERE table_schema='public' AND table_name='messages' AND column_name IN ('user_id','sender_id')
-  ORDER BY column_name LIMIT 1;
-" 2>/dev/null | tr -d '[:space:]')
-MSG_USER_COL="${MSG_USER_COL:-user_id}"
+# Detect messages table join column
+# List ALL columns in messages table for debugging
+ALL_MSG_COLS=$(docker exec -i supabase-db psql -U postgres --no-align -t -c "
+  SELECT string_agg(column_name, ', ' ORDER BY ordinal_position)
+  FROM information_schema.columns 
+  WHERE table_schema='public' AND table_name='messages';
+" 2>/dev/null | tr -d '\n' | xargs)
 
-# Debug: show detected column
-echo -e "  [DEBUG] Messages join column detected: '${MSG_USER_COL}'"
+echo -e "  [DEBUG] Messages table columns: ${ALL_MSG_COLS:-NONE FOUND}"
+
+# Try to find the user column
+MSG_USER_COL=""
+for candidate in user_id sender_id author_id profile_id; do
+  if echo ",$ALL_MSG_COLS," | grep -q ",$candidate,\|, $candidate,\| $candidate "; then
+    MSG_USER_COL="$candidate"
+    break
+  fi
+done
+
+# Final fallback: test directly with a simple query
+if [ -z "$MSG_USER_COL" ]; then
+  for candidate in user_id sender_id; do
+    TEST_RESULT=$(docker exec -i supabase-db psql -U postgres --no-align -t -c "
+      SELECT '$candidate' WHERE EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_schema='public' AND table_name='messages' AND column_name='$candidate'
+      );
+    " 2>/dev/null | tr -d '[:space:]')
+    if [ "$TEST_RESULT" = "$candidate" ]; then
+      MSG_USER_COL="$candidate"
+      break
+    fi
+  done
+fi
+
+MSG_USER_COL="${MSG_USER_COL:-user_id}"
+echo -e "  [DEBUG] Messages join column selected: '${MSG_USER_COL}'"
 
 # Helper: safely count grep matches (handles sudo multi-line output)
 safe_count() {
@@ -341,12 +368,17 @@ docker ps --format "table {{.Names}}\t{{.Status}}" 2>/dev/null | while read line
 done
 
 # Check edge function recent errors
-info "Edge function errors (last 50 Docker logs):"
-EF_ERRORS=$(docker logs supabase-functions --tail 50 2>&1 | grep -ciE "(error|panic|fatal)" || echo "0")
-if [ "$EF_ERRORS" -gt 5 ]; then
-  alert "Edge function errors: $EF_ERRORS (check: docker logs supabase-functions --tail 100)"
+FUNC_CONTAINER=$(docker ps --format '{{.Names}}' 2>/dev/null | grep -i "function\|edge" | head -1 || echo "supabase-edge-functions")
+info "Edge function errors (last 50 Docker logs from ${FUNC_CONTAINER:-unknown}):"
+if [ -n "$FUNC_CONTAINER" ]; then
+  EF_ERRORS=$(docker logs "$FUNC_CONTAINER" --tail 50 2>&1 | grep -ciE "(error|panic|fatal)" || echo "0")
+  if [ "$EF_ERRORS" -gt 5 ]; then
+    alert "Edge function errors: $EF_ERRORS (check: docker logs $FUNC_CONTAINER --tail 100)"
+  else
+    ok "Edge function errors: $EF_ERRORS"
+  fi
 else
-  ok "Edge function errors: $EF_ERRORS"
+  warn "No functions container found"
 fi
 
 # ──────────────────────────────────────────────
