@@ -44,7 +44,8 @@ const UserLocationMap = ({ showControls = true, height = "400px" }: UserLocation
       }
 
       const script = document.createElement('script');
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''}&libraries=places`;
+      const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || 'AIzaSyD_F71Pz_lprTRbI70kNdczahj-F2kEM6U';
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=places`;
       script.async = true;
       script.defer = true;
       script.onload = () => setMapLoaded(true);
