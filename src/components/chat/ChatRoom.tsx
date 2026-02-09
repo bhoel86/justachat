@@ -39,6 +39,7 @@ import { useRadioOptional } from "@/contexts/RadioContext";
 import { parseCommand, executeCommand, isCommand, CommandContext } from "@/lib/commands";
 import { getModerator, getWelcomeMessage, getRandomTip, isAdultChannel } from "@/lib/roomConfig";
 import { moderateContent, shouldBlockMessage } from "@/lib/contentModeration";
+import { detectSpam, recordSpamStrike } from "@/lib/spamDetection";
 import { useChannelModerationSettings } from "@/hooks/useChannelModerationSettings";
 import { useSkipVote } from "@/hooks/useSkipVote";
 import { Button } from "@/components/ui/button";
@@ -1144,6 +1145,37 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
         variant: "destructive",
         title: "You are muted",
         description: "You cannot send messages while muted."
+      });
+      return;
+    }
+
+    // Spam detection (runs for all channels)
+    const spamResult = detectSpam(user.id, content);
+    if (spamResult.isSpam) {
+      const strikes = recordSpamStrike(user.id);
+      if (strikes >= 3) {
+        // Auto-mute after 3 spam strikes
+        toast({
+          variant: "destructive",
+          title: "Auto-muted for spam",
+          description: "You've been temporarily muted for repeated spam. Please stop."
+        });
+        // Insert a temporary mute (10 minutes)
+        await supabaseUntyped
+          .from('mutes')
+          .insert({
+            user_id: user.id,
+            muted_by: user.id,
+            reason: `Auto-muted: ${spamResult.reason}`,
+            expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString()
+          });
+        setIsMuted(true);
+        return;
+      }
+      toast({
+        variant: "destructive",
+        title: "Message blocked",
+        description: `${spamResult.reason}. Strike ${strikes}/3.`
       });
       return;
     }
