@@ -235,10 +235,28 @@ const Home = () => {
     }
   }, [user]);
 
-  // Subscribe to presence for all rooms to get user counts
+  // Fetch member counts from channel_members table + subscribe to presence for live online users
   useEffect(() => {
     if (!channels.length) return;
 
+    // Fetch actual member counts from channel_members table
+    const fetchMemberCounts = async () => {
+      const counts: RoomUserCounts = {};
+      
+      // Batch fetch: get all channel_members grouped by channel
+      for (const channel of channels) {
+        const { count } = await supabase
+          .from('channel_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('channel_id', channel.id);
+        counts[channel.id] = count || 0;
+      }
+      setRoomUserCounts(counts);
+    };
+
+    fetchMemberCounts();
+
+    // Also subscribe to presence for live updates (adds to member count)
     const presenceChannels: ReturnType<typeof supabase.channel>[] = [];
 
     channels.forEach((channel) => {
@@ -247,8 +265,12 @@ const Home = () => {
       presenceChannel
         .on('presence', { event: 'sync' }, () => {
           const state = presenceChannel.presenceState();
-          const userCount = Object.keys(state).length;
-          setRoomUserCounts(prev => ({ ...prev, [channel.id]: userCount }));
+          const onlineCount = Object.keys(state).length;
+          // Use presence count if higher than stored member count
+          setRoomUserCounts(prev => ({ 
+            ...prev, 
+            [channel.id]: Math.max(prev[channel.id] || 0, onlineCount) 
+          }));
         })
         .subscribe();
 

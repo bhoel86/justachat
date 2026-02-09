@@ -1525,7 +1525,7 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
         <ChatInput 
           onSend={handleSend} 
           isMuted={isMuted || isRoomMuted} 
-          canControlRadio={isAdmin || isOwner} 
+          canControlRadio={true} 
           onlineUsers={onlineUsers}
           radioListenerCount={listeningUsers.size}
         />
