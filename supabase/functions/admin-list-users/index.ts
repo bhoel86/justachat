@@ -45,8 +45,10 @@ Deno.serve(async (req) => {
     });
 
     // Verify caller has admin/owner role
-    const { data: callerIsOwner } = await adminClient.rpc('is_owner', { _user_id: caller.id });
-    const { data: callerIsAdmin } = await adminClient.rpc('has_role', { _user_id: caller.id, _role: 'admin' });
+    const { data: callerIsOwner, error: ownerErr } = await adminClient.rpc('is_owner', { _user_id: caller.id });
+    const { data: callerIsAdmin, error: adminErr } = await adminClient.rpc('has_role', { _user_id: caller.id, _role: 'admin' });
+    
+    console.log(`[admin-list-users] caller=${caller.id}, isOwner=${callerIsOwner} (err=${ownerErr?.message}), isAdmin=${callerIsAdmin} (err=${adminErr?.message})`);
     
     if (!callerIsOwner && !callerIsAdmin) {
       return new Response(
