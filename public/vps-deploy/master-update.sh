@@ -53,9 +53,20 @@ echo -e ""
  # ============================================
  log_step "STAGE 2: Protect VPS Environment"
  
- log_info "Writing VPS-specific .env..."
-echo 'VITE_SUPABASE_URL=https://justachat.net' > .env
-echo 'VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzY5NjYyODk3LCJleHAiOjIwODUwMjI4OTd9.qdPb9zUcD3hXTAUO8M2hAfK4UQoyHc3uPUXIsxofFfw' >> .env
+  log_info "Writing VPS-specific .env..."
+  # Read the REAL ANON_KEY from Docker environment (single source of truth)
+  VPS_ANON_KEY=""
+  if [ -f "$HOME/supabase/docker/.env" ]; then
+    VPS_ANON_KEY=$(grep -E '^ANON_KEY=' "$HOME/supabase/docker/.env" | head -1 | sed 's/^ANON_KEY=//')
+  fi
+  if [ -z "$VPS_ANON_KEY" ]; then
+    log_error "Could not read ANON_KEY from $HOME/supabase/docker/.env - .env will be incomplete!"
+    echo 'VITE_SUPABASE_URL=https://justachat.net' > .env
+  else
+    echo 'VITE_SUPABASE_URL=https://justachat.net' > .env
+    echo "VITE_SUPABASE_PUBLISHABLE_KEY=$VPS_ANON_KEY" >> .env
+    log_success "ANON_KEY auto-read from Docker env (${#VPS_ANON_KEY} chars)"
+  fi
  
  log_success "VPS .env protected (justachat.net)"
  
