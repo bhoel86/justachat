@@ -59,11 +59,18 @@ log_success "Git pull complete"
 # ============================================
 log_info "Stage 1b: Restoring VPS .env configuration..."
 
-# Always write the correct VPS .env (prevents Cloud contamination)
-cat > .env << 'VPSENV'
-VITE_SUPABASE_URL=https://justachat.net
-VITE_SUPABASE_PUBLISHABLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzA0MDY3MjAwLCJleHAiOjE4NjE5MjAwMDB9.ApWkSEYJ7yzNQ_H7yfVE2zyUp--eWrR-h9pj-rUSQEU
-VPSENV
+# Read the REAL ANON_KEY from Docker environment (single source of truth)
+VPS_ANON_KEY=""
+if [ -f "$HOME/supabase/docker/.env" ]; then
+  VPS_ANON_KEY=$(grep -E '^ANON_KEY=' "$HOME/supabase/docker/.env" | head -1 | sed 's/^ANON_KEY=//')
+fi
+if [ -z "$VPS_ANON_KEY" ]; then
+  log_error "Could not read ANON_KEY from Docker .env!"
+  echo 'VITE_SUPABASE_URL=https://justachat.net' > .env
+else
+  echo 'VITE_SUPABASE_URL=https://justachat.net' > .env
+  echo "VITE_SUPABASE_PUBLISHABLE_KEY=$VPS_ANON_KEY" >> .env
+fi
 
 log_success "VPS .env restored (justachat.net)"
 
