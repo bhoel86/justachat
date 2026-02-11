@@ -1458,6 +1458,13 @@ const Auth = () => {
                   >
                     Legal
                   </Link>
+                  <span className={`text-xs ${isRetro ? 'text-black' : 'text-muted-foreground/50'}`}>•</span>
+                  <Link 
+                    to="/site-index" 
+                    className={`text-xs transition-colors ${isRetro ? 'font-["VT323"] text-base text-[hsl(185,90%,35%)] hover:text-[hsl(330,90%,45%)]' : 'text-muted-foreground hover:text-primary'}`}
+                  >
+                    Site Index
+                  </Link>
                 </div>
               </div>
             </div>
