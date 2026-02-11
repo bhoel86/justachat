@@ -35,26 +35,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [signingOut, setSigningOut] = useState(false);
   const [role, setRole] = useState<AppRole | null>(null);
 
   const isAdmin = role === 'admin' || role === 'owner';
   const isOwner = role === 'owner';
   const isModerator = role === 'moderator' || role === 'admin' || role === 'owner';
-  
-  // Show loading screen during initial load OR during signout transition
-  const isLoading = loading || signingOut;
 
   // Separate initial load from ongoing auth changes to prevent race conditions
   useEffect(() => {
     let isMounted = true;
     let isInitialLoad = true;
 
-    // Auto-logout on browser close (but NOT on refresh/navigation).
-    // sessionStorage persists across refreshes but is cleared when the browser closes.
-    // If we load and there's a Supabase session but NO sessionStorage marker, the browser
-    // was closed → sign the user out.
+    // Browser-close detection: sessionStorage survives refreshes but is wiped
+    // when the browser fully closes. Check BEFORE anything else.
     const wasOpen = sessionStorage.getItem('jac_session_active');
+    const browserWasClosed = !wasOpen;
+
+    // Immediately set the marker for this session (survives refresh)
     sessionStorage.setItem('jac_session_active', '1');
 
     // Role check function that can optionally control loading state
@@ -84,18 +81,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       (event, session) => {
         if (!isMounted) return;
         
-        console.log('[Auth] State change:', event, session?.user?.email, isInitialLoad ? '(initial)' : '(ongoing)');
+        // During initial load, IGNORE auth state changes — initializeAuth handles it.
+        // This prevents the race condition where the listener restores a session
+        // before the browser-close check can sign it out.
+        if (isInitialLoad) {
+          console.log('[Auth] Ignoring initial auth event:', event);
+          return;
+        }
+        
+        console.log('[Auth] State change:', event, session?.user?.email);
         
         setSession(session);
         setUser(session?.user ?? null);
 
-        // For ongoing changes (not initial load), fire and forget role check
-        if (!isInitialLoad) {
-          if (session?.user) {
-            fetchRole(session.user.id, false); // Don't control loading
-          } else {
-            setRole(null);
-          }
+        if (session?.user) {
+          fetchRole(session.user.id, false);
+        } else {
+          setRole(null);
         }
 
         // Clear URL hash after OAuth callback is processed (VPS fix)
@@ -112,6 +114,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const safetyTimeout = window.setTimeout(() => {
         if (isMounted && loading) {
           console.warn('[Auth] Safety timeout reached, forcing loading=false');
+          isInitialLoad = false;
           setLoading(false);
         }
       }, 5000);
@@ -158,9 +161,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           if (!isMounted) return;
 
-          // Browser-close detection: if we have a session but sessionStorage was empty,
-          // the browser was closed and reopened → sign the user out automatically.
-          if (session?.user && !wasOpen) {
+          // Browser-close detection: session exists but sessionStorage was empty
+          // → browser was closed and reopened → force sign out
+          if (session?.user && browserWasClosed) {
             console.log('[Auth] Browser was closed — auto-signing out');
             try {
               await supabase.auth.signOut({ scope: 'local' });
@@ -186,7 +189,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error('[Auth] initializeAuth error:', err);
       } finally {
         window.clearTimeout(safetyTimeout);
-        // Mark initial load as complete
+        // Mark initial load as complete so the listener starts processing events
         isInitialLoad = false;
         // Ensure loading is false if we get here
         if (isMounted) setLoading(false);
@@ -203,8 +206,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Logout from chat function - call this when leaving chat room
   const logoutFromChat = async () => {
-    // Set signing out state to show loading screen during transition
-    setSigningOut(true);
     
     // Best-effort sign-out; if it fails, still clear local storage to prevent re-login.
     try {
@@ -262,8 +263,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
-    // Set signing out state to show loading screen during transition
-    setSigningOut(true);
     
     // Best-effort sign-out; if it fails, still clear local storage to prevent re-login.
     try {
@@ -282,7 +281,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading: isLoading, isAdmin, isOwner, isModerator, role, signUp, signIn, signOut, logoutFromChat, refreshRole }}>
+    <AuthContext.Provider value={{ user, session, loading, isAdmin, isOwner, isModerator, role, signUp, signIn, signOut, logoutFromChat, refreshRole }}>
       {children}
     </AuthContext.Provider>
   );
