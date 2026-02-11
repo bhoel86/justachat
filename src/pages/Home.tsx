@@ -522,6 +522,17 @@ const Home = () => {
                 </DropdownMenuItem>
                 
                 <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/site-index" className="flex items-center gap-2 cursor-pointer">
+                    <FileText className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                      <span>Site Index</span>
+                      <p className="text-xs text-muted-foreground">All pages in one place</p>
+                    </div>
+                  </Link>
+                </DropdownMenuItem>
+                
+                <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs text-muted-foreground">Support Us</DropdownMenuLabel>
                 
                 <DropdownMenuItem 
