@@ -169,6 +169,39 @@ const SiteFooter = () => {
                     FAQ
                   </Link>
                   <span className={`text-xs ${isRetro ? 'text-black/50' : 'text-muted-foreground/50'}`}>•</span>
+                  <Link 
+                    to="/free-chat" 
+                    className={`text-xs transition-colors ${
+                      isRetro 
+                        ? 'font-["VT323"] text-base text-[hsl(185_90%_35%)] hover:text-[hsl(330_90%_45%)]' 
+                        : 'text-muted-foreground hover:text-primary'
+                    }`}
+                  >
+                    Free Chat
+                  </Link>
+                  <span className={`text-xs ${isRetro ? 'text-black/50' : 'text-muted-foreground/50'}`}>•</span>
+                  <Link 
+                    to="/chat-rooms" 
+                    className={`text-xs transition-colors ${
+                      isRetro 
+                        ? 'font-["VT323"] text-base text-[hsl(185_90%_35%)] hover:text-[hsl(330_90%_45%)]' 
+                        : 'text-muted-foreground hover:text-primary'
+                    }`}
+                  >
+                    Chat Rooms
+                  </Link>
+                  <span className={`text-xs ${isRetro ? 'text-black/50' : 'text-muted-foreground/50'}`}>•</span>
+                  <Link 
+                    to="/online-chat" 
+                    className={`text-xs transition-colors ${
+                      isRetro 
+                        ? 'font-["VT323"] text-base text-[hsl(185_90%_35%)] hover:text-[hsl(330_90%_45%)]' 
+                        : 'text-muted-foreground hover:text-primary'
+                    }`}
+                  >
+                    Online Chat
+                  </Link>
+                  <span className={`text-xs ${isRetro ? 'text-black/50' : 'text-muted-foreground/50'}`}>•</span>
                   <span className={`text-xs font-mono ${isRetro ? 'text-[hsl(330_90%_50%)]' : 'text-muted-foreground/70'}`}>JAC</span>
                 </div>
               </div>
