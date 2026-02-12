@@ -293,6 +293,7 @@ const MemberList = ({ onlineUserIds, listeningUsers, channelName = 'general', ch
   // Debounce fetchMembers to prevent rapid re-fetches when onlineUserIds changes frequently
   const fetchMembersTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const prevOnlineIdsRef = useRef<string>('');
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
     // Only refetch if the set of online IDs actually changed (prevents bouncing)
@@ -313,6 +314,17 @@ const MemberList = ({ onlineUserIds, listeningUsers, channelName = 'general', ch
       }
     };
   }, [onlineUserIds, channelId]);
+
+  // Polling fallback — refetch every 10s to catch missed presence/channel_members updates
+  useEffect(() => {
+    if (!channelId) return;
+    pollingRef.current = setInterval(() => {
+      fetchMembers();
+    }, 10000);
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [channelId]);
 
   // Subscribe to channel_members changes (IRC users joining/leaving) — only for this channel
   // Removed global profiles/user_roles subscriptions as they caused constant refetches and bouncing
@@ -530,8 +542,9 @@ const MemberList = ({ onlineUserIds, listeningUsers, channelName = 'general', ch
   };
 
   // Check if bots should be shown for this channel
-  const botsEnabledForChannel = botSettings?.enabled && 
-    botSettings?.allowed_channels?.includes(channelName);
+  // Default to showing bots while settings are loading (botSettings is null initially)
+  const botsEnabledForChannel = botSettings === null ? true : (botSettings.enabled && 
+    botSettings.allowed_channels?.includes(channelName));
   const moderatorBotsEnabled = botSettings?.moderator_bots_enabled ?? true;
 
   // Get the bot moderator for this channel (only if moderator bots enabled AND this channel is in allowed_channels)

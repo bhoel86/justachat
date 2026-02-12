@@ -946,14 +946,31 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
   const handleChannelSelect = async (channel: Channel) => {
     // Check if room has a password and user is not room owner
     if (channel.created_by !== user?.id && !isAdmin && !isOwner) {
-      // Use secure server-side function to check if room has password
-      const { data: hasPassword } = await (supabase as any)
-        .rpc('channel_has_password', { _channel_id: channel.id });
-      
-      if (hasPassword) {
-        setPendingChannel(channel);
-        setShowPasswordModal(true);
-        return;
+      // Use REST-based RPC call to avoid Supabase JS client hanging on VPS
+      try {
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/channel_has_password`;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ _channel_id: channel.id }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        const hasPassword = await resp.json();
+        
+        if (hasPassword === true) {
+          setPendingChannel(channel);
+          setShowPasswordModal(true);
+          return;
+        }
+      } catch (err) {
+        console.log('[ChatRoom] Password check failed, allowing entry:', err);
       }
     }
     
