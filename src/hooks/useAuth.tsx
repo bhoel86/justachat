@@ -41,21 +41,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isOwner = role === 'owner';
   const isModerator = role === 'moderator' || role === 'admin' || role === 'owner';
 
-  // Separate initial load from ongoing auth changes to prevent race conditions
   useEffect(() => {
     let isMounted = true;
-    let isInitialLoad = true;
+    let initialResolved = false;
 
-    // Browser-close auto-logout removed — sessionStorage is unreliable
-    // across origin-changing redirects (HTTP→HTTPS, www→non-www) which
-    // caused users to be logged out on every page refresh on VPS.
-
-    // Role check function that can optionally control loading state
-    // Uses direct REST fetch with timeout to prevent Supabase client hanging
-    const fetchRole = async (userId: string, controlLoading: boolean, accessToken?: string) => {
+    const fetchRole = async (userId: string, accessToken?: string) => {
       try {
-        console.log('[Auth] Fetching role for user:', userId);
-        
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
         
@@ -87,142 +78,64 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                   best = row.role;
                 }
               }
-              console.log('[Auth] Role resolved:', best, 'from', rows.length, 'rows');
+              console.log('[Auth] Role resolved:', best);
               setRole(best);
             }
           } else {
-            console.warn('[Auth] Role fetch HTTP error:', res.status);
             if (isMounted) setRole('user');
           }
         } catch (fetchErr: any) {
           clearTimeout(timeout);
-          if (fetchErr.name === 'AbortError') {
-            console.warn('[Auth] Role fetch timed out after 5s');
-          } else {
-            console.error('[Auth] Role fetch error:', fetchErr);
-          }
           if (isMounted) setRole('user');
         }
-      } catch (err) {
-        console.error('[Auth] Role fetch exception:', err);
+      } catch {
         if (isMounted) setRole('user');
-      } finally {
-        if (controlLoading && isMounted) {
-          setLoading(false);
-        }
       }
     };
 
-    // Listener for ONGOING auth changes (does NOT control loading)
+    // Auth listener handles BOTH initial and ongoing events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (!isMounted) return;
-        
-        // During initial load, IGNORE auth state changes — initializeAuth handles it.
-        // This prevents the race condition where the listener restores a session
-        // before the browser-close check can sign it out.
-        if (isInitialLoad) {
-          console.log('[Auth] Ignoring initial auth event:', event);
-          return;
-        }
-        
         console.log('[Auth] State change:', event, session?.user?.email);
         
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          fetchRole(session.user.id, false, session.access_token);
+          fetchRole(session.user.id, session.access_token).finally(() => {
+            if (isMounted && !initialResolved) {
+              initialResolved = true;
+              setLoading(false);
+            }
+          });
         } else {
           setRole(null);
+          if (isMounted && !initialResolved) {
+            initialResolved = true;
+            setLoading(false);
+          }
         }
 
         // Clear URL hash after OAuth callback is processed (VPS fix)
         if (event === 'SIGNED_IN' && window.location.hash.includes('access_token')) {
-          console.log('[Auth] OAuth callback processed, clearing hash');
           window.history.replaceState(null, '', window.location.pathname);
         }
       }
     );
 
-    // INITIAL load - controls loading state, waits for role before setting loading=false
-    const initializeAuth = async () => {
-      // Safety timeout - NEVER stay loading forever (mobile fix)
-      const safetyTimeout = window.setTimeout(() => {
-        if (isMounted && loading) {
-          console.warn('[Auth] Safety timeout reached, forcing loading=false');
-          isInitialLoad = false;
-          setLoading(false);
-        }
-      }, 5000);
-
-      try {
-        // Handle OAuth callback hash explicitly (VPS self-hosted fix)
-        const hash = window.location.hash;
-        
-        if (hash && hash.includes('access_token')) {
-          console.log('[Auth] Detected OAuth callback hash, setting session from URL...');
-          const hashParams = new URLSearchParams(hash.startsWith('#') ? hash.slice(1) : hash);
-          const accessToken = hashParams.get('access_token');
-          const refreshToken = hashParams.get('refresh_token');
-
-          try {
-            if (accessToken && refreshToken) {
-              const { data, error } = await supabase.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken,
-              });
-
-              if (error) {
-                console.error('[Auth] Failed to set session from OAuth hash:', error);
-              } else if (data.session && isMounted) {
-                console.log('[Auth] Session established from OAuth hash');
-                setSession(data.session);
-                setUser(data.session.user);
-                await fetchRole(data.session.user.id, true, data.session.access_token);
-                return; // fetchRole sets loading=false
-              }
-            } else {
-              console.warn('[Auth] OAuth hash missing tokens');
-            }
-          } finally {
-            window.history.replaceState(null, '', window.location.pathname);
-          }
-        } else {
-          // No OAuth callback, check for existing session
-          const { data: { session }, error } = await supabase.auth.getSession();
-          
-          if (error) {
-            console.error('[Auth] getSession failed:', error);
-          }
-          
-          if (!isMounted) return;
-
-          // Browser-close auto-logout removed (see comment at top of effect)
-          
-          setSession(session);
-          setUser(session?.user ?? null);
-
-          if (session?.user) {
-            await fetchRole(session.user.id, true, session.access_token);
-            return; // fetchRole sets loading=false
-          }
-        }
-      } catch (err) {
-        console.error('[Auth] initializeAuth error:', err);
-      } finally {
-        window.clearTimeout(safetyTimeout);
-        // Mark initial load as complete so the listener starts processing events
-        isInitialLoad = false;
-        // Ensure loading is false if we get here
-        if (isMounted) setLoading(false);
+    // Safety timeout — never stay loading forever
+    const safetyTimeout = window.setTimeout(() => {
+      if (isMounted && !initialResolved) {
+        console.warn('[Auth] Safety timeout reached, forcing loading=false');
+        initialResolved = true;
+        setLoading(false);
       }
-    };
-
-    initializeAuth();
+    }, 5000);
 
     return () => {
       isMounted = false;
+      window.clearTimeout(safetyTimeout);
       subscription.unsubscribe();
     };
   }, []);
