@@ -452,15 +452,11 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
 
     presenceChannelRef.current = presenceChannel;
 
-    // Capture session token BEFORE subscribing so the INSERT uses the real JWT (not anon key)
-    let cachedAccessToken = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session?.access_token) {
-        cachedAccessToken = data.session.access_token;
-      }
+    // Use session token from useAuth context — always available when user is logged in
+    // (getSession() was returning null here, causing anon key to be used for REST calls)
+    const cachedAccessToken = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-      // Only start presence AFTER we have the real token
-      presenceChannel
+    presenceChannel
         .on('presence', { event: 'sync' }, async () => {
           const state = presenceChannel.presenceState();
           const onlineIds = new Set<string>();
@@ -528,7 +524,6 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
             console.log('[ChatRoom] channel_members insert skipped:', e);
           }
         });
-    });
 
     // Helper to clean up channel_members on any exit
     // Uses keepalive:true so the browser finishes the request even after the page unloads
