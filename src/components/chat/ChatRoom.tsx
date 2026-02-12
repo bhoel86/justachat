@@ -492,16 +492,26 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
         await presenceChannel.track({ user_id: user.id });
 
         // Insert into channel_members so IRC gateway can see web users
-        // Delete-then-insert ensures Realtime INSERT event always fires (upsert with ignoreDuplicates would silently no-op)
+        // Uses direct fetch (not supabase.from) to prevent JS client hang on VPS
         try {
-          await (supabase as any)
-            .from('channel_members')
-            .delete()
-            .eq('channel_id', currentChannel.id)
-            .eq('user_id', user.id);
-          await (supabase as any)
-            .from('channel_members')
-            .insert({ channel_id: currentChannel.id, user_id: user.id });
+          const restUrl = import.meta.env.VITE_SUPABASE_URL;
+          const restKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+          const tok = cachedAccessToken || restKey;
+          const restHeaders: Record<string, string> = {
+            'apikey': restKey,
+            'Authorization': `Bearer ${tok}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal',
+          };
+          // Delete first
+          await fetch(`${restUrl}/rest/v1/channel_members?channel_id=eq.${currentChannel.id}&user_id=eq.${user.id}`, {
+            method: 'DELETE', headers: restHeaders,
+          });
+          // Then insert
+          await fetch(`${restUrl}/rest/v1/channel_members`, {
+            method: 'POST', headers: restHeaders,
+            body: JSON.stringify({ channel_id: currentChannel.id, user_id: user.id }),
+          });
         } catch (e) {
           // Non-critical - IRC visibility only
           console.log('[ChatRoom] channel_members insert skipped:', e);
@@ -546,8 +556,12 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
         if (visibilityTimer) { clearTimeout(visibilityTimer); visibilityTimer = null; }
         // Re-insert into channel_members in case it was cleaned up
         if (user?.id && currentChannel?.id) {
-          (supabase as any).from('channel_members').delete().eq('channel_id', currentChannel.id).eq('user_id', user.id)
-            .then(() => (supabase as any).from('channel_members').insert({ channel_id: currentChannel.id, user_id: user.id }))
+          const restUrl = import.meta.env.VITE_SUPABASE_URL;
+          const restKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+          const tok = cachedAccessToken || restKey;
+          const rh: Record<string, string> = { 'apikey': restKey, 'Authorization': `Bearer ${tok}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
+          fetch(`${restUrl}/rest/v1/channel_members?channel_id=eq.${currentChannel.id}&user_id=eq.${user.id}`, { method: 'DELETE', headers: rh })
+            .then(() => fetch(`${restUrl}/rest/v1/channel_members`, { method: 'POST', headers: rh, body: JSON.stringify({ channel_id: currentChannel.id, user_id: user.id }) }))
             .catch(() => {});
         }
       }

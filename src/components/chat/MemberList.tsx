@@ -379,10 +379,14 @@ const MemberList = ({
   }, [onlineUserIds, channelId]);
 
   // Polling fallback — refetch every 10s to catch missed presence/channel_members updates
+  // Use a ref to always call the latest fetchMembers (avoids stale closure in setInterval)
+  const fetchMembersRef = useRef(fetchMembers);
+  fetchMembersRef.current = fetchMembers;
+
   useEffect(() => {
     if (!channelId) return;
     pollingRef.current = setInterval(() => {
-      fetchMembers();
+      fetchMembersRef.current();
     }, 10000);
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
