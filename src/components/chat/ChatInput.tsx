@@ -316,6 +316,7 @@ const ChatInput = ({ onSend, isMuted = false, canControlRadio = false, onlineUse
         const xhr = new XMLHttpRequest();
         xhr.open("POST", endpoint);
         xhr.responseType = "json";
+        xhr.timeout = 30000; // 30s timeout to prevent infinite spinner
 
         xhr.setRequestHeader("Authorization", `Bearer ${accessToken}`);
         if (apikey) xhr.setRequestHeader("apikey", apikey);
@@ -351,6 +352,7 @@ const ChatInput = ({ onSend, isMuted = false, canControlRadio = false, onlineUse
         };
 
         xhr.onerror = () => reject(new Error("Upload failed: network error"));
+        xhr.ontimeout = () => reject(new Error("Upload timed out — please try again"));
         xhr.send(formData);
       });
 
