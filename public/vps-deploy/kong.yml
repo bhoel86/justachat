@@ -111,7 +111,7 @@ services:
             - anon
 
   - name: realtime-v1-ws
-    url: http://realtime:4000/socket/realtime-dev
+    url: http://realtime:4000/socket/
     routes:
       - name: realtime-v1-ws
         strip_path: true
