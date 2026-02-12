@@ -46,13 +46,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let isMounted = true;
     let isInitialLoad = true;
 
-    // Browser-close detection: sessionStorage survives refreshes but is wiped
-    // when the browser fully closes. Check BEFORE anything else.
-    const wasOpen = sessionStorage.getItem('jac_session_active');
-    const browserWasClosed = !wasOpen;
-
-    // Immediately set the marker for this session (survives refresh)
-    sessionStorage.setItem('jac_session_active', '1');
+    // Browser-close auto-logout removed — sessionStorage is unreliable
+    // across origin-changing redirects (HTTP→HTTPS, www→non-www) which
+    // caused users to be logged out on every page refresh on VPS.
 
     // Role check function that can optionally control loading state
     const fetchRole = async (userId: string, controlLoading: boolean) => {
@@ -161,21 +157,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           if (!isMounted) return;
 
-          // Browser-close detection: session exists but sessionStorage was empty
-          // → browser was closed and reopened → force sign out
-          if (session?.user && browserWasClosed) {
-            console.log('[Auth] Browser was closed — auto-signing out');
-            try {
-              await supabase.auth.signOut({ scope: 'local' });
-            } catch { /* ignore */ }
-            clearAuthStorage();
-            localStorage.removeItem('jac_personal_theme');
-            setSession(null);
-            setUser(null);
-            setRole(null);
-            if (isMounted) setLoading(false);
-            return;
-          }
+          // Browser-close auto-logout removed (see comment at top of effect)
           
           setSession(session);
           setUser(session?.user ?? null);
