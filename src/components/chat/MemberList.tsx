@@ -23,14 +23,14 @@ import { logModerationAction } from "@/lib/moderationAudit";
 
 import BotChatModal from "./BotChatModal";
 import { getModerator, MODERATORS, type ModeratorInfo } from "@/lib/roomConfig";
-import UserAvatar from "@ /components/avatar/UserAvatar";
-import ProfileEditModal from "@ /components/profile/ProfileEditModal";
-import ProfileViewModal from "@ /components/profile/ProfileViewModal";
-import { useRadioOptional } from "@ /contexts/RadioContext";
-import { useTheme } from "@ /contexts/ThemeContext";
-import { getSimulationPill, getPillEmoji, getBotPill, PillChoice } from "@ /hooks/useSimulationPill";
-import matrixMembersBg from "@ /assets/matrix/matrix-members-bg.webp";
-import matrixPillsImg from "@ /assets/matrix/matrix-pills.jpg";
+import UserAvatar from "@/components/avatar/UserAvatar";
+import ProfileEditModal from "@/components/profile/ProfileEditModal";
+import ProfileViewModal from "@/components/profile/ProfileViewModal";
+import { useRadioOptional } from "@/contexts/RadioContext";
+import { useTheme } from "@/contexts/ThemeContext";
+import { getSimulationPill, getPillEmoji, getBotPill, PillChoice } from "@/hooks/useSimulationPill";
+import matrixMembersBg from "@/assets/matrix/matrix-members-bg.webp";
+import matrixPillsImg from "@/assets/matrix/matrix-pills.jpg";
 
 interface Member {
   user_id: string;

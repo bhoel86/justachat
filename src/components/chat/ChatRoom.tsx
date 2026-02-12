@@ -429,8 +429,7 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
     };
   }, [currentChannel]);
 
-  // Track which users are listening to radio
-  const [listeningUsers, setListeningUsers] = useState<Map<string, { title: string; artist: string }>>(new Map());
+  // listeningUsers removed — nowPlaying no longer tracked to prevent member list bouncing
 
   // Presence channel is room-scoped; keep refs so we can update track payload without recreating channels
   const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -457,24 +456,21 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
       .on('presence', { event: 'sync' }, async () => {
         const state = presenceChannel.presenceState();
         const onlineIds = new Set<string>();
-        const listening = new Map<string, { title: string; artist: string }>();
 
         Object.values(state).forEach((presences: any[]) => {
-          presences.forEach((presence: { user_id?: string; nowPlaying?: { title: string; artist: string; paused?: boolean } }) => {
+          presences.forEach((presence: { user_id?: string }) => {
             if (!presence.user_id) return;
             onlineIds.add(presence.user_id);
-            if (presence.nowPlaying) listening.set(presence.user_id, presence.nowPlaying);
           });
         });
 
-        // Only update onlineUserIds if the actual set of IDs changed (prevents bouncing from metadata-only changes like nowPlaying)
+        // Only update onlineUserIds if the actual set of IDs changed
         setOnlineUserIds(prev => {
           const prevSorted = Array.from(prev).sort().join(',');
           const nextSorted = Array.from(onlineIds).sort().join(',');
-          if (prevSorted === nextSorted) return prev; // same set, skip re-render
+          if (prevSorted === nextSorted) return prev;
           return onlineIds;
         });
-        setListeningUsers(listening);
 
         // Fetch usernames for online users
         if (onlineIds.size > 0) {
@@ -493,12 +489,7 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
         if (status !== 'SUBSCRIBED') return;
         presenceReadyRef.current = true;
 
-        // Always send track info so other users see what you're listening to (even when paused)
-        const nowPlaying = radio?.currentSong
-          ? { title: radio.currentSong.title, artist: radio.currentSong.artist, paused: !radio.isPlaying }
-          : undefined;
-
-        await presenceChannel.track({ user_id: user.id, nowPlaying });
+        await presenceChannel.track({ user_id: user.id });
 
         // Insert into channel_members so IRC gateway can see web users
         // Delete-then-insert ensures Realtime INSERT event always fires (upsert with ignoreDuplicates would silently no-op)
@@ -545,10 +536,20 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
       cleanupMember();
     };
 
-    // Also handle mobile tab switch (visibilitychange fires when app goes to background)
+    // Handle mobile tab switch — only cleanup if tab stays hidden for 30s (prevents false drops on quick app switches)
+    let visibilityTimer: NodeJS.Timeout | null = null;
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
-        cleanupMember();
+        visibilityTimer = setTimeout(() => cleanupMember(), 30000);
+      } else {
+        // Tab came back — cancel pending cleanup and re-insert
+        if (visibilityTimer) { clearTimeout(visibilityTimer); visibilityTimer = null; }
+        // Re-insert into channel_members in case it was cleaned up
+        if (user?.id && currentChannel?.id) {
+          (supabase as any).from('channel_members').delete().eq('channel_id', currentChannel.id).eq('user_id', user.id)
+            .then(() => (supabase as any).from('channel_members').insert({ channel_id: currentChannel.id, user_id: user.id }))
+            .catch(() => {});
+        }
       }
     };
 
@@ -566,7 +567,6 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
       }
       supabase.removeChannel(presenceChannel);
       setOnlineUserIds(new Set());
-      setListeningUsers(new Map());
       setOnlineUsers([]);
 
       // Clean up channel_members entry so IRC sees user left
@@ -624,26 +624,7 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
     };
   }, [user?.id, navigate, toast]);
 
-  // Update presence payload (nowPlaying) — debounced to prevent rapid sync loops
-  const radioDebounceRef = useRef<NodeJS.Timeout | null>(null);
-  useEffect(() => {
-    if (!user?.id) return;
-    const ch = presenceChannelRef.current;
-    if (!ch || !presenceReadyRef.current) return;
-
-    // Debounce 2 seconds to stop rapid track() calls from bouncing the member list
-    if (radioDebounceRef.current) clearTimeout(radioDebounceRef.current);
-    radioDebounceRef.current = setTimeout(() => {
-      const nowPlaying = radio?.currentSong
-        ? { title: radio.currentSong.title, artist: radio.currentSong.artist, paused: !radio.isPlaying }
-        : undefined;
-      ch.track({ user_id: user.id, nowPlaying });
-    }, 2000);
-
-    return () => {
-      if (radioDebounceRef.current) clearTimeout(radioDebounceRef.current);
-    };
-  }, [user?.id, radio?.isPlaying, radio?.currentSong?.videoId]);
+  // Radio debounce removed — nowPlaying no longer broadcast to prevent member list bouncing
 
   const addSystemMessage = useCallback((content: string, channelId?: string) => {
     const targetChannelId = channelId || currentChannel?.id;
@@ -1647,7 +1628,7 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
           isMuted={isMuted || isRoomMuted} 
           canControlRadio={true} 
           onlineUsers={onlineUsers}
-          radioListenerCount={listeningUsers.size}
+          radioListenerCount={0}
         />
       </div>
 
@@ -1667,8 +1648,7 @@ const ChatRoom = ({ initialChannelName }: ChatRoomProps) => {
         </Button>
         <MemberList 
           onlineUserIds={onlineUserIds} 
-          listeningUsers={listeningUsers}
-          channelName={currentChannel?.name} 
+          channelName={currentChannel?.name}
           channelId={currentChannel?.id}
           onOpenPm={handleOpenPm}
           onOpenBotPm={handleOpenBotPm}
