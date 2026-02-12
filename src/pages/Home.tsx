@@ -329,7 +329,9 @@ const Home = () => {
     navigate(`/chat/${channel.name}`);
   };
 
-  const handleSignOut = async () => {
+  const handleSignOut = async (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    console.log('[Home] Sign out button clicked');
     try {
       await signOut();
     } catch (err) {
