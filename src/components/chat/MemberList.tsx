@@ -148,8 +148,10 @@ const MemberList = ({ onlineUserIds, listeningUsers, channelName = 'general', ch
       } catch {}
     }
     
-    // Combine both sets of user IDs
-    const allOnlineIds = [...new Set([...presenceIds, ...ircUserIds])];
+    // Combine both sets of user IDs — always include current user
+    const combinedIds = new Set([...presenceIds, ...ircUserIds]);
+    if (user?.id) combinedIds.add(user.id);
+    const allOnlineIds = [...combinedIds];
     
     if (allOnlineIds.length === 0) {
       setMembers([]);
@@ -181,6 +183,18 @@ const MemberList = ({ onlineUserIds, listeningUsers, channelName = 'general', ch
 
     if (profiles) {
       const roleMap = new Map(roles?.map((r: { user_id: string; role: string }) => [r.user_id, r.role]) || []);
+      
+      // Ensure current user is in profiles list (fallback if profiles_public returns empty for them)
+      const profileMap = new Map(profiles.map((p: any) => [p.user_id, p]));
+      if (user?.id && !profileMap.has(user.id)) {
+        profiles.push({
+          user_id: user.id,
+          username: currentUsername || 'You',
+          avatar_url: currentAvatarUrl || null,
+          bio: currentBio || null,
+          ghost_mode: false,
+        });
+      }
       
       const memberList: Member[] = profiles
         // Filter out ghost mode users unless they are the current user, viewer is admin/owner, OR the user is an owner/admin (always visible)
