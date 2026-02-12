@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bot, Power, PowerOff, Loader2, Hash, ToggleLeft, ToggleRight, RefreshCw, Users, Gauge, ChevronDown } from "lucide-react";
+import { Bot, Power, PowerOff, Loader2, Hash, ToggleLeft, ToggleRight, RefreshCw, Gauge } from "lucide-react";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,10 +14,9 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
-import { CHAT_BOTS, ROOM_BOTS, ALL_BOTS, getRoomBots, getUniqueRoomNames } from "@/lib/chatBots";
+import { MODERATORS, type ModeratorInfo } from "@/lib/roomConfig";
 
 interface BotSettings {
   id: string;
@@ -28,7 +27,12 @@ interface BotSettings {
   updated_at: string;
 }
 
-const ROOM_NAMES = getUniqueRoomNames();
+// Build room list from MODERATORS (exclude voice/video media bots)
+const MEDIA_ROOMS = ['voice-chat', 'video-chat'];
+const ROOM_ENTRIES = Object.entries(MODERATORS).filter(
+  ([room]) => !MEDIA_ROOMS.includes(room)
+);
+const ROOM_NAMES = ROOM_ENTRIES.map(([room]) => room);
 
 const AdminBots = () => {
   const navigate = useNavigate();
@@ -37,7 +41,6 @@ const AdminBots = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && (!user || (!isAdmin && !isOwner))) {
@@ -62,9 +65,6 @@ const AdminBots = () => {
       if (botData) {
         setSettings(botData as BotSettings);
       } else {
-        // Create default settings if none exist
-        // Note: On VPS, this may fail due to RLS - the fix-bots-and-sync.sh script 
-        // should initialize via service role instead
         console.log("No bot settings found, attempting to create defaults...");
         const { data: newSettings, error: createError } = await supabase
           .from("bot_settings")
@@ -80,7 +80,6 @@ const AdminBots = () => {
 
         if (createError) {
           console.error("Error creating bot settings:", createError);
-          // Provide helpful error message for VPS users
           if (createError.code === '42501' || createError.message?.includes('RLS')) {
             toast.error("Bot settings not initialized. Run fix-bots-and-sync.sh on VPS to set up.");
           } else {
@@ -108,18 +107,15 @@ const AdminBots = () => {
 
   const handleToggleEnabled = async (enabled: boolean) => {
     if (!settings) return;
-    
     setSaving(true);
     try {
       const { error } = await supabase
         .from("bot_settings")
         .update({ enabled, updated_by: user?.id })
         .eq("id", settings.id);
-
       if (error) throw error;
-
       setSettings({ ...settings, enabled });
-      toast.success(enabled ? "Bots enabled" : "Bots disabled");
+      toast.success(enabled ? "All moderator bots enabled" : "All moderator bots disabled");
     } catch (err) {
       console.error("Error updating bot settings:", err);
       toast.error("Failed to update settings");
@@ -130,7 +126,6 @@ const AdminBots = () => {
 
   const handleRoomToggle = async (roomName: string, enabled: boolean) => {
     if (!settings) return;
-
     const newChannels = enabled
       ? [...settings.allowed_channels, roomName]
       : settings.allowed_channels.filter((c) => c !== roomName);
@@ -139,16 +134,12 @@ const AdminBots = () => {
     try {
       const { error } = await supabase
         .from("bot_settings")
-        .update({ 
-          allowed_channels: newChannels,
-          updated_by: user?.id 
-        })
+        .update({ allowed_channels: newChannels, updated_by: user?.id })
         .eq("id", settings.id);
-
       if (error) throw error;
-
       setSettings({ ...settings, allowed_channels: newChannels });
-      toast.success(`Bots ${enabled ? 'enabled' : 'disabled'} for #${roomName}`);
+      const mod = MODERATORS[roomName];
+      toast.success(`${mod?.name || roomName} ${enabled ? 'enabled' : 'disabled'} in #${roomName}`);
     } catch (err) {
       console.error("Error saving channels:", err);
       toast.error("Failed to update settings");
@@ -159,21 +150,15 @@ const AdminBots = () => {
 
   const handleEnableAllRooms = async () => {
     if (!settings) return;
-
     setSaving(true);
     try {
       const { error } = await supabase
         .from("bot_settings")
-        .update({ 
-          allowed_channels: ROOM_NAMES,
-          updated_by: user?.id 
-        })
+        .update({ allowed_channels: ROOM_NAMES, updated_by: user?.id })
         .eq("id", settings.id);
-
       if (error) throw error;
-
       setSettings({ ...settings, allowed_channels: ROOM_NAMES });
-      toast.success("Bots enabled for all rooms");
+      toast.success("All room bots enabled");
     } catch (err) {
       console.error("Error:", err);
       toast.error("Failed to update settings");
@@ -184,21 +169,15 @@ const AdminBots = () => {
 
   const handleDisableAllRooms = async () => {
     if (!settings) return;
-
     setSaving(true);
     try {
       const { error } = await supabase
         .from("bot_settings")
-        .update({ 
-          allowed_channels: [],
-          updated_by: user?.id 
-        })
+        .update({ allowed_channels: [], updated_by: user?.id })
         .eq("id", settings.id);
-
       if (error) throw error;
-
       setSettings({ ...settings, allowed_channels: [] });
-      toast.success("Bots disabled for all rooms");
+      toast.success("All room bots disabled");
     } catch (err) {
       console.error("Error:", err);
       toast.error("Failed to update settings");
@@ -209,49 +188,18 @@ const AdminBots = () => {
 
   const handleSpeedChange = async (speed: number) => {
     if (!settings) return;
-
     setSaving(true);
     try {
       const { error } = await supabase
         .from("bot_settings")
-        .update({ 
-          chat_speed: speed,
-          updated_by: user?.id 
-        })
+        .update({ chat_speed: speed, updated_by: user?.id })
         .eq("id", settings.id);
-
       if (error) throw error;
-
       setSettings({ ...settings, chat_speed: speed });
-      toast.success(`Bot speed set to ${speed}s`);
+      toast.success(`Bot response delay set to ${speed}s`);
     } catch (err) {
       console.error("Error:", err);
       toast.error("Failed to update speed");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleModeratorBotsToggle = async (enabled: boolean) => {
-    if (!settings) return;
-
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from("bot_settings")
-        .update({ 
-          moderator_bots_enabled: enabled,
-          updated_by: user?.id 
-        })
-        .eq("id", settings.id);
-
-      if (error) throw error;
-
-      setSettings({ ...settings, moderator_bots_enabled: enabled });
-      toast.success(enabled ? "Moderator bots will stay active" : "Moderator bots follow main toggle");
-    } catch (err) {
-      console.error("Error:", err);
-      toast.error("Failed to update setting");
     } finally {
       setSaving(false);
     }
@@ -280,9 +228,7 @@ const AdminBots = () => {
     );
   }
 
-  const displayBots = selectedRoom 
-    ? getRoomBots(selectedRoom)
-    : CHAT_BOTS;
+  const enabledCount = settings?.allowed_channels.filter(c => ROOM_NAMES.includes(c)).length ?? 0;
 
   return (
     <AdminSidebar>
@@ -292,10 +238,10 @@ const AdminBots = () => {
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Bot className="h-6 w-6 text-primary" />
-              Bot Management
+              Room Moderator Bots
             </h1>
             <p className="text-sm text-muted-foreground">
-              {ALL_BOTS.length} total bots • {CHAT_BOTS.length} global • {ROOM_BOTS.length} room-specific
+              {ROOM_ENTRIES.length} moderator bots — one per room
             </p>
           </div>
           <Button 
@@ -310,7 +256,7 @@ const AdminBots = () => {
         </div>
 
         {/* Stats Row */}
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -319,7 +265,7 @@ const AdminBots = () => {
                 ) : (
                   <PowerOff className="h-4 w-4 text-muted-foreground" />
                 )}
-                Status
+                Master Switch
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -339,297 +285,137 @@ const AdminBots = () => {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Users className="h-4 w-4 text-primary" />
-                Global Bots
+                <Hash className="h-4 w-4 text-primary" />
+                Active Rooms
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-primary">{CHAT_BOTS.length}</div>
+              <div className="text-2xl font-bold text-green-500">
+                {enabledCount} / {ROOM_NAMES.length}
+              </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Hash className="h-4 w-4 text-secondary-foreground" />
-                Room Bots
+                <Gauge className="h-4 w-4 text-primary" />
+                Response Delay
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{ROOM_BOTS.length}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Active Rooms
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-500">
-                {settings?.allowed_channels.length || 0} / {ROOM_NAMES.length}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Settings Row: Speed Control & Moderator Bots */}
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* Speed Control */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Gauge className="h-5 w-5 text-primary" />
-                Chat Speed
-              </CardTitle>
-            </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">
-                  Bots respond every <span className="font-bold text-foreground">{settings?.chat_speed || 5}</span> seconds
-                </span>
-                <Badge variant="outline">{settings?.chat_speed || 5}s delay</Badge>
-              </div>
-              <Slider
-                value={[settings?.chat_speed || 5]}
-                onValueChange={(value) => {
-                  if (settings) {
-                    setSettings({ ...settings, chat_speed: value[0] });
-                  }
-                }}
-                onValueCommit={(value) => handleSpeedChange(value[0])}
-                min={1}
-                max={60}
-                step={1}
-                disabled={saving || !settings?.enabled}
-                className="w-full"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>1s (Fast)</span>
-                <span>30s</span>
-                <span>60s (Slow)</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-          {/* Moderator Bots Toggle */}
-          <Card>
-            <CardContent className="py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Bot className="h-5 w-5 text-primary" />
-                  <div>
-                    <p className="text-sm font-medium">Moderator Bots</p>
-                    <p className="text-xs text-muted-foreground">
-                      {settings?.moderator_bots_enabled ? "Always active" : "Follow main toggle"}
-                    </p>
-                  </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    <span className="font-bold text-foreground">{settings?.chat_speed || 5}s</span>
+                  </span>
+                  <Badge variant="outline">{settings?.chat_speed || 5}s</Badge>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="ghost" size="sm" className="text-xs">
-                        View all <ChevronDown className="h-3 w-3 ml-1" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent align="end" className="w-[200px] p-3">
-                      <div className="space-y-1 text-xs">
-                        <div className="font-medium text-muted-foreground mb-2">Media</div>
-                        <div className="pl-2 space-y-1">
-                          <div className="flex items-center gap-2">
-                            <div className={`h-2 w-2 rounded-full ${settings?.moderator_bots_enabled ? 'bg-green-500' : 'bg-muted-foreground'}`} />
-                            Pixel (Video)
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <div className={`h-2 w-2 rounded-full ${settings?.moderator_bots_enabled ? 'bg-green-500' : 'bg-muted-foreground'}`} />
-                            Echo (Voice)
-                          </div>
-                        </div>
-                        <div className="font-medium text-muted-foreground mt-3 mb-2">Rooms</div>
-                        <div className="pl-2 space-y-1 max-h-[200px] overflow-y-auto">
-                          {ROOM_NAMES.map((room) => {
-                            const roomBots = getRoomBots(room);
-                            if (roomBots.length === 0) return null;
-                            const isActive = settings?.moderator_bots_enabled && isRoomEnabled(room);
-                            return (
-                              <div key={room} className="flex items-center gap-2">
-                                <div className={`h-2 w-2 rounded-full ${isActive ? 'bg-green-500' : 'bg-muted-foreground'}`} />
-                                {roomBots[0].username}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                  <Switch
-                    checked={settings?.moderator_bots_enabled ?? true}
-                    onCheckedChange={handleModeratorBotsToggle}
-                    disabled={saving}
-                  />
+                <Slider
+                  value={[settings?.chat_speed || 5]}
+                  onValueChange={(value) => {
+                    if (settings) setSettings({ ...settings, chat_speed: value[0] });
+                  }}
+                  onValueCommit={(value) => handleSpeedChange(value[0])}
+                  min={1}
+                  max={60}
+                  step={1}
+                  disabled={saving || !settings?.enabled}
+                  className="w-full"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>1s</span>
+                  <span>30s</span>
+                  <span>60s</span>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Split Layout: Rooms List | Bot Directory */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Left: Room Controls */}
-          <Card className="lg:col-span-1">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Hash className="h-5 w-5" />
-                  Rooms
-                </CardTitle>
-                <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleEnableAllRooms}
-                    disabled={saving || !settings?.enabled}
-                    title="Enable All"
-                  >
-                    <ToggleRight className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleDisableAllRooms}
-                    disabled={saving || !settings?.enabled}
-                    title="Disable All"
-                  >
-                    <ToggleLeft className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <ScrollArea className="h-[400px]">
-                <div className="space-y-1 p-4 pt-0">
-                  {/* Global bots option */}
-                  <div
-                    onClick={() => setSelectedRoom(null)}
-                    className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
-                      selectedRoom === null
-                        ? 'bg-primary/10 border border-primary/30'
-                        : 'hover:bg-muted/50 border border-transparent'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-primary" />
-                      <span className="font-medium text-sm">Global Bots</span>
-                    </div>
-                    <Badge variant="outline">{CHAT_BOTS.length}</Badge>
-                  </div>
+        {/* Bulk Actions */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleEnableAllRooms}
+            disabled={saving || !settings?.enabled}
+          >
+            <ToggleRight className="h-4 w-4 mr-2" />
+            Enable All
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDisableAllRooms}
+            disabled={saving || !settings?.enabled}
+          >
+            <ToggleLeft className="h-4 w-4 mr-2" />
+            Disable All
+          </Button>
+        </div>
 
-                  {ROOM_NAMES.map((room) => {
-                    const roomBots = getRoomBots(room);
-                    const enabled = isRoomEnabled(room);
-                    const isSelected = selectedRoom === room;
-                    
-                    return (
-                      <div
-                        key={room}
-                        onClick={() => setSelectedRoom(room)}
-                        className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors ${
-                          isSelected
-                            ? 'bg-primary/10 border border-primary/30'
-                            : 'hover:bg-muted/50 border border-transparent'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div
-                            className={`h-2 w-2 rounded-full ${
-                              enabled && settings?.enabled ? 'bg-green-500' : 'bg-muted-foreground'
-                            }`}
-                          />
-                          <span className="font-medium text-sm">#{formatRoomName(room)}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">{roomBots.length}</Badge>
-                          <Switch
-                            checked={enabled}
-                            onCheckedChange={(checked) => {
-                              handleRoomToggle(room, checked);
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                            disabled={saving || !settings?.enabled}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-
-          {/* Right: Bot Directory */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <Bot className="h-5 w-5" />
-                  {selectedRoom ? `#${formatRoomName(selectedRoom)} Bots` : 'Global Bots'}
-                </span>
-                <Badge variant="secondary">{displayBots.length} bots</Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[400px]">
-                {displayBots.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                    <Bot className="h-12 w-12 mb-4 opacity-50" />
-                    <p>No bots in this category</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {displayBots.map((bot) => {
-                      const isActive = selectedRoom 
-                        ? isRoomEnabled(selectedRoom) && settings?.enabled
-                        : settings?.enabled;
-                      
-                      return (
+        {/* Room Bot List — one card per room */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bot className="h-5 w-5" />
+              Per-Room Moderator Bot Controls
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0">
+            <ScrollArea className="h-[500px]">
+              <div className="divide-y divide-border">
+                {ROOM_ENTRIES.map(([room, mod]) => {
+                  const enabled = isRoomEnabled(room) && (settings?.enabled ?? false);
+                  return (
+                    <div
+                      key={room}
+                      className={`flex items-center justify-between px-6 py-4 transition-colors ${
+                        enabled ? '' : 'opacity-60'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
                         <div
-                          key={bot.id}
-                          className={`flex items-center gap-3 p-3 rounded-lg border transition-opacity ${
-                            isActive ? 'bg-card' : 'bg-muted/30 opacity-60'
+                          className={`h-10 w-10 rounded-full flex items-center justify-center text-lg shrink-0 ${
+                            enabled
+                              ? "bg-primary/20"
+                              : "bg-muted"
                           }`}
                         >
-                          <div
-                            className={`h-10 w-10 rounded-full flex items-center justify-center text-lg font-bold shrink-0 ${
-                              isActive
-                                ? "bg-primary/20 text-primary"
-                                : "bg-muted text-muted-foreground"
-                            }`}
-                          >
-                            {bot.username[0]}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate text-sm">{bot.username}</p>
-                            <p className="text-xs text-muted-foreground capitalize">
-                              {bot.style} • {bot.gender}
-                            </p>
-                          </div>
-                          <div
-                            className={`h-2 w-2 rounded-full shrink-0 ${
-                              isActive ? "bg-green-500" : "bg-muted-foreground"
-                            }`}
-                          />
+                          {mod.avatar}
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </div>
+                        <div>
+                          <p className="font-medium text-sm flex items-center gap-2">
+                            {mod.name}
+                            <Badge variant="outline" className="text-xs font-normal">
+                              {mod.displayName}
+                            </Badge>
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            #{formatRoomName(room)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`h-2 w-2 rounded-full shrink-0 ${
+                            enabled ? "bg-green-500" : "bg-muted-foreground"
+                          }`}
+                        />
+                        <Switch
+                          checked={isRoomEnabled(room)}
+                          onCheckedChange={(checked) => handleRoomToggle(room, checked)}
+                          disabled={saving || !settings?.enabled}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
       </div>
     </AdminSidebar>
   );
