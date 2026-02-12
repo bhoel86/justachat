@@ -514,18 +514,26 @@ const PrivateChatWindow = ({
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const apikey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+      console.log('[PM] Sending PM to:', targetUserId, 'url:', supabaseUrl, 'hasToken:', !!token, 'hasApikey:', !!apikey);
+
+      if (!token) {
+        throw new Error('No auth token - please log in again');
+      }
+
       // Use direct fetch instead of supabase.functions.invoke for VPS compatibility
       const resp = await fetch(`${supabaseUrl}/functions/v1/encrypt-pm`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token || apikey}`,
+          'Authorization': `Bearer ${token}`,
           ...(apikey ? { 'apikey': apikey } : {}),
         },
         body: JSON.stringify({ message: content, recipient_id: targetUserId }),
       });
 
+      console.log('[PM] Response status:', resp.status);
       const data = await resp.json().catch(() => ({}));
+      console.log('[PM] Response data:', data);
 
       if (!resp.ok || !data?.success) {
         throw new Error(data?.error || 'Encryption failed');
