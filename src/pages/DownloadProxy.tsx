@@ -8,13 +8,22 @@ import { MessageSquare, ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import MircThemePackage from "@/components/proxy/MircThemePackage";
+import { ValentinesFloatingHearts } from "@/components/theme/ValentinesFloatingHearts";
+import { StPatricksFloatingIcons } from "@/components/theme/StPatricksFloatingIcons";
+import { MatrixFloatingCode } from "@/components/theme/MatrixFloatingCode";
+import { ThemedMascot } from "@/components/theme/ThemedMascot";
 
 const DownloadProxy = () => {
   const [isDownloadingTheme, setIsDownloadingTheme] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background p-4 sm:p-8">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div className="min-h-screen bg-background p-4 sm:p-8 relative">
+      {/* Theme floating decorations */}
+      <ValentinesFloatingHearts />
+      <StPatricksFloatingIcons />
+      <MatrixFloatingCode />
+
+      <div className="max-w-2xl mx-auto space-y-6 relative z-10">
         {/* Back link */}
         <Link to="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="h-4 w-4" />
@@ -154,6 +163,13 @@ const DownloadProxy = () => {
             </p>
           </CardContent>
         </Card>
+
+        {/* Footer with themed mascots */}
+        <div className="flex items-center justify-center gap-4 py-4">
+          <ThemedMascot side="left" className="h-10" />
+          <span className="text-xs text-muted-foreground">JustAChat™</span>
+          <ThemedMascot side="right" className="h-10" />
+        </div>
       </div>
     </div>
   );
