@@ -64,27 +64,12 @@ const RATE_LIMIT_CONFIG = {
   FLOOD_COOLDOWN_MS: 30000,             // 30 second cooldown after flood detection
 };
 
-// Bot names per channel - ALIGNED with web frontend (src/lib/chatBots.ts ROOM_BOTS)
-// These are the exact same usernames that appear on the web client
-const channelBots: Record<string, string[]> = {
-  "general": ["floralfantasy", "goldenhour04", "uwillneverknow", "sparkleshine99", "sunshinegirl82", "happyvibes_01", "cutiepie_88", "von_vibe", "youngin82", "spin_the_block"],
-  "music": ["hole98court", "smellslike91teen", "79londoncalling", "82thriller", "melodyqueen77", "musiclover_94", "songbird_88", "88fastcar", "94basketcase", "97daftthomas"],
-  "games": ["96macarena", "98genieinbottle", "gamergirl_22", "cozygamer_01", "pixelprincess", "levelu_87", "questqueen99", "slimshady99x", "84borninusa", "99partyover"],
-  "technology": ["frost95", "phoenix02", "codequeen_88", "techlady_77", "datadiva_01", "devgirl_94", "cloudgirl_82", "blaze03_", "wolf89_", "dragon_71"],
-  "sports": ["overlyattached", "watchthis92", "sportsgirl_88", "fitnessbabe_01", "goodguygreg", "aliens_guy", "one_does_not_simply", "distracted_boy", "lookout88", "hereigo70"],
-  "politics": ["01feellikewoman", "politicsgal_88", "newswatcher_01", "debatequeen_92", "civicsmom_77", "monsterjam80", "hotwheels98", "matchbox03", "90canthusthis", "83beatyit"],
-  "movies-tv": ["leave_britney_alone", "friday_rebecca", "grumpycat_vibe", "movielover_99", "bingewatch_88", "filmfan_92", "stargazer_01", "gangnam_12", "dat_boi_99", "badger_badger"],
-  "dating": ["littlelinda82", "auntie_em01", "romanticgirl_99", "datingtips_88", "matchmaker_01", "heartseeker_77", "lovelady_92", "blackpixies88", "eddievedderpj92", "louvelvets67"],
-  "adults-21-plus": ["nightowl_queen", "wineandvibes", "latenightlady", "craftbeergal", "winelover_88", "cocktailqueen", "mixologist_99", "david88", "driver_dave75", "baker_ben98"],
-  "trivia": ["97barbiegirl", "quizqueen_88", "factfinder_01", "smartcookie_92", "brainiac_77", "knowitall_94", "triviababe_99", "hawk88", "falcon96_", "raven70"],
-  "help": ["02comewithme", "03dirtypop", "helpergirl_99", "supportqueen_88", "friendlyface_01", "welcomewagon_77", "careandshare_94", "purple7haze67", "ziggy72stardust", "75sweetemotion"],
-  "lounge": ["04staceysmom", "rhythmnation89", "cozycorner_99", "peacefulpanda", "naptime_queen", "serenelady_88", "quiettime_01", "73jimihendrixvibe", "pizzaguy88steve", "66charliebitme"],
-  "art": ["niece_nicky", "grandma_gert", "artlover_99", "creativeone_88", "artgallery_01", "muralqueen_77", "photographygal", "babybilly90", "brotherbob85", "papajoe77"],
-};
+// No simulated/fake bots — only moderator bots remain.
+// All hardcoded channelBots have been permanently removed.
+const channelBots: Record<string, string[]> = {};
 
-function getBotsForChannel(channelName: string): string[] {
-  const normalized = channelName.toLowerCase().replace(/-/g, "-");
-  return channelBots[normalized] || channelBots["general"] || [];
+function getBotsForChannel(_channelName: string): string[] {
+  return [];
 }
 
 interface IRCSession {
@@ -1212,35 +1197,25 @@ const BOT_PERSONALITY_IDS = [
 // Track recent messages for bot context
 const recentChannelMessages: Map<string, Array<{ username: string; content: string }>> = new Map();
 
-// Flatten all configured IRC-visible bot names (used for /msg <bot> ...)
-const ALL_IRC_BOT_NAMES = Array.from(
-  new Set(Object.values(channelBots).flat())
-);
+// No simulated bot names — only moderator names remain
+const ALL_IRC_BOT_NAMES: string[] = [];
 
 // Get all moderator names
 const ALL_MODERATOR_NAMES = Object.values(ROOM_WELCOME_MESSAGES).map(r => r.moderator);
 
-// Combined list of all bots including moderators
-const ALL_BOT_NAMES = [...ALL_IRC_BOT_NAMES, ...ALL_MODERATOR_NAMES];
+// Combined list — moderators only
+const ALL_BOT_NAMES = [...ALL_MODERATOR_NAMES];
 
 function normalizeNick(nick: string) {
   return nick.toLowerCase().replace(/[^a-z0-9_\-\[\]\\`^{}]/g, "");
 }
 
-function pickVisibleBotNameForChannel(channelName: string, preferred?: string) {
-  if (preferred) return preferred;
-  const bots = getBotsForChannel(channelName);
-  return bots[Math.floor(Math.random() * bots.length)] || "floralfantasy";
+function pickVisibleBotNameForChannel(_channelName: string, preferred?: string) {
+  return preferred || "bot";
 }
 
-function getMentionedBotName(message: string, channelName: string): string | null {
-  const content = message.toLowerCase();
-  const bots = getBotsForChannel(channelName);
-  for (const bot of bots) {
-    const n = normalizeNick(bot);
-    if (!n) continue;
-    if (content.includes(`@${n}`) || content.includes(n)) return bot;
-  }
+function getMentionedBotName(_message: string, _channelName: string): string | null {
+  // No simulated bots to mention — only moderator bots handle mentions
   return null;
 }
 
@@ -3885,11 +3860,7 @@ if (supabaseUrl && supabaseServiceKey) {
           
           if (newMessage.user_id.startsWith("bot-")) {
             const botNamePart = newMessage.user_id.slice(4);
-            const allBotNames = Array.from(new Set(Object.values(channelBots).flat()));
-            const matchedBot = allBotNames.find(
-              (b) => b.toLowerCase().replace(/[^a-z0-9]/g, "") === botNamePart.toLowerCase().replace(/[^a-z0-9]/g, "")
-            );
-            senderUsername = matchedBot || botNamePart;
+            senderUsername = botNamePart;
             senderHost = "bot";
             console.log(`[Realtime] Bot message from: ${senderUsername}`);
           } else {
