@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """
-Justachat™ IRC Admin Console v7
+Justachat™ IRC Admin Console v8
 
 Modern dark-themed admin panel with:
 - Dual connection (Admin + Bot)
+- NickServ authentication (IDENTIFY after connect)
 - Room monitoring with colored chat
-- User management (WHOIS, OP, BAN, KICK, etc.)
+- User management (WHOIS, OP, BAN, KICK, MUTE, K-LINE, etc.)
 - IP Lookup tool (DNS, GeoIP, Reverse DNS)
 - Port Scanner (common + custom ports)
+- Ping & Finger tools
 - Rate limiting / flood detection
 - JustAChat branding & watermark
-- Room controls (+m, +i, +k, +l)
 
+Server: 157.245.174.197 · Port: 6667 (no SSL)
 Run: python main.py
 """
 
@@ -22,9 +24,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ── Branding ──────────────────────────────────────────────────────
 APP_NAME     = "Justachat™ IRC Admin Console"
-APP_VERSION  = "v7.0"
+APP_VERSION  = "v8.0"
 APP_TAGLINE  = "Chat. Connect. Chill."
 SERVER_HOST  = "157.245.174.197"
+SERVER_PORT  = 6667
 
 # ── Theme Colors ──────────────────────────────────────────────────
 COLORS = {
@@ -79,11 +82,8 @@ def parse_prefix(prefix: str):
 def strip_irc_colors(text: str) -> str:
     """Remove mIRC color codes from text"""
     import re
-    # Remove \x03FG,BG or \x03FG patterns
     text = re.sub(r'\x03(\d{1,2}(,\d{1,2})?)?', '', text)
-    # Remove bold, italic, underline, reset
     text = text.replace('\x02', '').replace('\x1d', '').replace('\x1f', '').replace('\x0f', '')
-    # Remove reverse
     text = text.replace('\x16', '')
     return text
 
@@ -112,13 +112,14 @@ class IRCConn:
         self._tx = threading.Lock()
         self._buf = ""
         self.nick = ""
+        self.password = ""
         self.channels = []
         self.channel_users = {}
         self.user_hostmask = {}
-        self.user_prefixes = {}   # chan -> {nick: prefix_char}
+        self.user_prefixes = {}
         self.chat = []
         self.events = []
-        self.whois_buffer = {}    # nick -> [lines]
+        self.whois_buffer = {}
         self.msg_rate = {}
         self.join_rate = {}
 
@@ -142,11 +143,13 @@ class IRCConn:
     def privmsg(self, target, msg):
         self.send_raw(f"PRIVMSG {target} :{safe_strip(msg)}")
 
-    def connect(self, host, port, nick, email, password, realname):
+    def connect(self, host, port, nick, password, realname):
+        """Connect to IRC server. Auth via NickServ after registration (no PASS command)."""
         if self.connected:
             return
         self._stop.clear()
         self.nick = nick.strip()
+        self.password = password
         try:
             self.sock = socket.create_connection((host.strip(), int(port)), timeout=12)
             self.sock.settimeout(1.0)
@@ -155,11 +158,37 @@ class IRCConn:
             return
         self.connected = True
         self.status("Connected. Registering…")
-        if email and password:
-            self.send_raw(f"PASS {email.strip()};{password}")
+        # No PASS command — NickServ handles auth after 001
         self.send_raw(f"NICK {self.nick}")
         self.send_raw(f"USER {safe_strip(nick)} 0 * :{safe_strip(realname)}")
         threading.Thread(target=self._rx_loop, daemon=True).start()
+
+    def identify(self, password=None):
+        """Send NickServ IDENTIFY"""
+        pw = password or self.password
+        if pw:
+            self.privmsg("NickServ", f"IDENTIFY {pw}")
+            self.status("NickServ IDENTIFY sent.")
+
+    def nickserv_register(self, password):
+        """Register nick with NickServ"""
+        if password:
+            self.privmsg("NickServ", f"REGISTER {password}")
+
+    def nickserv_set_password(self, new_password):
+        """Change NickServ password"""
+        if new_password:
+            self.privmsg("NickServ", f"SET PASSWORD {new_password}")
+
+    def nickserv_info(self, nick=None):
+        """Query NickServ INFO"""
+        target = nick or self.nick
+        self.privmsg("NickServ", f"INFO {target}")
+
+    def nickserv_ghost(self, nick, password):
+        """Ghost a nick via NickServ"""
+        if nick and password:
+            self.privmsg("NickServ", f"GHOST {nick} {password}")
 
     def disconnect(self):
         self._stop.set()
@@ -253,7 +282,12 @@ class IRCConn:
         if cmd.isdigit():
             num = int(cmd)
             if num == 1:
-                self.status("Registered (001).")
+                self.status("Registered (001). Identifying with NickServ...")
+                # Auto-identify with NickServ after successful registration
+                if self.password:
+                    self.after_register_timer = threading.Timer(1.5, self.identify)
+                    self.after_register_timer.daemon = True
+                    self.after_register_timer.start()
                 return
             if num == 322 and len(params) >= 4:
                 chan = params[1]
@@ -295,7 +329,10 @@ class IRCConn:
             return
 
         if cmd == "NOTICE":
-            # Filter out server NOTICEs from chat - they're just decorative
+            # Show NickServ notices in chat as system messages
+            text = " ".join(params[1:]).lstrip(":")
+            if nick and nick.lower() == "nickserv":
+                self._log_chat("@NickServ", nick, strip_irc_colors(text))
             return
 
         if cmd == "JOIN":
@@ -351,10 +388,8 @@ class IRCConn:
 #  Network Tools
 # ══════════════════════════════════════════════════════════════════
 def ip_lookup(target: str) -> dict:
-    """Perform IP/hostname lookup with DNS resolution and reverse DNS"""
     result = {"target": target, "ips": [], "reverse_dns": [], "error": None}
     try:
-        # Forward lookup
         infos = socket.getaddrinfo(target, None, socket.AF_UNSPEC, socket.SOCK_STREAM)
         seen = set()
         for family, _, _, _, sockaddr in infos:
@@ -363,7 +398,6 @@ def ip_lookup(target: str) -> dict:
                 seen.add(ip)
                 fam = "IPv4" if family == socket.AF_INET else "IPv6"
                 result["ips"].append({"ip": ip, "family": fam})
-        # Reverse DNS for each IP
         for entry in result["ips"]:
             try:
                 hostname, _, _ = socket.gethostbyaddr(entry["ip"])
@@ -377,10 +411,8 @@ def ip_lookup(target: str) -> dict:
     return result
 
 def ping_host(target: str, count: int = 4, timeout: float = 2.0) -> dict:
-    """Ping a host using raw ICMP (falls back to TCP connect on port 80)"""
     result = {"target": target, "results": [], "error": None, "resolved_ip": None}
     try:
-        # Resolve hostname first
         ip = socket.gethostbyname(target)
         result["resolved_ip"] = ip
     except socket.gaierror as e:
@@ -390,7 +422,6 @@ def ping_host(target: str, count: int = 4, timeout: float = 2.0) -> dict:
     for seq in range(count):
         start = time.time()
         try:
-            # TCP ping to port 80 (works without root/admin privileges)
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(timeout)
             s.connect((ip, 80))
@@ -400,7 +431,6 @@ def ping_host(target: str, count: int = 4, timeout: float = 2.0) -> dict:
         except socket.timeout:
             result["results"].append({"seq": seq + 1, "time_ms": None, "status": "timeout"})
         except ConnectionRefusedError:
-            # Port closed but host is reachable (got RST)
             elapsed = (time.time() - start) * 1000
             result["results"].append({"seq": seq + 1, "time_ms": round(elapsed, 2), "status": "refused (host reachable)"})
         except OSError as e:
@@ -410,7 +440,6 @@ def ping_host(target: str, count: int = 4, timeout: float = 2.0) -> dict:
     return result
 
 def finger_host(target: str, user: str = "", port: int = 79, timeout: float = 5.0) -> dict:
-    """Query a finger server (RFC 1288)"""
     result = {"target": target, "port": port, "user": user, "response": "", "error": None}
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -440,7 +469,6 @@ def finger_host(target: str, user: str = "", port: int = 79, timeout: float = 5.
     return result
 
 def scan_port(host: str, port: int, timeout: float = 2.0) -> dict:
-    """Scan a single port"""
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(timeout)
@@ -448,7 +476,6 @@ def scan_port(host: str, port: int, timeout: float = 2.0) -> dict:
         sock.close()
         service = COMMON_PORTS.get(port, "unknown")
         if result == 0:
-            # Try banner grab
             banner = ""
             try:
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -468,7 +495,6 @@ def scan_port(host: str, port: int, timeout: float = 2.0) -> dict:
         return {"port": port, "state": "ERROR", "service": COMMON_PORTS.get(port, "unknown"), "banner": str(e)}
 
 def scan_ports(host: str, ports: list, timeout: float = 2.0, callback=None) -> list:
-    """Scan multiple ports concurrently"""
     results = []
     with ThreadPoolExecutor(max_workers=20) as pool:
         futures = {pool.submit(scan_port, host, p, timeout): p for p in ports}
@@ -487,11 +513,10 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title(f"{APP_NAME} {APP_VERSION}")
-        self.geometry("1700x980")
+        self.geometry("1700x1000")
         self.minsize(1400, 820)
         self.configure(bg=COLORS["bg_dark"])
 
-        # Apply dark theme
         self._setup_theme()
 
         self.uiq = queue.Queue()
@@ -507,17 +532,12 @@ class App(tk.Tk):
         style = ttk.Style(self)
         style.theme_use("clam")
 
-        # Global background
         style.configure(".", background=COLORS["bg_panel"], foreground=COLORS["fg_primary"],
                         fieldbackground=COLORS["bg_input"], borderwidth=0, font=("Segoe UI", 10))
-
-        # Frames
         style.configure("TFrame", background=COLORS["bg_panel"])
         style.configure("Dark.TFrame", background=COLORS["bg_dark"])
         style.configure("Card.TFrame", background=COLORS["bg_card"])
         style.configure("Header.TFrame", background=COLORS["bg_header"])
-
-        # Labels
         style.configure("TLabel", background=COLORS["bg_panel"], foreground=COLORS["fg_primary"])
         style.configure("Header.TLabel", background=COLORS["bg_header"], foreground=COLORS["accent_cyan"],
                         font=("Segoe UI", 11, "bold"))
@@ -530,42 +550,35 @@ class App(tk.Tk):
         style.configure("Status.TLabel", foreground=COLORS["accent_green"], font=("Segoe UI", 9))
         style.configure("Dim.TLabel", foreground=COLORS["fg_dim"], font=("Segoe UI", 9))
         style.configure("Accent.TLabel", foreground=COLORS["accent_cyan"])
-
-        # Buttons
         style.configure("TButton", background=COLORS["bg_card"], foreground=COLORS["fg_primary"],
                         padding=(12, 6), font=("Segoe UI", 9))
         style.map("TButton",
                    background=[("active", COLORS["bg_hover"]), ("pressed", COLORS["bg_selected"])],
                    foreground=[("active", COLORS["accent_cyan"])])
-
         style.configure("Accent.TButton", background=COLORS["accent_blue"], foreground="#ffffff",
                         padding=(14, 7), font=("Segoe UI", 9, "bold"))
         style.map("Accent.TButton",
                    background=[("active", "#2563eb"), ("pressed", "#1d4ed8")])
-
         style.configure("Danger.TButton", background=COLORS["accent_red"], foreground="#ffffff",
                         padding=(12, 6))
         style.map("Danger.TButton",
                    background=[("active", "#dc2626"), ("pressed", "#b91c1c")])
-
         style.configure("Success.TButton", background=COLORS["accent_green"], foreground="#000000",
                         padding=(12, 6))
-
-        # LabelFrame
+        style.configure("NickServ.TButton", background=COLORS["accent_purple"], foreground="#ffffff",
+                        padding=(10, 5), font=("Segoe UI", 9))
+        style.map("NickServ.TButton",
+                   background=[("active", "#8b5cf6"), ("pressed", "#7c3aed")])
         style.configure("TLabelframe", background=COLORS["bg_panel"],
                         foreground=COLORS["accent_cyan"], borderwidth=1, relief="solid")
         style.configure("TLabelframe.Label", background=COLORS["bg_panel"],
                         foreground=COLORS["accent_cyan"], font=("Segoe UI", 10, "bold"))
-
-        # Notebook
         style.configure("TNotebook", background=COLORS["bg_dark"], borderwidth=0)
         style.configure("TNotebook.Tab", background=COLORS["bg_card"], foreground=COLORS["fg_dim"],
                         padding=(16, 8), font=("Segoe UI", 9))
         style.map("TNotebook.Tab",
                    background=[("selected", COLORS["bg_panel"])],
                    foreground=[("selected", COLORS["accent_cyan"])])
-
-        # Treeview
         style.configure("Treeview", background=COLORS["bg_input"], foreground=COLORS["fg_primary"],
                         fieldbackground=COLORS["bg_input"], borderwidth=0, rowheight=28,
                         font=("Segoe UI", 10))
@@ -574,18 +587,10 @@ class App(tk.Tk):
         style.map("Treeview",
                    background=[("selected", COLORS["bg_selected"])],
                    foreground=[("selected", COLORS["accent_cyan"])])
-
-        # Entry
         style.configure("TEntry", fieldbackground=COLORS["bg_input"],
                         foreground=COLORS["fg_primary"], insertcolor=COLORS["accent_cyan"])
-
-        # Panedwindow
         style.configure("TPanedwindow", background=COLORS["bg_dark"])
-
-        # Separator
         style.configure("TSeparator", background=COLORS["border"])
-
-        # Progressbar
         style.configure("TProgressbar", background=COLORS["accent_cyan"],
                         troughcolor=COLORS["bg_input"])
 
@@ -613,15 +618,13 @@ class App(tk.Tk):
         admin_box.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 6))
 
         self.admin_host = tk.StringVar(value=SERVER_HOST)
-        self.admin_port = tk.IntVar(value=6667)
+        self.admin_port = tk.IntVar(value=SERVER_PORT)
         self.admin_nick = tk.StringVar(value="Sky")
-        self.admin_email = tk.StringVar(value="")
         self.admin_pass = tk.StringVar(value="")
 
         row = ttk.Frame(admin_box); row.pack(fill=tk.X, padx=10, pady=6)
         for lbl, var, w in [("Host", self.admin_host, 16), ("Port", self.admin_port, 6),
-                             ("Nick", self.admin_nick, 10), ("Email", self.admin_email, 22),
-                             ("Password", self.admin_pass, 14)]:
+                             ("Nick", self.admin_nick, 12), ("Password", self.admin_pass, 16)]:
             ttk.Label(row, text=lbl, style="Dim.TLabel").pack(side=tk.LEFT, padx=(4, 2))
             e = ttk.Entry(row, textvariable=var, width=w)
             if lbl == "Password": e.configure(show="•")
@@ -631,6 +634,7 @@ class App(tk.Tk):
         ttk.Button(btnrow, text="▶ Connect", style="Accent.TButton", command=self._connect_admin).pack(side=tk.LEFT)
         ttk.Button(btnrow, text="⏹ Disconnect", command=self.admin.disconnect).pack(side=tk.LEFT, padx=6)
         ttk.Button(btnrow, text="📋 LIST Rooms", command=self.admin.list_channels).pack(side=tk.LEFT, padx=6)
+        ttk.Button(btnrow, text="🔑 OPER", command=self._admin_oper).pack(side=tk.LEFT, padx=6)
         self.admin_status = tk.StringVar(value="⬤ Disconnected")
         ttk.Label(btnrow, textvariable=self.admin_status, style="Status.TLabel").pack(side=tk.RIGHT)
 
@@ -639,12 +643,10 @@ class App(tk.Tk):
         bot_box.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(6, 0))
 
         self.bot_nick = tk.StringVar(value="JustaBot")
-        self.bot_email = tk.StringVar(value="")
         self.bot_pass = tk.StringVar(value="")
 
         brow = ttk.Frame(bot_box); brow.pack(fill=tk.X, padx=10, pady=6)
-        for lbl, var, w in [("Nick", self.bot_nick, 10), ("Email", self.bot_email, 22),
-                             ("Password", self.bot_pass, 14)]:
+        for lbl, var, w in [("Nick", self.bot_nick, 12), ("Password", self.bot_pass, 16)]:
             ttk.Label(brow, text=lbl, style="Dim.TLabel").pack(side=tk.LEFT, padx=(4, 2))
             e = ttk.Entry(brow, textvariable=var, width=w)
             if lbl == "Password": e.configure(show="•")
@@ -656,6 +658,30 @@ class App(tk.Tk):
         ttk.Button(bbtn, text="🔗 Bot JOIN All", command=self._bot_join_all).pack(side=tk.LEFT, padx=6)
         self.bot_status = tk.StringVar(value="⬤ Disconnected")
         ttk.Label(bbtn, textvariable=self.bot_status, style="Status.TLabel").pack(side=tk.RIGHT)
+
+        # ── NickServ Controls Bar ─────────────────────────────
+        ns_bar = ttk.Labelframe(self, text="🔐 NickServ Controls")
+        ns_bar.pack(fill=tk.X, padx=12, pady=(2, 4))
+
+        ns_row = ttk.Frame(ns_bar); ns_row.pack(fill=tk.X, padx=10, pady=6)
+        ttk.Button(ns_row, text="IDENTIFY", style="NickServ.TButton", command=self._ns_identify).pack(side=tk.LEFT, padx=2)
+        ttk.Button(ns_row, text="REGISTER", style="NickServ.TButton", command=self._ns_register).pack(side=tk.LEFT, padx=2)
+        ttk.Button(ns_row, text="SET PASSWORD", style="NickServ.TButton", command=self._ns_set_pass).pack(side=tk.LEFT, padx=2)
+        ttk.Button(ns_row, text="INFO", style="NickServ.TButton", command=self._ns_info).pack(side=tk.LEFT, padx=2)
+        ttk.Button(ns_row, text="GHOST", style="NickServ.TButton", command=self._ns_ghost).pack(side=tk.LEFT, padx=2)
+
+        ttk.Separator(ns_row, orient=tk.VERTICAL).pack(side=tk.LEFT, padx=10, fill=tk.Y)
+
+        # Moderation commands via chat
+        ttk.Button(ns_row, text="🔇 /mute", command=self._cmd_mute).pack(side=tk.LEFT, padx=2)
+        ttk.Button(ns_row, text="🔊 /unmute", command=self._cmd_unmute).pack(side=tk.LEFT, padx=2)
+        ttk.Button(ns_row, text="🚫 /ban", command=self._cmd_ban).pack(side=tk.LEFT, padx=2)
+        ttk.Button(ns_row, text="✅ /unban", command=self._cmd_unban).pack(side=tk.LEFT, padx=2)
+        ttk.Button(ns_row, text="💀 /kline", command=self._cmd_kline).pack(side=tk.LEFT, padx=2)
+        ttk.Button(ns_row, text="⚡ /oper", command=self._admin_oper).pack(side=tk.LEFT, padx=2)
+        ttk.Button(ns_row, text="🔽 /deoper", command=self._admin_deoper).pack(side=tk.LEFT, padx=2)
+
+        ttk.Label(ns_row, text="Auth: NickServ · Port 6667 (no SSL)", style="Dim.TLabel").pack(side=tk.RIGHT)
 
         # ── Main Content ──────────────────────────────────────
         main = ttk.Panedwindow(self, orient=tk.HORIZONTAL)
@@ -714,13 +740,10 @@ class App(tk.Tk):
 
         # IP Lookup tab
         self._build_ip_lookup_tab()
-
         # Port Scanner tab
         self._build_port_scanner_tab()
-
         # Ping tab
         self._build_ping_tab()
-
         # Finger tab
         self._build_finger_tab()
 
@@ -736,8 +759,13 @@ class App(tk.Tk):
         self.user_menu.add_command(label="🎤 VOICE (+v)", command=lambda: self._mode_selected("+v"))
         self.user_menu.add_command(label="  DEVOICE (-v)", command=lambda: self._mode_selected("-v"))
         self.user_menu.add_separator()
-        self.user_menu.add_command(label="🚫 BAN (+b)", command=lambda: self._ban_selected(True))
-        self.user_menu.add_command(label="  UNBAN (-b)", command=lambda: self._ban_selected(False))
+        self.user_menu.add_command(label="🔇 Mute (15m)", command=lambda: self._cmd_mute_user(15))
+        self.user_menu.add_command(label="🔇 Mute (1h)", command=lambda: self._cmd_mute_user(60))
+        self.user_menu.add_command(label="🔊 Unmute", command=self._cmd_unmute_user)
+        self.user_menu.add_separator()
+        self.user_menu.add_command(label="🚫 /ban", command=self._cmd_ban_user)
+        self.user_menu.add_command(label="✅ /unban", command=self._cmd_unban_user)
+        self.user_menu.add_command(label="💀 /kline", command=self._cmd_kline_user)
         self.user_menu.add_separator()
         self.user_menu.add_command(label="👢 KICK…", command=self._kick_selected)
         self.user_menu.add_command(label="💀 KICKBAN…", command=self._kickban_selected)
@@ -761,6 +789,7 @@ class App(tk.Tk):
                               "Features:\n"
                               "  • DNS Resolution (A/AAAA records)\n"
                               "  • Reverse DNS lookup\n"
+                              "  • GeoIP location data\n"
                               "  • IPv4 and IPv6 support\n")
         self.ip_result.configure(state=tk.DISABLED)
 
@@ -792,40 +821,28 @@ class App(tk.Tk):
         self.scan_result.tag_configure("closed", foreground=COLORS["fg_dim"])
         self.scan_result.tag_configure("filtered", foreground=COLORS["accent_amber"])
         self.scan_result.tag_configure("header", foreground=COLORS["accent_cyan"], font=("Consolas", 10, "bold"))
-        self.scan_result.insert("1.0", "Enter a host and ports, then click Scan.\n\n"
-                                "Modes:\n"
-                                "  • 'common' — scans well-known ports (SSH, HTTP, IRC, DB, etc.)\n"
-                                "  • Custom — comma-separated port numbers (e.g. 80,443,6667)\n"
-                                "  • Range — e.g. 1-1024\n")
-        self.scan_result.configure(state=tk.DISABLED)
 
     def _build_ping_tab(self):
         tab = ttk.Frame(self.nb)
-        self.nb.add(tab, text="📡 Ping")
+        self.nb.add(tab, text="📶 Ping")
 
         top = ttk.Frame(tab); top.pack(fill=tk.X, padx=12, pady=10)
         ttk.Label(top, text="Host:", style="Accent.TLabel").pack(side=tk.LEFT)
         self.ping_host_var = tk.StringVar(value=SERVER_HOST)
         ttk.Entry(top, textvariable=self.ping_host_var, width=30).pack(side=tk.LEFT, padx=8)
-
         ttk.Label(top, text="Count:", style="Dim.TLabel").pack(side=tk.LEFT, padx=(8, 2))
         self.ping_count_var = tk.IntVar(value=4)
         ttk.Entry(top, textvariable=self.ping_count_var, width=5).pack(side=tk.LEFT, padx=(0, 8))
-
-        ttk.Button(top, text="📡 Ping", style="Accent.TButton", command=self._do_ping).pack(side=tk.LEFT)
+        ttk.Button(top, text="📶 Ping", style="Accent.TButton", command=self._do_ping).pack(side=tk.LEFT)
 
         self.ping_result = tk.Text(tab, wrap=tk.WORD,
                                     bg=COLORS["bg_input"], fg=COLORS["fg_primary"],
                                     insertbackground=COLORS["accent_cyan"],
                                     font=("Consolas", 10), relief="flat")
         self.ping_result.pack(fill=tk.BOTH, expand=True, padx=12, pady=(0, 10))
+        self.ping_result.tag_configure("header", foreground=COLORS["accent_cyan"], font=("Consolas", 10, "bold"))
         self.ping_result.tag_configure("ok", foreground=COLORS["accent_green"])
         self.ping_result.tag_configure("fail", foreground=COLORS["accent_red"])
-        self.ping_result.tag_configure("header", foreground=COLORS["accent_cyan"], font=("Consolas", 10, "bold"))
-        self.ping_result.insert("1.0", "Enter a host and click Ping.\n\n"
-                                "Uses TCP connect to port 80 (no root required).\n"
-                                "Shows round-trip latency in milliseconds.\n")
-        self.ping_result.configure(state=tk.DISABLED)
 
     def _build_finger_tab(self):
         tab = ttk.Frame(self.nb)
@@ -835,16 +852,13 @@ class App(tk.Tk):
         ttk.Label(top, text="Host:", style="Accent.TLabel").pack(side=tk.LEFT)
         self.finger_host_var = tk.StringVar(value=SERVER_HOST)
         ttk.Entry(top, textvariable=self.finger_host_var, width=24).pack(side=tk.LEFT, padx=8)
-
         ttk.Label(top, text="User:", style="Dim.TLabel").pack(side=tk.LEFT, padx=(8, 2))
         self.finger_user_var = tk.StringVar(value="")
         ttk.Entry(top, textvariable=self.finger_user_var, width=16).pack(side=tk.LEFT, padx=(0, 8))
-
         ttk.Label(top, text="Port:", style="Dim.TLabel").pack(side=tk.LEFT, padx=(8, 2))
         self.finger_port_var = tk.IntVar(value=79)
         ttk.Entry(top, textvariable=self.finger_port_var, width=6).pack(side=tk.LEFT, padx=(0, 8))
-
-        ttk.Button(top, text="👆 Finger", style="Accent.TButton", command=self._do_finger).pack(side=tk.LEFT)
+        ttk.Button(top, text="👆 Query", style="Accent.TButton", command=self._do_finger).pack(side=tk.LEFT)
 
         self.finger_result = tk.Text(tab, wrap=tk.WORD,
                                       bg=COLORS["bg_input"], fg=COLORS["fg_primary"],
@@ -852,100 +866,211 @@ class App(tk.Tk):
                                       font=("Consolas", 10), relief="flat")
         self.finger_result.pack(fill=tk.BOTH, expand=True, padx=12, pady=(0, 10))
         self.finger_result.tag_configure("header", foreground=COLORS["accent_cyan"], font=("Consolas", 10, "bold"))
-        self.finger_result.tag_configure("info", foreground=COLORS["accent_green"])
+        self.finger_result.tag_configure("info", foreground=COLORS["fg_primary"])
         self.finger_result.tag_configure("error", foreground=COLORS["accent_red"])
-        self.finger_result.insert("1.0", "Finger protocol (RFC 1288) query tool.\n\n"
-                                  "Usage:\n"
-                                  "  • Leave User blank to query all users\n"
-                                  "  • Enter a username to query specific user\n"
-                                  "  • Default port is 79 (standard finger)\n"
-                                  "  • Most modern servers have finger disabled\n")
-        self.finger_result.configure(state=tk.DISABLED)
+
+    # ── Connection Methods ────────────────────────────────────
     def _connect_admin(self):
-        if not self.admin_email.get().strip() or not self.admin_pass.get().strip():
-            if not messagebox.askyesno("No PASS?", "Email/password empty. Connect without PASS?"):
-                return
-        self.admin.connect(self.admin_host.get(), int(self.admin_port.get()),
-                           self.admin_nick.get(), self.admin_email.get(), self.admin_pass.get(),
-                           "Justachat Admin")
+        self.admin.connect(
+            self.admin_host.get(), self.admin_port.get(),
+            self.admin_nick.get(), self.admin_pass.get(),
+            f"JAC Admin Console {APP_VERSION}"
+        )
 
     def _connect_bot(self):
-        if not self.bot_email.get().strip() or not self.bot_pass.get().strip():
-            messagebox.showerror("Bot login required", "Enter bot email + password.")
-            return
-        self.bot.connect(self.admin_host.get(), int(self.admin_port.get()),
-                         self.bot_nick.get(), self.bot_email.get(), self.bot_pass.get(),
-                         "Justachat Bot")
+        self.bot.connect(
+            self.admin_host.get(), self.admin_port.get(),
+            self.bot_nick.get(), self.bot_pass.get(),
+            f"JAC Bot {APP_VERSION}"
+        )
+
+    def _admin_oper(self):
+        """Send /oper command via chat message to current room"""
+        room = self._active_room()
+        if room and self.admin.connected:
+            self.admin.privmsg(room, "/oper")
+
+    def _admin_deoper(self):
+        room = self._active_room()
+        if room and self.admin.connected:
+            self.admin.privmsg(room, "/deoper")
+
+    # ── NickServ Methods ──────────────────────────────────────
+    def _ns_identify(self):
+        pw = simpledialog.askstring("NickServ", "Password:", show="•", parent=self)
+        if pw:
+            self.admin.identify(pw)
+
+    def _ns_register(self):
+        pw = simpledialog.askstring("NickServ", "Choose a password:", show="•", parent=self)
+        if pw:
+            self.admin.nickserv_register(pw)
+
+    def _ns_set_pass(self):
+        pw = simpledialog.askstring("NickServ", "New password:", show="•", parent=self)
+        if pw:
+            self.admin.nickserv_set_password(pw)
+
+    def _ns_info(self):
+        nick = simpledialog.askstring("NickServ", "Nick to query (blank=self):", parent=self)
+        self.admin.nickserv_info(nick if nick else None)
+
+    def _ns_ghost(self):
+        nick = simpledialog.askstring("NickServ", "Nick to ghost:", parent=self)
+        if nick:
+            pw = simpledialog.askstring("NickServ", f"Password for {nick}:", show="•", parent=self)
+            if pw:
+                self.admin.nickserv_ghost(nick, pw)
+
+    # ── Chat-based moderation commands ────────────────────────
+    def _cmd_mute(self):
+        room = self._active_room()
+        if not room: return
+        nick = simpledialog.askstring("Mute", "Username to mute:", parent=self)
+        if nick:
+            mins = simpledialog.askinteger("Mute", "Duration (minutes):", initialvalue=15, parent=self)
+            if mins:
+                self.admin.privmsg(room, f"/mute {nick} {mins}")
+
+    def _cmd_unmute(self):
+        room = self._active_room()
+        if not room: return
+        nick = simpledialog.askstring("Unmute", "Username to unmute:", parent=self)
+        if nick:
+            self.admin.privmsg(room, f"/unmute {nick}")
+
+    def _cmd_ban(self):
+        room = self._active_room()
+        if not room: return
+        nick = simpledialog.askstring("Ban", "Username to ban:", parent=self)
+        if nick:
+            reason = simpledialog.askstring("Ban", "Reason:", initialvalue="Banned by admin", parent=self) or "Banned"
+            self.admin.privmsg(room, f"/ban {nick} {reason}")
+
+    def _cmd_unban(self):
+        room = self._active_room()
+        if not room: return
+        nick = simpledialog.askstring("Unban", "Username to unban:", parent=self)
+        if nick:
+            self.admin.privmsg(room, f"/unban {nick}")
+
+    def _cmd_kline(self):
+        room = self._active_room()
+        if not room: return
+        nick = simpledialog.askstring("K-Line", "Username to K-Line:", parent=self)
+        if nick:
+            reason = simpledialog.askstring("K-Line", "Reason:", initialvalue="K-Lined", parent=self) or "K-Lined"
+            self.admin.privmsg(room, f"/kline {nick} {reason}")
+
+    # Right-click user variants (use selected user from list)
+    def _cmd_mute_user(self, mins):
+        room, nick = self._selected_user()
+        if room and nick:
+            self.admin.privmsg(room, f"/mute {nick} {mins}")
+
+    def _cmd_unmute_user(self):
+        room, nick = self._selected_user()
+        if room and nick:
+            self.admin.privmsg(room, f"/unmute {nick}")
+
+    def _cmd_ban_user(self):
+        room, nick = self._selected_user()
+        if room and nick:
+            reason = simpledialog.askstring("Ban", f"Reason for banning {nick}:", initialvalue="Banned", parent=self) or "Banned"
+            self.admin.privmsg(room, f"/ban {nick} {reason}")
+
+    def _cmd_unban_user(self):
+        room, nick = self._selected_user()
+        if room and nick:
+            self.admin.privmsg(room, f"/unban {nick}")
+
+    def _cmd_kline_user(self):
+        room, nick = self._selected_user()
+        if room and nick:
+            reason = simpledialog.askstring("K-Line", f"Reason for K-Lining {nick}:", initialvalue="K-Lined", parent=self) or "K-Lined"
+            self.admin.privmsg(room, f"/kline {nick} {reason}")
 
     # ── Room Management ───────────────────────────────────────
-    def _render_rooms(self, rooms):
+    def _render_rooms(self, channels):
         self.room_tree.delete(*self.room_tree.get_children())
-        for chan, users, topic in sorted(rooms, key=lambda x: (-x[1], x[0].lower())):
-            self.room_tree.insert("", tk.END, iid=chan, values=(users, topic))
+        for item in channels:
+            if isinstance(item, tuple) and len(item) >= 3:
+                chan, users, topic = item
+                self.room_tree.insert("", tk.END, iid=chan, values=(users, topic))
+            elif isinstance(item, str):
+                self.room_tree.insert("", tk.END, iid=item, values=(0, ""))
 
     def _room_selected(self):
         sel = self.room_tree.selection()
-        if not sel: return
-        self._open_room(sel[0])
+        if sel:
+            room = sel[0]
+            self.current_room = room
+            self.admin.join(room)
+            if room not in self.room_tabs:
+                self._create_room_tab(room)
+            # Switch to that tab
+            for i in range(self.nb.index("end")):
+                if self.nb.tab(i, "text") == room:
+                    self.nb.select(i)
+                    break
 
     def _join_manual(self):
         room = self.manual_room.get().strip()
-        if not room: return
-        if not room.startswith("#"): room = "#" + room
-        self._open_room(room)
+        if room:
+            if not room.startswith("#"): room = "#" + room
+            self.admin.join(room)
+            if room not in self.room_tabs:
+                self._create_room_tab(room)
 
-    def _open_room(self, room):
-        self.current_room = room
-        self.admin.join(room)
-        self.admin.names(room)
-        self._ensure_room_tab(room)
-        self.nb.select(self.room_tabs[room]["tab"])
-
-    def _ensure_room_tab(self, room):
-        if room in self.room_tabs: return
+    def _create_room_tab(self, room):
         tab = ttk.Frame(self.nb)
         self.nb.add(tab, text=room)
 
-        pan = ttk.Panedwindow(tab, orient=tk.HORIZONTAL)
-        pan.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
+        pane = ttk.Panedwindow(tab, orient=tk.HORIZONTAL)
+        pane.pack(fill=tk.BOTH, expand=True, padx=6, pady=6)
 
-        left = ttk.Frame(pan); right = ttk.Frame(pan)
-        pan.add(left, weight=3); pan.add(right, weight=1)
+        # Chat area
+        chat_frame = ttk.Frame(pane)
+        pane.add(chat_frame, weight=3)
 
-        # Chat display
-        chat = tk.Text(left, wrap=tk.WORD,
-                        bg=COLORS["bg_input"], fg=COLORS["fg_primary"],
-                        insertbackground=COLORS["accent_cyan"],
-                        font=("Consolas", 10), relief="flat", borderwidth=0)
-        chat.pack(fill=tk.BOTH, expand=True)
+        chat = tk.Text(chat_frame, wrap=tk.WORD,
+                       bg=COLORS["bg_input"], fg=COLORS["fg_primary"],
+                       insertbackground=COLORS["accent_cyan"],
+                       font=("Consolas", 10), relief="flat", borderwidth=0)
+        chat.pack(fill=tk.BOTH, expand=True, padx=(0, 4))
         chat.tag_configure("timestamp", foreground=COLORS["fg_dim"])
         chat.tag_configure("nick_owner", foreground=COLORS["owner_gold"], font=("Consolas", 10, "bold"))
         chat.tag_configure("nick_admin", foreground=COLORS["admin_red"], font=("Consolas", 10, "bold"))
         chat.tag_configure("nick_mod", foreground=COLORS["mod_green"])
         chat.tag_configure("nick_bot", foreground=COLORS["bot_cyan"])
-        chat.tag_configure("nick_user", foreground=COLORS["accent_blue"])
+        chat.tag_configure("nick_user", foreground=COLORS["user_slate"])
         chat.tag_configure("message", foreground=COLORS["fg_primary"])
         chat.configure(state=tk.DISABLED)
 
-        entrybar = ttk.Frame(left); entrybar.pack(fill=tk.X, pady=(6, 0))
+        # Input bar
+        input_frame = ttk.Frame(chat_frame)
+        input_frame.pack(fill=tk.X, pady=(4, 0))
         msgvar = tk.StringVar()
-        entry = ttk.Entry(entrybar, textvariable=msgvar)
+        entry = ttk.Entry(input_frame, textvariable=msgvar, font=("Segoe UI", 10))
         entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 4))
-        entry.bind("<Return>", lambda e, r=room, m=msgvar: self._send_chat(r, m))
-        ttk.Button(entrybar, text="Send", command=lambda: self._send_chat(room, msgvar)).pack(side=tk.LEFT)
+        entry.bind("<Return>", lambda e: self._send_chat(room, msgvar))
+        ttk.Button(input_frame, text="Send", command=lambda: self._send_chat(room, msgvar)).pack(side=tk.LEFT)
 
         # User list
-        ttk.Label(right, text="👥 Users", style="Accent.TLabel").pack(anchor="w")
-        users = tk.Listbox(right, bg=COLORS["bg_input"], fg=COLORS["fg_primary"],
-                           selectbackground=COLORS["bg_selected"], selectforeground=COLORS["accent_cyan"],
-                           font=("Consolas", 10), relief="flat", borderwidth=0, activestyle="none")
-        users.pack(fill=tk.BOTH, expand=True, pady=(4, 0))
-        users.bind("<Button-3>", lambda e, r=room: self._user_menu_popup(e, users))
+        user_frame = ttk.Frame(pane)
+        pane.add(user_frame, weight=1)
 
-        # Selected user info
-        info = ttk.Labelframe(right, text="Selected")
-        info.pack(fill=tk.X, pady=(6, 0))
-        sel_var = tk.StringVar(value="—")
+        ttk.Label(user_frame, text=f"👥 Users in {room}", style="Accent.TLabel").pack(anchor="w", pady=(0, 4))
+        users = tk.Listbox(user_frame, bg=COLORS["bg_input"], fg=COLORS["fg_primary"],
+                           selectbackground=COLORS["bg_selected"], selectforeground=COLORS["accent_cyan"],
+                           font=("Segoe UI", 10), relief="flat", borderwidth=0)
+        users.pack(fill=tk.BOTH, expand=True)
+        users.bind("<Button-3>", lambda e: self._user_menu_popup(e, users))
+
+        # User info
+        info = ttk.Frame(user_frame)
+        info.pack(fill=tk.X, pady=(4, 0))
+        sel_var = tk.StringVar(value="(none selected)")
         host_var = tk.StringVar(value="")
         ttk.Label(info, textvariable=sel_var, font=("Consolas", 10, "bold"),
                   foreground=COLORS["accent_cyan"]).pack(anchor="w", padx=8, pady=(6, 2))
@@ -999,14 +1124,12 @@ class App(tk.Tk):
         if nick: self.admin.whois(nick)
 
     def _ip_lookup_user(self):
-        """Lookup IP for selected user from hostmask"""
         _, nick = self._selected_user()
         if not nick: return
         hm = self.admin.user_hostmask.get(nick) or self.bot.user_hostmask.get(nick) or ""
         host = hm.split("@", 1)[1] if "@" in hm else hm
         if host:
             self.ip_lookup_var.set(host)
-            # Switch to IP Lookup tab
             for i in range(self.nb.index("end")):
                 if "IP Lookup" in self.nb.tab(i, "text"):
                     self.nb.select(i)
@@ -1097,7 +1220,7 @@ class App(tk.Tk):
         try:
             import urllib.request
             url = f"http://ip-api.com/json/{result['ips'][0]['ip']}?fields=status,message,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,query"
-            req = urllib.request.Request(url, headers={"User-Agent": "Justachat-Admin/7.0"})
+            req = urllib.request.Request(url, headers={"User-Agent": "Justachat-Admin/8.0"})
             with urllib.request.urlopen(req, timeout=5) as resp:
                 geo = json.loads(resp.read().decode())
                 if geo.get("status") == "success":
@@ -1121,7 +1244,6 @@ class App(tk.Tk):
         ports_str = self.scan_ports_var.get().strip()
         if not host: return
 
-        # Parse ports
         if ports_str.lower() == "common":
             ports = sorted(COMMON_PORTS.keys())
         elif "-" in ports_str and "," not in ports_str:
@@ -1172,7 +1294,6 @@ class App(tk.Tk):
         elif r["state"] == "FILTERED": tag = "filtered"
 
         line = f"{r['port']:<8} {r['state']:<12} {r['service']:<16} {r['banner']}\n"
-        # Only show open/filtered by default
         if r["state"] in ("OPEN", "FILTERED"):
             self.scan_result.insert(tk.END, line, tag)
 
@@ -1329,7 +1450,6 @@ class App(tk.Tk):
         self.after(100, self._poll)
 
     def _show_whois(self, nick, lines):
-        """Show WHOIS result in a popup"""
         win = tk.Toplevel(self)
         win.title(f"WHOIS — {nick}")
         win.geometry("500x350")
