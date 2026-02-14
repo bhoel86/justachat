@@ -7,16 +7,17 @@ echo "  JUSTACHAT VPS HEALTH CHECK"
 echo "========================================"
 echo ""
 
-cd ~/supabase/docker 2>/dev/null || { echo "ERROR: ~/supabase/docker not found"; exit 1; }
+DOCKER_DIR="/home/unix/supabase/docker"
+cd "$DOCKER_DIR" 2>/dev/null || { echo "ERROR: $DOCKER_DIR not found"; exit 1; }
 
 echo "=== 1. DOCKER CONTAINERS ==="
-docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | head -15
+sudo docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | head -15
 echo ""
 
 echo "=== 2. JWT KEYS CHECK ==="
-ANON_KEY=$(grep "^ANON_KEY=" .env | cut -d'=' -f2 | tr -d '"')
-SERVICE_KEY=$(grep "^SERVICE_ROLE_KEY=" .env | cut -d'=' -f2 | tr -d '"')
-JWT_SECRET=$(grep "^JWT_SECRET=" .env | cut -d'=' -f2 | tr -d '"')
+ANON_KEY=$(sudo grep "^ANON_KEY=" .env | cut -d'=' -f2 | tr -d '"')
+SERVICE_KEY=$(sudo grep "^SERVICE_ROLE_KEY=" .env | cut -d'=' -f2 | tr -d '"')
+JWT_SECRET=$(sudo grep "^JWT_SECRET=" .env | cut -d'=' -f2 | tr -d '"')
 
 echo "JWT_SECRET length: ${#JWT_SECRET}"
 echo "ANON_KEY starts with: ${ANON_KEY:0:10}..."
@@ -48,16 +49,16 @@ echo ""
 echo ""
 
 echo "=== 4. GOOGLE OAUTH CONFIG ==="
-GOOGLE_ENABLED=$(grep "GOTRUE_EXTERNAL_GOOGLE_ENABLED" .env | cut -d'=' -f2)
-SITE_URL=$(grep "GOTRUE_SITE_URL" .env | cut -d'=' -f2)
+GOOGLE_ENABLED=$(sudo grep "GOTRUE_EXTERNAL_GOOGLE_ENABLED" .env | cut -d'=' -f2)
+SITE_URL=$(sudo grep "GOTRUE_SITE_URL" .env | cut -d'=' -f2)
 echo "Google OAuth enabled: $GOOGLE_ENABLED"
 echo "Site URL: $SITE_URL"
 echo ""
 
 echo "=== 5. SMTP/EMAIL CONFIG ==="
-SMTP_HOST=$(grep "GOTRUE_SMTP_HOST" .env | cut -d'=' -f2)
+SMTP_HOST=$(sudo grep "GOTRUE_SMTP_HOST" .env | cut -d'=' -f2)
 if [ -z "$SMTP_HOST" ] || [ "$SMTP_HOST" = '""' ]; then
-  HOOK_URL=$(grep "GOTRUE_HOOK" .env | head -1)
+  HOOK_URL=$(sudo grep "GOTRUE_HOOK" .env | head -1)
   if [ -n "$HOOK_URL" ]; then
     echo "Using HTTP webhook for emails (Resend)"
   else
@@ -69,11 +70,11 @@ fi
 echo ""
 
 echo "=== 6. NGINX STATUS ==="
-systemctl status nginx --no-pager | head -5
+sudo systemctl status nginx --no-pager | head -5
 echo ""
 
 echo "=== 7. RECENT AUTH ERRORS ==="
-docker logs supabase-auth --tail 20 2>&1 | grep -iE "error|fail|invalid" | tail -5
+sudo docker logs supabase-auth --tail 20 2>&1 | grep -iE "error|fail|invalid" | tail -5
 echo ""
 
 echo "=== 8. FRONTEND .ENV CHECK ==="

@@ -1,7 +1,7 @@
 #!/bin/bash
 # VPS Safe Pull - Validates files before and after git pull
 # Automatically protects VPS-specific files from being overwritten
-# Usage: bash /var/www/justachat/public/vps-deploy/safe-pull.sh
+# Usage: sudo bash /var/www/justachat/public/vps-deploy/safe-pull.sh
 
 set -e
 
@@ -64,7 +64,6 @@ done
 echo ""
 echo -e "${YELLOW}[5/5] Patching frontend for VPS...${NC}"
 
-# Patch useChatBots.ts to use 'chat-bot' instead of 'chat-bot-cloud'
 BOTS_FILE="$DEPLOY_DIR/src/hooks/useChatBots.ts"
 if [ -f "$BOTS_FILE" ]; then
   if grep -q "chat-bot-cloud" "$BOTS_FILE"; then
@@ -92,6 +91,9 @@ bash "$DEPLOY_DIR/public/vps-deploy/validate-before-deploy.sh" || {
 # Cleanup
 rm -rf "$BACKUP_DIR"
 
+# Fix ownership
+sudo chown -R unix:unix "$DEPLOY_DIR"
+
 echo ""
 echo -e "${GREEN}✓ Safe pull complete!${NC}"
 echo ""
@@ -99,3 +101,4 @@ echo "Next steps:"
 echo "  cd $DEPLOY_DIR"
 echo "  npm install --legacy-peer-deps"
 echo "  npm run build"
+echo "  sudo systemctl reload nginx"

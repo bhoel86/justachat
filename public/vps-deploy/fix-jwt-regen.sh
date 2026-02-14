@@ -13,7 +13,7 @@ echo "  JUSTACHAT - REGENERATE JWT KEYS"
 echo "============================================"
 
 # Get current JWT_SECRET
-JWT=$(grep '^JWT_SECRET=' "$ENV_FILE" | cut -d= -f2)
+JWT=$(sudo grep '^JWT_SECRET=' "$ENV_FILE" | cut -d= -f2)
 echo "JWT_SECRET: ${JWT:0:20}..."
 
 # Generate new ANON_KEY
@@ -39,32 +39,32 @@ echo "New ANON_KEY: ${NEW_ANON:0:30}..."
 echo "New SERVICE_ROLE_KEY: ${NEW_SERVICE:0:30}..."
 
 # Backup .env
-cp "$ENV_FILE" "$ENV_FILE.bak.$(date +%F-%H%M%S)"
+sudo cp "$ENV_FILE" "$ENV_FILE.bak.$(date +%F-%H%M%S)"
 echo "✓ Backend .env backed up"
 
 # Update backend .env
-sed -i "s|^ANON_KEY=.*|ANON_KEY=$NEW_ANON|" "$ENV_FILE"
-sed -i "s|^SERVICE_ROLE_KEY=.*|SERVICE_ROLE_KEY=$NEW_SERVICE|" "$ENV_FILE"
+sudo sed -i "s|^ANON_KEY=.*|ANON_KEY=$NEW_ANON|" "$ENV_FILE"
+sudo sed -i "s|^SERVICE_ROLE_KEY=.*|SERVICE_ROLE_KEY=$NEW_SERVICE|" "$ENV_FILE"
 echo "✓ Backend .env updated"
 
 # Update frontend .env
 if [ -f "$FRONTEND_ENV" ]; then
-  cp "$FRONTEND_ENV" "$FRONTEND_ENV.bak.$(date +%F-%H%M%S)"
-  sed -i "s|^VITE_SUPABASE_PUBLISHABLE_KEY=.*|VITE_SUPABASE_PUBLISHABLE_KEY=$NEW_ANON|" "$FRONTEND_ENV"
-  sed -i "s|^VITE_SUPABASE_ANON_KEY=.*|VITE_SUPABASE_ANON_KEY=$NEW_ANON|" "$FRONTEND_ENV"
+  sudo cp "$FRONTEND_ENV" "$FRONTEND_ENV.bak.$(date +%F-%H%M%S)"
+  sudo sed -i "s|^VITE_SUPABASE_PUBLISHABLE_KEY=.*|VITE_SUPABASE_PUBLISHABLE_KEY=$NEW_ANON|" "$FRONTEND_ENV"
+  sudo sed -i "s|^VITE_SUPABASE_ANON_KEY=.*|VITE_SUPABASE_ANON_KEY=$NEW_ANON|" "$FRONTEND_ENV"
   echo "✓ Frontend .env updated"
 fi
 
 # Update realtime tenant
-docker exec supabase-db psql -U supabase_admin -d postgres -c \
+sudo docker exec supabase-db psql -U supabase_admin -d postgres -c \
   "UPDATE _realtime.tenants SET jwt_secret = '$JWT' WHERE external_id = 'realtime-dev';" 2>/dev/null || echo "Note: realtime tenant update skipped"
 echo "✓ Realtime tenant jwt_secret updated"
 
 # Restart full stack
 echo ""
 echo "Restarting Supabase stack..."
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down --remove-orphans 2>/dev/null
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d
+sudo docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" down --remove-orphans 2>/dev/null
+sudo docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d
 echo "✓ Stack restarting"
 
 # Rebuild frontend
@@ -72,12 +72,12 @@ echo ""
 echo "Rebuilding frontend..."
 cd /var/www/justachat
 rm -rf dist
-chown -R unix:unix /var/www/justachat/
-su - unix -c "cd /var/www/justachat && npm run build"
+sudo chown -R unix:unix /var/www/justachat/
+npm run build
 echo "✓ Frontend rebuilt"
 
 # Reload Nginx
-systemctl reload nginx
+sudo systemctl reload nginx
 echo "✓ Nginx reloaded"
 
 # Wait for services
@@ -88,11 +88,11 @@ sleep 30
 # Verify
 echo ""
 echo "=== SERVICE STATUS ==="
-docker ps --format "table {{.Names}}\t{{.Status}}"
+sudo docker ps --format "table {{.Names}}\t{{.Status}}"
 
 echo ""
 echo "=== KEY VERIFICATION ==="
-ANON_CHECK=$(grep '^ANON_KEY=' "$ENV_FILE" | cut -d= -f2)
+ANON_CHECK=$(sudo grep '^ANON_KEY=' "$ENV_FILE" | cut -d= -f2)
 python3 -c "
 import hmac, hashlib, base64
 parts = '$ANON_CHECK'.split('.')

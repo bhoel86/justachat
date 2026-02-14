@@ -1,7 +1,7 @@
 #!/bin/bash
 # ============================================
 # JUSTACHAT VPS UPDATE — THE ONLY SCRIPT YOU NEED
-# Usage: bash /var/www/justachat/public/vps-deploy/vps-update.sh
+# Usage: sudo bash /var/www/justachat/public/vps-deploy/vps-update.sh
 # ============================================
 
 set -e
@@ -14,7 +14,7 @@ BOLD='\033[1m'
 NC='\033[0m'
 
 PROJECT_DIR="/var/www/justachat"
-DOCKER_DIR="$HOME/supabase/docker"
+DOCKER_DIR="/home/unix/supabase/docker"
 DOCKER_ENV="$DOCKER_DIR/.env"
 FUNCTIONS_DIR="$DOCKER_DIR/volumes/functions/main"
 KONG_DIR="$DOCKER_DIR/volumes/api"
@@ -36,14 +36,14 @@ echo ""
 # ─────────────────────────────────────────────
 step "Reading keys from Docker"
 
-if [ ! -f "$DOCKER_ENV" ]; then
+if ! sudo test -f "$DOCKER_ENV"; then
   err "Docker .env not found at $DOCKER_ENV — cannot continue"
   exit 1
 fi
 
-ANON_KEY=$(grep -E '^ANON_KEY=' "$DOCKER_ENV" | head -1 | cut -d'=' -f2-)
-SERVICE_ROLE_KEY=$(grep -E '^SERVICE_ROLE_KEY=' "$DOCKER_ENV" | head -1 | cut -d'=' -f2-)
-JWT_SECRET=$(grep -E '^JWT_SECRET=' "$DOCKER_ENV" | head -1 | cut -d'=' -f2-)
+ANON_KEY=$(sudo grep -E '^ANON_KEY=' "$DOCKER_ENV" | head -1 | cut -d'=' -f2-)
+SERVICE_ROLE_KEY=$(sudo grep -E '^SERVICE_ROLE_KEY=' "$DOCKER_ENV" | head -1 | cut -d'=' -f2-)
+JWT_SECRET=$(sudo grep -E '^JWT_SECRET=' "$DOCKER_ENV" | head -1 | cut -d'=' -f2-)
 
 if [ -z "$ANON_KEY" ]; then
   err "ANON_KEY not found in Docker .env"
@@ -90,17 +90,16 @@ ok "Frontend .env written with correct ANON_KEY"
 step "Verify Kong"
 
 KONG_YML="$KONG_DIR/kong.yml"
-if [ -f "$KONG_YML" ]; then
-  if grep -q 'SUPABASE_ANON_KEY' "$KONG_YML"; then
+if sudo test -f "$KONG_YML"; then
+  if sudo grep -q 'SUPABASE_ANON_KEY' "$KONG_YML"; then
     ok "Kong uses \$SUPABASE_ANON_KEY env var"
   else
     warn "Kong may have hardcoded keys — check $KONG_YML"
   fi
 else
-  # Sync kong.yml from repo if it doesn't exist
   if [ -f "$PROJECT_DIR/public/vps-deploy/kong.yml" ]; then
-    mkdir -p "$KONG_DIR"
-    cp "$PROJECT_DIR/public/vps-deploy/kong.yml" "$KONG_YML"
+    sudo mkdir -p "$KONG_DIR"
+    sudo cp "$PROJECT_DIR/public/vps-deploy/kong.yml" "$KONG_YML"
     ok "Kong config synced from repo"
   else
     warn "No Kong config found"
@@ -133,6 +132,7 @@ fi
 # ─────────────────────────────────────────────
 step "Install & build"
 
+sudo chown -R unix:unix "$PROJECT_DIR"
 npm install --legacy-peer-deps --silent
 rm -rf dist node_modules/.vite .vite 2>/dev/null || true
 npm run build
@@ -149,13 +149,13 @@ fi
 # ─────────────────────────────────────────────
 step "Sync edge functions to Docker"
 
-if [ -d "$FUNCTIONS_DIR" ]; then
+if sudo test -d "$FUNCTIONS_DIR"; then
   SYNCED=0
   for func_dir in supabase/functions/*/; do
     func_name=$(basename "$func_dir")
     if [ "$func_name" != "_shared" ] && [ -f "${func_dir}index.ts" ]; then
-      mkdir -p "$FUNCTIONS_DIR/$func_name"
-      cp -r "${func_dir}"* "$FUNCTIONS_DIR/$func_name/" 2>/dev/null || true
+      sudo mkdir -p "$FUNCTIONS_DIR/$func_name"
+      sudo cp -r "${func_dir}"* "$FUNCTIONS_DIR/$func_name/" 2>/dev/null || true
       SYNCED=$((SYNCED + 1))
     fi
   done
@@ -186,9 +186,9 @@ fi
 step "Restart services"
 
 cd "$DOCKER_DIR"
-docker compose stop functions 2>/dev/null || docker-compose stop functions 2>/dev/null || true
+sudo docker compose stop functions 2>/dev/null || sudo docker-compose stop functions 2>/dev/null || true
 sleep 2
-docker compose up -d functions 2>/dev/null || docker-compose up -d functions 2>/dev/null || true
+sudo docker compose up -d functions 2>/dev/null || sudo docker-compose up -d functions 2>/dev/null || true
 ok "Edge functions restarted"
 
 cd "$PROJECT_DIR"
