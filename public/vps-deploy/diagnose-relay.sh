@@ -6,7 +6,7 @@ echo "========================================"
 echo "  Web→IRC Relay Diagnostic $(date '+%H:%M:%S')"
 echo "========================================"
 
-cd ~/supabase/docker 2>/dev/null || cd /root/supabase/docker 2>/dev/null
+cd ~/supabase/docker 2>/dev/null || cd /home/unix/supabase/docker 2>/dev/null
 source .env 2>/dev/null
 
 echo ""

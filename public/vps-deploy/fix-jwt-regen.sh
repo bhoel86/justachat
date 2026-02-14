@@ -4,8 +4,8 @@
 
 set -euo pipefail
 
-ENV_FILE="/root/supabase/docker/.env"
-COMPOSE_FILE="/root/supabase/docker/docker-compose.yml"
+ENV_FILE="/home/unix/supabase/docker/.env"
+COMPOSE_FILE="/home/unix/supabase/docker/docker-compose.yml"
 FRONTEND_ENV="/var/www/justachat/.env"
 
 echo "============================================"

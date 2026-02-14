@@ -9,7 +9,7 @@
 - **Password:** Khoel15$$
 
 ## Supabase Config Location
-- **Backend .env:** /home/unix/supabase/docker/.env (symlink to /root/supabase/docker/.env)
+- **Backend .env:** /home/unix/supabase/docker/.env
 - **Frontend .env:** /var/www/justachat/.env
 
 ## Key Variables (in backend .env)

@@ -170,7 +170,7 @@
 - **CRITICAL**: Must load `ANON_KEY` from VPS Docker `.env` (`/home/unix/supabase/docker/.env`), NOT the Lovable Cloud `.env`
 - PM2-managed: `pm2 start irc-bridge.js --name jac-irc-bridge`
 - **Fix (2026-02-07)**: PM2 env caching caused stale ANON_KEY; fixed by explicitly injecting `ANON_KEY` from Docker `.env` at startup
-- Env file priority: `/home/unix/supabase/docker/.env` → `/root/supabase/docker/.env` → `/var/www/justachat/.env`
+- Env file priority: `/home/unix/supabase/docker/.env` → `/var/www/justachat/.env`
 - TLS/SSL detection on port 6667 (warns clients to disable SSL)
 - Sequential IRC line processing to prevent race conditions
 - Response relay strips redundant `\r\n` from Edge Function outputs

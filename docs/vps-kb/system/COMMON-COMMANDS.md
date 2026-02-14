@@ -31,20 +31,20 @@ npm run build
 docker ps --format 'table {{.Names}}\t{{.Status}}'
 
 # Restart all Supabase
-sudo bash -c 'cd /root/supabase/docker && docker compose --env-file .env down --remove-orphans && docker compose --env-file .env up -d'
+cd /home/unix/supabase/docker && docker compose --env-file .env down --remove-orphans && docker compose --env-file .env up -d
 
 # View logs for a container
 docker logs supabase-auth --tail 50
 docker logs supabase-kong --tail 50
 
 # Database shell
-sudo bash -c 'cd /root/supabase/docker && docker exec supabase-db psql -U supabase_admin -d postgres'
+cd /home/unix/supabase/docker && docker exec supabase-db psql -U supabase_admin -d postgres
 ```
 
 ## Edge Functions
 ```bash
 # Mirror a function to runtime
-sudo bash -c 'cp -r /var/www/justachat/supabase/functions/<func-name> /root/supabase/docker/volumes/functions/main/'
+cp -r /var/www/justachat/supabase/functions/<func-name> /home/unix/supabase/docker/volumes/functions/main/
 
 # Restart edge functions container
 docker restart supabase-edge-functions

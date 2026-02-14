@@ -404,7 +404,7 @@ echo ""
 
 check_info "Searching for backup files (last 7 days)..."
 
-BACKUP_DIRS="/var/backups /home/unix /home/unix/backups /root /root/backups /opt/backups"
+BACKUP_DIRS="/var/backups /home/unix /home/unix/backups /home/unix/supabase /opt/backups"
 FOUND_BACKUPS=0
 
 for d in $BACKUP_DIRS; do

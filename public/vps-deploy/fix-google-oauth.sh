@@ -10,7 +10,7 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-ENV_FILE="/root/supabase/docker/.env"
+ENV_FILE="/home/unix/supabase/docker/.env"
 
 echo "========================================"
 echo -e "${CYAN}  GOOGLE OAUTH DIAGNOSTIC & FIX${NC}"
@@ -65,7 +65,7 @@ if [ "$NEEDS_FIX" = false ]; then
   docker logs --tail 20 supabase-auth 2>&1 | grep -i -E "google|oauth|provider" || echo "  No recent Google OAuth errors in logs"
   echo ""
   echo -e "${GREEN}Config looks good. If still getting errors, restart auth:${NC}"
-  echo "  cd /root/supabase/docker && docker compose --env-file .env restart supabase-auth"
+  echo "  cd /home/unix/supabase/docker && docker compose --env-file .env restart supabase-auth"
   exit 0
 fi
 
@@ -123,7 +123,7 @@ echo -e "${GREEN}  ✓ .env updated${NC}"
 # Step 4: Restart auth
 echo ""
 echo -e "${YELLOW}[4/4] Restarting GoTrue...${NC}"
-cd /root/supabase/docker
+cd /home/unix/supabase/docker
 
 # Find the actual auth container name (varies by setup)
 AUTH_CONTAINER=$(docker ps --format '{{.Names}}' | grep -iE 'auth|gotrue' | head -1)

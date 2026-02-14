@@ -69,7 +69,7 @@ else
   fail "Functions directory not found at $FUNCTIONS_DIR"
   info "Trying alternate path..."
   
-  ALT_DIR="/root/supabase/docker/volumes/functions"
+  ALT_DIR="/home/unix/supabase/docker/volumes/functions"
   if [ -d "$ALT_DIR" ]; then
     cp -r "$FRONTEND_DIR/supabase/functions/irc-gateway/"* "$ALT_DIR/irc-gateway/" 2>/dev/null
     sudo chown -R 1000:1000 "$ALT_DIR"

@@ -27,7 +27,7 @@ ALTER USER supabase_admin WITH PASSWORD 'YOUR_POSTGRES_PASSWORD';
 
 Then restart the stack:
 ```bash
-sudo bash -c 'cd /root/supabase/docker && docker compose --env-file .env restart'
+cd /home/unix/supabase/docker && docker compose --env-file .env restart
 ```
 
 ## Prevention

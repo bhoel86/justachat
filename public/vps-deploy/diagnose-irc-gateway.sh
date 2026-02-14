@@ -10,7 +10,7 @@ echo "  $(date)"
 echo "============================================"
 echo ""
 
-cd ~/supabase/docker 2>/dev/null || cd /root/supabase/docker 2>/dev/null
+cd ~/supabase/docker 2>/dev/null || cd /home/unix/supabase/docker 2>/dev/null
 
 # 1. Check if port 6667 is listening
 echo "=== 1. Port 6667 (IRC) Check ==="
@@ -56,14 +56,14 @@ fi
 
 echo ""
 echo "=== 5. IRC Gateway Function Exists ==="
-FUNC_DIR="/root/supabase/docker/volumes/functions/main"
+FUNC_DIR="/home/unix/supabase/docker/volumes/functions/main"
 if [ -f "$FUNC_DIR/irc-gateway/index.ts" ]; then
   echo "✓ irc-gateway/index.ts found in functions volume"
   echo "  Size: $(wc -c < "$FUNC_DIR/irc-gateway/index.ts") bytes"
 else
   echo "✗ irc-gateway/index.ts NOT found at $FUNC_DIR"
   echo "  Checking alternative locations..."
-  find /root/supabase -name "irc-gateway" -type d 2>/dev/null
+  find /home/unix/supabase -name "irc-gateway" -type d 2>/dev/null
 fi
 
 echo ""
