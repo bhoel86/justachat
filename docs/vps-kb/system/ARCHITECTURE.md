@@ -6,7 +6,7 @@
 - **OS**: Ubuntu (DigitalOcean)
 - **User**: `unix` (non-root, sudo access)
 - **Web Root**: `/var/www/justachat`
-- **Supabase Docker**: `/root/supabase/docker/`
+- **Supabase Docker**: `/home/unix/supabase/docker/`
 
 ## Frontend
 - **Framework**: React + Vite + TypeScript + Tailwind CSS
@@ -17,7 +17,7 @@
   - `VITE_SUPABASE_PUBLISHABLE_KEY=<ANON_KEY>`
 
 ## Backend (Self-Hosted Supabase)
-- **Docker Compose**: `/root/supabase/docker/docker-compose.yml`
+- **Docker Compose**: `/home/unix/supabase/docker/docker-compose.yml`
 - **Key Containers**:
   - `supabase-db` (PostgreSQL)
   - `supabase-kong` (API Gateway, port 8000)
@@ -26,12 +26,12 @@
   - `supabase-realtime`
   - `supabase-storage`
   - `supabase-edge-functions`
-- **Env file**: `/root/supabase/docker/.env`
-- **Kong config**: `/root/supabase/docker/volumes/api/kong.yml`
+- **Env file**: `/home/unix/supabase/docker/.env`
+- **Kong config**: `/home/unix/supabase/docker/volumes/api/kong.yml`
 
 ## Edge Functions
 - **Source**: `/var/www/justachat/supabase/functions/`
-- **Runtime location**: `/root/supabase/docker/volumes/functions/main/`
+- **Runtime location**: `/home/unix/supabase/docker/volumes/functions/main/`
 - **Must be mirrored** from source to runtime location after changes
 - **Uses**: `Deno.serve()` directly (no std/http imports)
 - **VPS uses `chat-bot`**, NOT `chat-bot-cloud`

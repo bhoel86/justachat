@@ -25,7 +25,7 @@ GRANT ALL ON public.messages TO anon, authenticated;
 
 Run via:
 ```bash
-sudo bash -c 'cd /root/supabase/docker && docker exec supabase-db psql -U supabase_admin -d postgres -c "GRANT SELECT ON public.channels TO anon, authenticated;"'
+cd /home/unix/supabase/docker && docker exec supabase-db psql -U supabase_admin -d postgres -c "GRANT SELECT ON public.channels TO anon, authenticated;"
 ```
 
 ## Prevention

@@ -22,7 +22,7 @@ for port in 3000 5432 6543 8000 8443 9999; do
 done
 
 # Clean restart (run as root or via sudo bash -c)
-cd /root/supabase/docker
+cd /home/unix/supabase/docker
 docker compose --env-file .env down --remove-orphans
 docker compose --env-file .env up -d
 ```

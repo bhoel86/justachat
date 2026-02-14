@@ -84,7 +84,7 @@ Method 1 - WinSCP (Easiest):
 
 Method 2 - PowerShell:
   1. First, copy to unix home (run on VPS via SSH):
-     sudo cp /root/backups/justachat.net-Working-*.tar.gz ~/
+     cp /home/unix/backups/justachat.net-Working-*.tar.gz ~/
 
   2. Then download (run on Windows PowerShell):
      scp unix@24.199.122.60:~/justachat.net-Working-*.tar.gz C:\Users\dunad\Desktop\

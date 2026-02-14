@@ -22,7 +22,7 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 APP_DIR="/var/www/justachat"
-DOCKER_DIR="/root/supabase/docker"
+DOCKER_DIR="/home/unix/supabase/docker"
 FUNC_DIR="$DOCKER_DIR/volumes/functions"
 
 # ============================================

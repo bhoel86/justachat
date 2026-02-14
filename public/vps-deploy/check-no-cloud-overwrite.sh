@@ -43,7 +43,7 @@ fi
 # 2. Check backend .env
 echo ""
 echo -e "${YELLOW}[2/6] Backend .env${NC}"
-BACKEND_ENV="/root/supabase/docker/.env"
+BACKEND_ENV="/home/unix/supabase/docker/.env"
 if [ -f "$BACKEND_ENV" ]; then
   BE_URL=$(grep '^API_EXTERNAL_URL=' "$BACKEND_ENV" | head -1)
   echo "  $BE_URL"
@@ -140,7 +140,7 @@ fi
 
 # Can you actually login?
 LOGIN_TEST=$(curl -s -X POST http://127.0.0.1:8000/auth/v1/token?grant_type=password \
-  -H "apikey: $(grep '^ANON_KEY=' /root/supabase/docker/.env 2>/dev/null | cut -d= -f2)" \
+  -H "apikey: $(grep '^ANON_KEY=' /home/unix/supabase/docker/.env 2>/dev/null | cut -d= -f2)" \
   -H "Content-Type: application/json" \
   -d '{"email":"unix@justachat.net","password":"634103258"}' 2>/dev/null || echo '{"error":"curl failed"}')
 
@@ -163,8 +163,8 @@ else
   echo ""
   echo "  Common fixes:"
   echo "  1. Fix .env: sed -i 's|VITE_SUPABASE_URL=.*|VITE_SUPABASE_URL=https://justachat.net|' /var/www/justachat/.env"
-  echo "  2. Sync anon key: Copy ANON_KEY from /root/supabase/docker/.env to VITE_SUPABASE_PUBLISHABLE_KEY"
+  echo "  2. Sync anon key: Copy ANON_KEY from /home/unix/supabase/docker/.env to VITE_SUPABASE_PUBLISHABLE_KEY"
   echo "  3. Rebuild: cd /var/www/justachat && rm -rf dist && npm run build"
-  echo "  4. Restart stack: cd /root/supabase/docker && docker compose --env-file .env down --remove-orphans && docker compose --env-file .env up -d"
+  echo "  4. Restart stack: cd /home/unix/supabase/docker && docker compose --env-file .env down --remove-orphans && docker compose --env-file .env up -d"
 fi
 echo "========================================"

@@ -12,8 +12,8 @@ echo "╚═══════════════════════�
 echo ""
 
 # Load env
-if [ -f /root/supabase/docker/.env ]; then
-  source /root/supabase/docker/.env 2>/dev/null
+if [ -f /home/unix/supabase/docker/.env ]; then
+  source /home/unix/supabase/docker/.env 2>/dev/null
 fi
 
 ANON_KEY="${ANON_KEY:-$SUPABASE_ANON_KEY}"
@@ -106,7 +106,7 @@ if [ -n "$ANON_KEY" ]; then
   fi
 else
   echo "  [✗] No ANON_KEY found! Cannot test API."
-  echo "  Check /root/supabase/docker/.env"
+  echo "  Check /home/unix/supabase/docker/.env"
 fi
 
 echo ""
@@ -126,7 +126,7 @@ if [ "$EF_STATUS" = "running" ]; then
   echo "  IRC gateway response: $(echo "$IRC_RESPONSE" | head -c 300)"
 else
   echo "  [✗] Edge functions container not running!"
-  echo "  FIX: cd /root/supabase/docker && docker compose up -d functions"
+  echo "  FIX: cd /home/unix/supabase/docker && docker compose up -d functions"
 fi
 
 echo ""
