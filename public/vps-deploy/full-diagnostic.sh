@@ -46,21 +46,18 @@ echo "IP: $(curl -s ifconfig.me 2>/dev/null || echo 'unknown')"
 echo "User: $(whoami)"
 echo ""
 
-# Check unix user exists
 if id "unix" &>/dev/null; then
   check_pass "User 'unix' exists"
 else
   check_fail "User 'unix' does NOT exist"
 fi
 
-# Check unix has sudo
 if groups unix 2>/dev/null | grep -q sudo; then
   check_pass "User 'unix' has sudo access"
 else
   check_fail "User 'unix' missing sudo access"
 fi
 
-# Check project directory ownership
 if [ -d "/var/www/justachat" ]; then
   OWNER=$(stat -c '%U' /var/www/justachat)
   if [ "$OWNER" = "unix" ]; then
@@ -81,12 +78,12 @@ echo "════════════════════════�
 echo ""
 
 if command -v docker &>/dev/null; then
-  check_pass "Docker installed: $(docker --version | head -c 50)"
+  check_pass "Docker installed: $(sudo docker --version | head -c 50)"
 else
   check_fail "Docker NOT installed"
 fi
 
-if systemctl is-active --quiet docker; then
+if sudo systemctl is-active --quiet docker; then
   check_pass "Docker service running"
 else
   check_fail "Docker service NOT running"
@@ -94,14 +91,13 @@ fi
 
 echo ""
 echo "--- Docker Containers Status ---"
-docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null | (head -n 1; grep -E 'supabase|kong' || echo "No Supabase containers found")
+sudo docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' 2>/dev/null | (head -n 1; grep -E 'supabase|kong' || echo "No Supabase containers found")
 echo ""
 
-# Check critical containers
 REQUIRED_CONTAINERS="supabase-db supabase-kong supabase-auth supabase-rest supabase-realtime supabase-storage supabase-edge-functions"
 for container in $REQUIRED_CONTAINERS; do
-  if docker ps --format '{{.Names}}' | grep -q "^${container}$"; then
-    STATUS=$(docker inspect -f '{{.State.Status}}' "$container" 2>/dev/null)
+  if sudo docker ps --format '{{.Names}}' | grep -q "^${container}$"; then
+    STATUS=$(sudo docker inspect -f '{{.State.Status}}' "$container" 2>/dev/null)
     if [ "$STATUS" = "running" ]; then
       check_pass "Container $container: running"
     else
@@ -122,12 +118,11 @@ echo ""
 
 SUPABASE_DIR="/home/unix/supabase/docker"
 
-if [ -f "$SUPABASE_DIR/.env" ]; then
+if sudo test -f "$SUPABASE_DIR/.env"; then
   check_pass "$SUPABASE_DIR/.env exists"
   
-  # Check key variables
   for var in POSTGRES_PASSWORD JWT_SECRET ANON_KEY SERVICE_ROLE_KEY; do
-    if grep -q "^${var}=" "$SUPABASE_DIR/.env" 2>/dev/null; then
+    if sudo grep -q "^${var}=" "$SUPABASE_DIR/.env" 2>/dev/null; then
       check_pass "  $var is set"
     else
       check_fail "  $var is MISSING"
@@ -137,13 +132,13 @@ else
   check_fail "$SUPABASE_DIR/.env does NOT exist"
 fi
 
-if [ -f "$SUPABASE_DIR/docker-compose.yml" ]; then
+if sudo test -f "$SUPABASE_DIR/docker-compose.yml"; then
   check_pass "$SUPABASE_DIR/docker-compose.yml exists"
 else
   check_fail "$SUPABASE_DIR/docker-compose.yml does NOT exist"
 fi
 
-if [ -f "$SUPABASE_DIR/volumes/api/kong.yml" ]; then
+if sudo test -f "$SUPABASE_DIR/volumes/api/kong.yml"; then
   check_pass "$SUPABASE_DIR/volumes/api/kong.yml exists"
 else
   check_fail "$SUPABASE_DIR/volumes/api/kong.yml does NOT exist"
@@ -200,7 +195,7 @@ echo "════════════════════════�
 #===============================================================================
 echo ""
 
-if systemctl is-active --quiet nginx; then
+if sudo systemctl is-active --quiet nginx; then
   check_pass "Nginx service running"
 else
   check_fail "Nginx service NOT running"
@@ -212,8 +207,7 @@ else
   check_fail "/etc/nginx/sites-enabled/justachat does NOT exist"
 fi
 
-# Test nginx config
-if nginx -t 2>&1 | grep -q "syntax is ok"; then
+if sudo nginx -t 2>&1 | grep -q "syntax is ok"; then
   check_pass "Nginx config syntax OK"
 else
   check_fail "Nginx config has errors"
@@ -229,8 +223,7 @@ echo ""
 
 if [ -d "/etc/letsencrypt/live/justachat.net" ]; then
   check_pass "SSL certificates exist"
-  
-  EXPIRY=$(openssl x509 -enddate -noout -in /etc/letsencrypt/live/justachat.net/fullchain.pem 2>/dev/null | cut -d= -f2)
+  EXPIRY=$(sudo openssl x509 -enddate -noout -in /etc/letsencrypt/live/justachat.net/fullchain.pem 2>/dev/null | cut -d= -f2)
   check_info "  Expires: $EXPIRY"
 else
   check_warn "SSL certificates NOT found (may need certbot)"
@@ -246,22 +239,20 @@ echo ""
 
 FUNC_DIR="$SUPABASE_DIR/volumes/functions"
 
-if [ -d "$FUNC_DIR" ]; then
+if sudo test -d "$FUNC_DIR"; then
   check_pass "Edge functions directory exists"
   
-  # Check ownership
-  FUNC_OWNER=$(stat -c '%u' "$FUNC_DIR")
+  FUNC_OWNER=$(sudo stat -c '%u' "$FUNC_DIR")
   if [ "$FUNC_OWNER" = "1000" ]; then
     check_pass "  Functions owned by UID 1000 (deno)"
   else
     check_fail "  Functions owned by UID $FUNC_OWNER (should be 1000)"
   fi
   
-  # Check main router
-  if [ -f "$FUNC_DIR/main/index.ts" ]; then
+  if sudo test -f "$FUNC_DIR/main/index.ts"; then
     check_pass "  Main router exists: main/index.ts"
     
-    if grep -q "import(" "$FUNC_DIR/main/index.ts" 2>/dev/null; then
+    if sudo grep -q "import(" "$FUNC_DIR/main/index.ts" 2>/dev/null; then
       check_pass "  Router has dynamic imports"
     else
       check_warn "  Router may be missing dynamic imports"
@@ -270,10 +261,9 @@ if [ -d "$FUNC_DIR" ]; then
     check_fail "  Main router MISSING: main/index.ts"
   fi
   
-  # List functions
   echo ""
   check_info "  Functions found:"
-  ls -la "$FUNC_DIR" 2>/dev/null | grep "^d" | awk '{print "    " $NF}' | grep -v "^\." || echo "    (none)"
+  sudo ls -la "$FUNC_DIR" 2>/dev/null | grep "^d" | awk '{print "    " $NF}' | grep -v "^\." || echo "    (none)"
 else
   check_fail "Edge functions directory does NOT exist"
 fi
@@ -286,18 +276,17 @@ echo "════════════════════════�
 #===============================================================================
 echo ""
 
-if docker exec supabase-db pg_isready -U postgres 2>/dev/null | grep -q "accepting"; then
+if sudo docker exec supabase-db pg_isready -U postgres 2>/dev/null | grep -q "accepting"; then
   check_pass "PostgreSQL accepting connections"
 else
   check_fail "PostgreSQL NOT accepting connections"
 fi
 
-# Check tables exist
 echo ""
 check_info "Core tables check:"
 CORE_TABLES="profiles user_roles channels messages channel_members private_messages bans mutes"
 for table in $CORE_TABLES; do
-  EXISTS=$(docker exec supabase-db psql -U postgres -d postgres -t -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '$table');" 2>/dev/null | tr -d ' ')
+  EXISTS=$(sudo docker exec supabase-db psql -U postgres -d postgres -t -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '$table');" 2>/dev/null | tr -d ' ')
   if [ "$EXISTS" = "t" ]; then
     check_pass "  Table: $table"
   else
@@ -305,28 +294,25 @@ for table in $CORE_TABLES; do
   fi
 done
 
-# Check channels
 echo ""
 check_info "Channels in database:"
-docker exec supabase-db psql -U postgres -d postgres -t -c "SELECT count(*) FROM public.channels;" 2>/dev/null | tr -d ' ' | while read count; do
+sudo docker exec supabase-db psql -U postgres -d postgres -t -c "SELECT count(*) FROM public.channels;" 2>/dev/null | tr -d ' ' | while read count; do
   echo "    Total channels: $count"
 done
 
-docker exec supabase-db psql -U postgres -d postgres -t -c "SELECT name FROM public.channels ORDER BY name LIMIT 20;" 2>/dev/null | while read name; do
+sudo docker exec supabase-db psql -U postgres -d postgres -t -c "SELECT name FROM public.channels ORDER BY name LIMIT 20;" 2>/dev/null | while read name; do
   [ -n "$name" ] && echo "    - $name"
 done
 
-# Check users
 echo ""
 check_info "Users in database:"
-docker exec supabase-db psql -U postgres -d postgres -t -c "SELECT count(*) FROM auth.users;" 2>/dev/null | tr -d ' ' | while read count; do
+sudo docker exec supabase-db psql -U postgres -d postgres -t -c "SELECT count(*) FROM auth.users;" 2>/dev/null | tr -d ' ' | while read count; do
   echo "    Total users: $count"
 done
 
-# Check owners
 echo ""
 check_info "Owner accounts:"
-docker exec supabase-db psql -U postgres -d postgres -t -c "SELECT u.email, ur.role FROM auth.users u JOIN public.user_roles ur ON u.id = ur.user_id WHERE ur.role = 'owner';" 2>/dev/null | while read line; do
+sudo docker exec supabase-db psql -U postgres -d postgres -t -c "SELECT u.email, ur.role FROM auth.users u JOIN public.user_roles ur ON u.id = ur.user_id WHERE ur.role = 'owner';" 2>/dev/null | while read line; do
   [ -n "$line" ] && echo "    $line"
 done
 
@@ -340,8 +326,8 @@ echo ""
 
 SERVICES="nginx justachat-email jac-deploy"
 for svc in $SERVICES; do
-  if systemctl is-enabled --quiet "$svc" 2>/dev/null; then
-    STATUS=$(systemctl is-active "$svc" 2>/dev/null)
+  if sudo systemctl is-enabled --quiet "$svc" 2>/dev/null; then
+    STATUS=$(sudo systemctl is-active "$svc" 2>/dev/null)
     if [ "$STATUS" = "active" ]; then
       check_pass "Service $svc: enabled + running"
     else
@@ -362,7 +348,6 @@ echo ""
 
 check_info "Testing local endpoints..."
 
-# Kong/API
 KONG_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8000/ 2>/dev/null || echo "000")
 if [ "$KONG_STATUS" = "200" ] || [ "$KONG_STATUS" = "404" ]; then
   check_pass "Kong API (8000): responding ($KONG_STATUS)"
@@ -370,7 +355,6 @@ else
   check_fail "Kong API (8000): NOT responding ($KONG_STATUS)"
 fi
 
-# Auth
 AUTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8000/auth/v1/health 2>/dev/null || echo "000")
 if [ "$AUTH_STATUS" = "200" ]; then
   check_pass "GoTrue Auth: healthy"
@@ -378,7 +362,6 @@ else
   check_warn "GoTrue Auth: status $AUTH_STATUS"
 fi
 
-# REST
 REST_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8000/rest/v1/ 2>/dev/null || echo "000")
 if [ "$REST_STATUS" = "200" ]; then
   check_pass "PostgREST: responding"
@@ -386,7 +369,6 @@ else
   check_warn "PostgREST: status $REST_STATUS"
 fi
 
-# Edge Functions
 EDGE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:9000/ 2>/dev/null || echo "000")
 if [ "$EDGE_STATUS" = "200" ]; then
   check_pass "Edge Functions (9000): responding"
@@ -409,12 +391,12 @@ FOUND_BACKUPS=0
 
 for d in $BACKUP_DIRS; do
   if [ -d "$d" ]; then
-    BACKUPS=$(find "$d" -maxdepth 3 -type f \( -iname "*.sql" -o -iname "*.sql.gz" -o -iname "*.tar.gz" -o -iname "*backup*" \) -mtime -7 2>/dev/null | head -10)
+    BACKUPS=$(sudo find "$d" -maxdepth 3 -type f \( -iname "*.sql" -o -iname "*.sql.gz" -o -iname "*.tar.gz" -o -iname "*backup*" \) -mtime -7 2>/dev/null | head -10)
     if [ -n "$BACKUPS" ]; then
       echo "  In $d:"
       echo "$BACKUPS" | while read f; do
-        SIZE=$(ls -lh "$f" 2>/dev/null | awk '{print $5}')
-        DATE=$(stat -c '%y' "$f" 2>/dev/null | cut -d' ' -f1)
+        SIZE=$(sudo ls -lh "$f" 2>/dev/null | awk '{print $5}')
+        DATE=$(sudo stat -c '%y' "$f" 2>/dev/null | cut -d' ' -f1)
         echo "    $DATE  $SIZE  $(basename "$f")"
         FOUND_BACKUPS=$((FOUND_BACKUPS+1))
       done
@@ -435,21 +417,12 @@ echo "SUMMARY"
 echo "═══════════════════════════════════════════════════════════════"
 #===============================================================================
 echo ""
-
-if [ $ERRORS -eq 0 ] && [ $WARNINGS -eq 0 ]; then
-  echo -e "${GREEN}╔══════════════════════════════════════════════════════════════╗${NC}"
-  echo -e "${GREEN}║  ALL CHECKS PASSED - VPS IS HEALTHY                          ║${NC}"
-  echo -e "${GREEN}╚══════════════════════════════════════════════════════════════╝${NC}"
-elif [ $ERRORS -eq 0 ]; then
-  echo -e "${YELLOW}╔══════════════════════════════════════════════════════════════╗${NC}"
-  echo -e "${YELLOW}║  $WARNINGS WARNINGS - Review items above                           ║${NC}"
-  echo -e "${YELLOW}╚══════════════════════════════════════════════════════════════╝${NC}"
-else
-  echo -e "${RED}╔══════════════════════════════════════════════════════════════╗${NC}"
-  echo -e "${RED}║  $ERRORS ERRORS, $WARNINGS WARNINGS - Action required!                    ║${NC}"
-  echo -e "${RED}╚══════════════════════════════════════════════════════════════╝${NC}"
-fi
-
+echo -e "Errors:   $ERRORS"
+echo -e "Warnings: $WARNINGS"
 echo ""
-echo "Diagnostic saved to: /tmp/full-diagnostic.log"
+if [ $ERRORS -eq 0 ]; then
+  echo -e "${GREEN}All critical checks passed!${NC}"
+else
+  echo -e "${RED}$ERRORS critical issues found - review above${NC}"
+fi
 echo ""

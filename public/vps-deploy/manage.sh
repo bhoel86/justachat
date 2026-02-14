@@ -1,7 +1,7 @@
 #!/bin/bash
 # JAC VPS Management Script v2.0
 # Standalone - No Lovable dependency
-# Usage: /opt/jac-deploy/manage.sh {deploy|backup|list|restore|schedule|status}
+# Usage: sudo bash /opt/jac-deploy/manage.sh {deploy|backup|list|restore|schedule|status}
 
 DEPLOY_DIR="${DEPLOY_DIR:-/var/www/justachat}"
 BACKUP_DIR="${BACKUP_DIR:-/backups/justachat}"
@@ -14,18 +14,20 @@ case "$1" in
     git fetch origin main
     git reset --hard origin/main
     npm install --legacy-peer-deps
+    sudo chown -R unix:unix "$DEPLOY_DIR"
     npm run build
+    sudo nginx -t && sudo systemctl reload nginx
     echo "✓ Deploy complete!"
     ;;
     
   backup)
     echo "=== Creating Backup ==="
     TIMESTAMP=$(date +%Y%m%dT%H%M%S)
-    mkdir -p $BACKUP_DIR
+    sudo mkdir -p $BACKUP_DIR
     cd $DEPLOY_DIR
-    tar -czf $BACKUP_DIR/justachat-${TIMESTAMP}.tar.gz --exclude='node_modules' --exclude='.git' .
+    sudo tar -czf $BACKUP_DIR/justachat-${TIMESTAMP}.tar.gz --exclude='node_modules' --exclude='.git' .
     # Keep only last 10 backups
-    cd $BACKUP_DIR && ls -t *.tar.gz 2>/dev/null | tail -n +11 | xargs -r rm --
+    cd $BACKUP_DIR && ls -t *.tar.gz 2>/dev/null | tail -n +11 | xargs -r sudo rm --
     echo "✓ Backup saved: justachat-${TIMESTAMP}.tar.gz"
     ;;
     
@@ -54,11 +56,13 @@ case "$1" in
     echo "=== Creating safety backup first ==="
     TIMESTAMP=$(date +%Y%m%dT%H%M%S)
     cd $DEPLOY_DIR
-    tar -czf $BACKUP_DIR/pre-restore-${TIMESTAMP}.tar.gz --exclude='node_modules' --exclude='.git' .
+    sudo tar -czf $BACKUP_DIR/pre-restore-${TIMESTAMP}.tar.gz --exclude='node_modules' --exclude='.git' .
     echo "=== Restoring from $2 ==="
-    tar -xzf $BACKUP_FILE -C $DEPLOY_DIR
+    sudo tar -xzf $BACKUP_FILE -C $DEPLOY_DIR
+    sudo chown -R unix:unix "$DEPLOY_DIR"
     npm install --legacy-peer-deps
     npm run build
+    sudo nginx -t && sudo systemctl reload nginx
     echo "✓ Restore complete!"
     ;;
     
@@ -66,19 +70,19 @@ case "$1" in
     FREQ="${2:-daily}"
     case "$FREQ" in
       hourly)
-        echo "0 * * * * root /opt/jac-deploy/manage.sh backup >> /var/log/jac-backup.log 2>&1" > $CRON_FILE
+        echo "0 * * * * root /opt/jac-deploy/manage.sh backup >> /var/log/jac-backup.log 2>&1" | sudo tee $CRON_FILE > /dev/null
         echo "✓ Backup scheduled: hourly"
         ;;
       daily)
-        echo "0 2 * * * root /opt/jac-deploy/manage.sh backup >> /var/log/jac-backup.log 2>&1" > $CRON_FILE
+        echo "0 2 * * * root /opt/jac-deploy/manage.sh backup >> /var/log/jac-backup.log 2>&1" | sudo tee $CRON_FILE > /dev/null
         echo "✓ Backup scheduled: daily at 2am"
         ;;
       weekly)
-        echo "0 3 * * 0 root /opt/jac-deploy/manage.sh backup >> /var/log/jac-backup.log 2>&1" > $CRON_FILE
+        echo "0 3 * * 0 root /opt/jac-deploy/manage.sh backup >> /var/log/jac-backup.log 2>&1" | sudo tee $CRON_FILE > /dev/null
         echo "✓ Backup scheduled: weekly on Sunday at 3am"
         ;;
       disable|off)
-        rm -f $CRON_FILE
+        sudo rm -f $CRON_FILE
         echo "✓ Backup schedule disabled"
         ;;
       *)
@@ -86,7 +90,7 @@ case "$1" in
         exit 1
         ;;
     esac
-    chmod 644 $CRON_FILE 2>/dev/null
+    sudo chmod 644 $CRON_FILE 2>/dev/null
     ;;
     
   status)
@@ -105,14 +109,17 @@ case "$1" in
     fi
     echo ""
     echo "Services:"
-    systemctl is-active --quiet nginx && echo "  nginx: ✓ running" || echo "  nginx: ✗ stopped"
-    systemctl is-active --quiet jac-deploy && echo "  jac-deploy: ✓ running" || echo "  jac-deploy: ✗ stopped"
+    sudo systemctl is-active --quiet nginx && echo "  nginx: ✓ running" || echo "  nginx: ✗ stopped"
+    sudo systemctl is-active --quiet jac-deploy && echo "  jac-deploy: ✓ running" || echo "  jac-deploy: ✗ stopped"
+    echo ""
+    echo "Docker containers:"
+    sudo docker ps --format "table {{.Names}}\t{{.Status}}" 2>/dev/null | grep supabase || echo "  No containers found"
     ;;
     
   *)
     echo "JAC VPS Manager v2.0"
     echo ""
-    echo "Usage: $0 <command>"
+    echo "Usage: sudo bash $0 <command>"
     echo ""
     echo "Commands:"
     echo "  deploy              Pull latest from GitHub and rebuild"

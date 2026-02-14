@@ -2,7 +2,7 @@
 # ============================================
 # JUSTACHAT VPS UPDATE SCRIPT
 # Run after pushing to GitHub to sync VPS
-# Usage: bash /var/www/justachat/public/vps-deploy/update-vps.sh
+# Usage: sudo bash /var/www/justachat/public/vps-deploy/update-vps.sh
 # ============================================
 
 set -e
@@ -15,7 +15,8 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 PROJECT_DIR="/var/www/justachat"
-FUNCTIONS_DIR="$HOME/supabase/docker/volumes/functions/main"
+DOCKER_DIR="/home/unix/supabase/docker"
+FUNCTIONS_DIR="$DOCKER_DIR/volumes/functions/main"
 
 log_info() { echo -e "${CYAN}[INFO]${NC} $1"; }
 log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
@@ -61,8 +62,8 @@ log_info "Stage 1b: Restoring VPS .env configuration..."
 
 # Read the REAL ANON_KEY from Docker environment (single source of truth)
 VPS_ANON_KEY=""
-if [ -f "$HOME/supabase/docker/.env" ]; then
-  VPS_ANON_KEY=$(grep -E '^ANON_KEY=' "$HOME/supabase/docker/.env" | head -1 | sed 's/^ANON_KEY=//')
+if [ -f "$DOCKER_DIR/.env" ]; then
+  VPS_ANON_KEY=$(sudo grep -E '^ANON_KEY=' "$DOCKER_DIR/.env" | head -1 | sed 's/^ANON_KEY=//')
 fi
 if [ -z "$VPS_ANON_KEY" ]; then
   log_error "Could not read ANON_KEY from Docker .env!"
@@ -120,6 +121,7 @@ rm -rf dist node_modules/.vite .vite 2>/dev/null || true
 
 log_info "Stage 5: Building frontend..."
 
+sudo chown -R unix:unix "$PROJECT_DIR"
 npm run build
 
 if [ -d "dist" ]; then
@@ -134,7 +136,7 @@ fi
 # ============================================
 log_info "Stage 6: Syncing edge functions..."
 
-if [ -d "$FUNCTIONS_DIR" ]; then
+if sudo test -d "$FUNCTIONS_DIR"; then
   # List of edge functions to sync
   FUNCTIONS=(
     "admin-list-users"
@@ -164,16 +166,16 @@ if [ -d "$FUNCTIONS_DIR" ]; then
 
   for func in "${FUNCTIONS[@]}"; do
     if [ -d "supabase/functions/$func" ]; then
-      mkdir -p "$FUNCTIONS_DIR/$func"
-      cp -r "supabase/functions/$func/"* "$FUNCTIONS_DIR/$func/" 2>/dev/null || true
+      sudo mkdir -p "$FUNCTIONS_DIR/$func"
+      sudo cp -r "supabase/functions/$func/"* "$FUNCTIONS_DIR/$func/" 2>/dev/null || true
       log_success "Synced: $func"
     fi
   done
 
   # Restart edge functions container
   log_info "Restarting edge functions container..."
-  cd $HOME/supabase/docker
-  docker compose restart edge-functions 2>/dev/null || docker-compose restart edge-functions 2>/dev/null || true
+  cd "$DOCKER_DIR"
+  sudo docker compose restart edge-functions 2>/dev/null || sudo docker-compose restart edge-functions 2>/dev/null || true
   cd "$PROJECT_DIR"
   
   log_success "Edge functions synced and restarted"
