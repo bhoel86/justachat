@@ -148,6 +148,22 @@ services:
             - admin
             - anon
 
+  - name: functions-v1-options
+    url: http://functions:9000/
+    routes:
+      - name: functions-v1-options
+        strip_path: true
+        paths:
+          - /functions/v1/
+        methods:
+          - OPTIONS
+    plugins:
+      - name: cors
+      - name: request-termination
+        config:
+          status_code: 200
+          message: ok
+
   - name: functions-v1
     url: http://functions:9000/
     routes:
@@ -155,6 +171,13 @@ services:
         strip_path: true
         paths:
           - /functions/v1/
+        methods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - HEAD
     plugins:
       - name: cors
       - name: key-auth
